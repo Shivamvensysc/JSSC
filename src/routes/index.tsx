@@ -27,8 +27,11 @@ import ApplicationControlPanel from "../components/admin/ApplicationControlPanel
 import AdmitCardManagement from "../components/admin/AdmitCardManagement";
 import SystemDataExport from "../components/admin/SystemDataExport";
 import CommunicationsAdminPortal from "../components/admin/CommunicationsAdminPortal";
+import ScrollToTop from "../components/common/ScrollToTop";
 const Index = () => {
   return (
+    <>
+    <ScrollToTop />
     <Routes>
       {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/" element={<Layout />}>
@@ -63,7 +66,9 @@ const Index = () => {
         <Route path="new-broadcast" element={<CommunicationsAdminPortal />} />
         <Route path="data-export-hub" element={<SystemDataExport />} />
       </Route>
-    </Routes> 
+    </Routes>
+
+    </> 
   );
 };
 

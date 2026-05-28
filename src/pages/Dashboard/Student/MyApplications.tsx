@@ -23,18 +23,10 @@ import {
   Bell,
   Edit3,
   CheckSquare,
-  
-  
+
   Globe,
   Sliders,
  
-  
-  
-  
-  
-  
- 
-  
 } from "lucide-react";
 
 interface PersonalInfo {
@@ -1048,7 +1040,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                   Upload Disability Certificate
                 </label>
@@ -1063,7 +1055,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                   accept=".pdf,.jpg,.jpeg"
                 />
-              </div>
+              </div> */}
             </>
           )}
         </div>
@@ -1132,7 +1124,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                   Upload Discharge Book
                 </label>
@@ -1147,7 +1139,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                   accept=".pdf"
                 />
-              </div>
+              </div> */}
             </>
           )}
         </div>
@@ -1236,7 +1228,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 ></textarea>
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
                   Upload Sports Certificate
                 </label>
@@ -1251,7 +1243,7 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                   accept=".pdf,.jpg,.jpeg"
                 />
-              </div>
+              </div> */}
             </>
           )}
         </div>
@@ -2477,6 +2469,27 @@ const MyApplications: React.FC = () => {
       {
         key: "pwdCertificate",
         label: "PwD Certificate",
+        required: false,
+        type: "pdf",
+        size: "Max 500KB",
+      },
+      {
+        key: "pwdCertificate",
+        label: "Disability  Certificate",
+        required: false,
+        type: "pdf",
+        size: "Max 500KB",
+      },
+      {
+        key: "pwdCertificate",
+        label: "Service Certificate",
+        required: false,
+        type: "pdf",
+        size: "Max 500KB",
+      },
+      {
+        key: "pwdCertificate",
+        label: "Sports Certificate",
         required: false,
         type: "pdf",
         size: "Max 500KB",

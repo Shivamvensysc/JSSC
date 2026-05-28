@@ -36,8 +36,6 @@ export default function Header({ isCollapsed, onToggle }: { isCollapsed: boolean
     };
   }, []);
 
- 
-  
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
