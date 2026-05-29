@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import DashboardSidebar from "../components/DashboardSidebar";
+import { toast } from "react-toastify";
 
 const DashboardLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Changed to true for desktop
@@ -27,6 +28,7 @@ const DashboardLayout: React.FC = () => {
   };
 
   const handleLogout = () => {
+    toast.success("Logout successfully")
     navigate("/");
   };
 

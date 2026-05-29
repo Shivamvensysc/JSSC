@@ -1,8 +1,13 @@
 import { LogIn, Lock, User, RefreshCw, MoveRight, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function CandidateLogin() {
   const navigate = useNavigate();
+  const handleSubmit = ()=>{
+     navigate("/dashboard")
+     toast.success("Candidate login successfully")
+  }
   return (
     <div className="min-h-screen bg-[#F4F5F7] px-4 py-8 flex flex-col items-center justify-center gap-6">
       {/* LOGIN CARD */}
@@ -104,7 +109,7 @@ export default function CandidateLogin() {
 
           {/* SUBMIT BUTTON */}
           <button
-          onClick={() => navigate("/dashboard")}
+           onClick={handleSubmit}
             type="submit"
             className="w-full py-3 bg-[#003A2B] hover:bg-[#002B20] text-white text-[16px] font-semibold rounded-lg transition-all flex items-center justify-center gap-2 tracking-wide shadow-sm mt-6"
           >

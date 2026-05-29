@@ -7,6 +7,7 @@ import {
   MapPin,
   FileCheck,
   Shield,
+  Calendar,
   FileSignature,
   ChevronRight,
   ChevronLeft,
@@ -19,26 +20,41 @@ import {
   ExternalLink,
   Info,
   HelpCircle,
-  GripVertical,
   Bell,
   Edit3,
   CheckSquare,
-
   Globe,
   Sliders,
- 
+  Languages,
+  KeyRound,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+interface SearchableDropdownProps {
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+}
+
 
 interface PersonalInfo {
   firstName: string;
   lastName: string;
   fathersName: string;
+  motherName : string;
   dob: string;
   gender: string;
+   age: number;
   nationality: string;
-  mobileNumber: string;
-  emailId: string;
   aadharNumber: string;
+  mobileNumber: string;
+    identificationMark1: string;  // Added
+  identificationMark2: string;  // Added
+  alternateNumber: string;
+  emailId: string;
   permanentAddress: {
     street: string;
     post: string;
@@ -58,24 +74,37 @@ interface PersonalInfo {
   sameAsPermanent: boolean;
 }
 
+
 interface Education {
   tenth: {
+   
+    
     board: string;
     rollNumber: string;
     percentage: string;
     yearOfPassing: string;
+    totalMarks: string;
+    marksObtained: string;
+    passingCertificateNo: string;
   };
   twelfth: {
     board: string;
     rollNumber: string;
     percentage: string;
     yearOfPassing: string;
+    passingCertificateNo: string;
+    totalMarks: string;
+    marksObtained: string;
   };
   graduation: {
+    graduationCourse: string;
     university: string;
     passoutYear: string;
     percentage: string;
     specialization: string;
+    passingCertificateNo: string;
+    totalMarks: string;
+    marksObtained: string;
   };
   postGraduation: {
     hasPostGraduation: boolean;
@@ -83,12 +112,18 @@ interface Education {
     passoutYear: string;
     percentage: string;
     subject: string;
+    totalMarks: string;
+    marksObtained: string;
+    passingCertificateNo: string;
   };
   diploma: {
     hasDiploma: boolean;
     instituteName: string;
     qualificationType: string;
     year: string;
+    totalMarks: string;
+    marksObtained: string;
+    certificateNo: string;
   };
   experience: {
     hasExperience: boolean;
@@ -97,24 +132,33 @@ interface Education {
     organization: string;
     designation: string;
     dateOfJoining: string;
+    relievingDate: string;
+    experienceLetterNo: string;
   };
   contractualService: {
     hasContractualService: boolean;
     durationYears: string;
     durationMonths: string;
     organization: string;
+    contractId: string;
   };
 }
 
 interface PostPreference {
   vacancyStream: string;
-  postRankings: { [key: number]: number };
+  postRankings: { [key: number]: number }; // 0 means not selected, 1-5 for priorities
 }
 
 interface CenterSelection {
   firstPreference: string;
   secondPreference: string;
   thirdPreference: string;
+}
+
+interface LanguageSelection {
+  paperOneLanguage: string;
+  paperTwoLanguage: string;
+  paperThreeLanguage: string;
 }
 
 interface ReservationCategory {
@@ -169,9 +213,17 @@ interface ApplicationStatus {
   submissionDate: string;
 }
 
+import { toast } from "react-toastify";
+
+
+
 const MyApplications: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [mobileOtpSent, setMobileOtpSent] = useState(false);
+  const [mobileOtpVerified, setMobileOtpVerified] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>(
     {
       isSubmitted: false,
@@ -180,14 +232,191 @@ const MyApplications: React.FC = () => {
     },
   );
 
+  const boards = [
+  "CBSE",
+  "ICSE",
+  "NIOS",
+  "IB",
+  "IGCSE",
+  "Andhra Pradesh Board",
+  "Assam Board",
+  "Bihar Board",
+  "Chhattisgarh Board",
+  "Goa Board",
+  "Gujarat Board",
+  "Haryana Board",
+  "Himachal Pradesh Board",
+  "Jharkhand Board",
+  "Karnataka Board",
+  "Kerala Board",
+  "Madhya Pradesh Board",
+  "Maharashtra Board",
+  "Manipur Board",
+  "Meghalaya Board",
+  "Mizoram Board",
+  "Nagaland Board",
+  "Odisha Board",
+  "Punjab Board",
+  "Rajasthan Board",
+  "Sikkim Board",
+  "Tamil Nadu Board",
+  "Telangana Board",
+  "Tripura Board",
+  "UP Board",
+  "Uttarakhand Board",
+  "West Bengal Board",
+  "Jammu & Kashmir Board",
+  "Open School Board",
+  "State Open School",
+];
+
+const graduationCourseNames = [
+  "BSc",
+  "BSc (Hons)",
+  "BPharma",
+  "B.A.M.S (Ayurveda)",
+  "BFSc",
+  "BTech Dairy Technology",
+  "BSc Dairy Science",
+  "BA",
+  "BCom",
+];
+
+const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+  options,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  disabled = false,
+  className = "",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (option: string) => {
+    onChange(option);
+    setSearchTerm("");
+    setIsOpen(false);
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary cursor-pointer flex justify-between items-center ${disabled ? "bg-slate-100 cursor-not-allowed" : "bg-white"}`}
+      >
+        <span className={!value ? "text-slate-400" : "text-slate-700"}>
+          {value || placeholder}
+        </span>
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+      
+      {isOpen && !disabled && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+            <div className="p-2 border-b border-slate-200">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="overflow-y-auto max-h-48">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <div
+                    key={option}
+                    onClick={() => handleSelect(option)}
+                    className="px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-slate-700"
+                  >
+                    {option}
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-slate-500 text-center">
+                  No options found
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+      {required && !value && !disabled && (
+        <p className="text-xs text-red-500 mt-1">This field is required</p>
+      )}
+    </div>
+  );
+};
+
+
+const subjects = [
+  "Entomology",
+  "Zoology",
+  "Botany",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
+  "Statistics",
+  "Geology",
+  "Economics",
+  "Commerce",
+  "Dairy Technology",
+  "Dairy Science",
+  "Fisheries Science",
+  "Pharmacy",
+  "Pharmaceutical Chemistry",
+  "Ayurveda",
+  "Pharmaceutics"
+];
+
+// Generate years from 1970 to 2026
+const generateYears = () => {
+  const years = [];
+  for (let i = 2026; i >= 1970; i--) {
+    years.push(i.toString());
+  }
+  return years;
+};
+
+const passingYears = generateYears();
+
+// Generate months for experience duration
+const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+const yearsRange = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
+
+
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     firstName: "",
     lastName: "",
     fathersName: "",
+    motherName: "",
     dob: "",
+    age: 0,
     gender: "",
+    identificationMark1: "",  // Added
+  identificationMark2: "",  // Added
     nationality: "Indian",
     mobileNumber: "",
+    alternateNumber: "",
     emailId: "",
     aadharNumber: "",
     permanentAddress: {
@@ -211,22 +440,34 @@ const MyApplications: React.FC = () => {
 
   const [education, setEducation] = useState<Education>({
     tenth: {
+     
+      
       board: "",
       rollNumber: "",
       percentage: "",
       yearOfPassing: "",
+      totalMarks: "",
+      marksObtained: "",
+      passingCertificateNo: "",
     },
     twelfth: {
       board: "",
       rollNumber: "",
       percentage: "",
       yearOfPassing: "",
+      passingCertificateNo: "",
+      totalMarks: "",
+      marksObtained: "",
     },
     graduation: {
+      graduationCourse: "",
       university: "",
       passoutYear: "",
       percentage: "",
       specialization: "",
+      passingCertificateNo: "",
+      totalMarks: "",
+      marksObtained: "",
     },
     postGraduation: {
       hasPostGraduation: false,
@@ -234,12 +475,18 @@ const MyApplications: React.FC = () => {
       passoutYear: "",
       percentage: "",
       subject: "",
+      totalMarks: "",
+      marksObtained: "",
+      passingCertificateNo: "",
     },
     diploma: {
       hasDiploma: false,
       instituteName: "",
       qualificationType: "",
       year: "",
+      totalMarks: "",
+      marksObtained: "",
+      certificateNo: "",
     },
     experience: {
       hasExperience: false,
@@ -248,24 +495,33 @@ const MyApplications: React.FC = () => {
       organization: "",
       designation: "",
       dateOfJoining: "",
+      relievingDate: "",
+      experienceLetterNo: "",
     },
     contractualService: {
       hasContractualService: false,
       durationYears: "",
       durationMonths: "",
       organization: "SDTL Namkum",
+      contractId: "",
     },
   });
 
   const [postPreference, setPostPreference] = useState<PostPreference>({
-    vacancyStream: "both",
-    postRankings: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 },
-  });
+  vacancyStream: "both",
+  postRankings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, // Changed from 1,2,3,4,5 to 0
+});
 
   const [centerSelection, setCenterSelection] = useState<CenterSelection>({
     firstPreference: "",
     secondPreference: "",
     thirdPreference: "",
+  });
+
+  const [languageSelection, setLanguageSelection] = useState<LanguageSelection>({
+    paperOneLanguage: "",
+    paperTwoLanguage: "",
+    paperThreeLanguage: "",
   });
 
   const [reservationCategory, setReservationCategory] =
@@ -361,30 +617,108 @@ const MyApplications: React.FC = () => {
     { id: 1, title: "Reservation & Category", icon: Shield },
     { id: 2, title: "Education Details", icon: GraduationCap },
     { id: 3, title: "Post Preferences", icon: Sliders },
-    { id: 4, title: "Exam Center", icon: MapPin },
-    { id: 5, title: "Documents Upload", icon: FileCheck },
-    { id: 6, title: "Fee Payment", icon: CreditCard },
-    { id: 7, title: "Review & Submit", icon: FileSignature },
+    { id: 4, title: "Language Selection", icon: Languages },
+    { id: 5, title: "Exam Center", icon: MapPin },
+    { id: 6, title: "Documents Upload", icon: FileCheck },
+    { id: 7, title: "Fee Payment", icon: CreditCard },
+    { id: 8, title: "Review & Submit", icon: FileSignature },
   ];
 
-  const handleCopyAddress = () => {
-    if (personalInfo.sameAsPermanent) {
-      setPersonalInfo({
-        ...personalInfo,
-        correspondenceAddress: { ...personalInfo.permanentAddress },
-      });
+  const calculateAge = (dob: string): number => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
     }
+    return age;
   };
+
+   const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dob = e.target.value;
+    const age = calculateAge(dob);
+    setPersonalInfo({ ...personalInfo, dob, age });
+  };
+
+  const districtsByState: { [key: string]: string[] } = {
+  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh", "Deoghar", "Giridih", "Ramgarh"],
+  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Nalanda", "Purnia", "Darbhanga", "Bihar Sharif"],
+  "West Bengal": ["Kolkata", "Howrah", "Darjeeling", "Siliguri", "Asansol", "Durgapur", "Malda", "Bardhaman"],
+  "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Allahabad", "Noida", "Ghaziabad", "Meerut"],
+  "Delhi": ["New Delhi", "South Delhi", "East Delhi", "West Delhi", "North Delhi", "Central Delhi"],
+  "Other": ["Other District 1", "Other District 2", "Other District 3"]
+};
+
+// Add this state near other useState declarations (around line 260)
+const [highestQualification, setHighestQualification] = useState("graduation");
+const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+
+// Add this function to handle state change (around line 800)
+const handleStateChange = (state: string, isPermanent: boolean = true) => {
+  const districts = districtsByState[state] || ["Other District"];
+  setAvailableDistricts(districts);
+  
+  if (isPermanent) {
+    setPersonalInfo({
+      ...personalInfo,
+      permanentAddress: {
+        ...personalInfo.permanentAddress,
+        state: state,
+        district: ""
+      }
+    });
+  } else {
+    setPersonalInfo({
+      ...personalInfo,
+      correspondenceAddress: {
+        ...personalInfo.correspondenceAddress,
+        state: state,
+        district: ""
+      }
+    });
+  }
+};
+
 
   const handleFileUpload = (field: keyof Documents, file: File | null) => {
     setDocuments({ ...documents, [field]: file });
   };
 
-  const handlePostRankingChange = (postId: number, priority: number) => {
-    setPostPreference({
-      ...postPreference,
-      postRankings: { ...postPreference.postRankings, [postId]: priority },
-    });
+  // const handlePostRankingChange = (postId: number, priority: number) => {
+  //   setPostPreference({
+  //     ...postPreference,
+  //     postRankings: { ...postPreference.postRankings, [postId]: priority },
+  //   });
+  // };
+
+  const sendMobileOtp = () => {
+    if (personalInfo.mobileNumber.length === 10) {
+      setMobileOtpSent(true);
+      alert(`OTP sent to ${personalInfo.mobileNumber}`);
+    } else {
+      alert("Please enter a valid 10-digit mobile number");
+    }
+  };
+
+  const verifyMobileOtp = () => {
+    setMobileOtpVerified(true);
+    alert("Mobile number verified successfully!");
+  };
+
+  const sendEmailOtp = () => {
+    if (personalInfo.emailId.includes("@")) {
+      setEmailOtpSent(true);
+      alert(`OTP sent to ${personalInfo.emailId}`);
+    } else {
+      alert("Please enter a valid email address");
+    }
+  };
+
+  const verifyEmailOtp = () => {
+    setEmailOtpVerified(true);
+    alert("Email verified successfully!");
   };
 
   const calculateTotalFee = () => {
@@ -407,10 +741,12 @@ const MyApplications: React.FC = () => {
       education,
       postPreference,
       centerSelection,
+      languageSelection,
       reservationCategory,
       feePayment,
       documents,
     };
+    toast.success("Application Submit successfully");
     console.log("Form Submitted:", formData);
     setApplicationStatus({
       isSubmitted: true,
@@ -419,6 +755,12 @@ const MyApplications: React.FC = () => {
     });
     setIsSubmitted(true);
   };
+
+  const handleSaveDraft = () => {
+  toast.success("Application form saved successfully");
+};
+
+  const navigate = useNavigate()
 
   const renderStep = () => {
     if (isSubmitted) return renderRegistrationSuccess();
@@ -432,12 +774,14 @@ const MyApplications: React.FC = () => {
       case 3:
         return renderPostPreference();
       case 4:
-        return renderCenterSelection();
+        return renderLanguageSelection();
       case 5:
-        return renderDocuments();
+        return renderCenterSelection();
       case 6:
-        return renderFeePayment();
+        return renderDocuments();
       case 7:
+        return renderFeePayment();
+      case 8:
         return renderApplicationReview();
       default:
         return null;
@@ -456,7 +800,7 @@ const MyApplications: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              First Name *
+            Full Name (as per Matriculation Certificate)<span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -467,22 +811,11 @@ const MyApplications: React.FC = () => {
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
+          
+          
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Last Name *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.lastName}
-              onChange={(e) =>
-                setPersonalInfo({ ...personalInfo, lastName: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Father's Name *
+              Father's Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -498,20 +831,43 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Date of Birth *
+              Mother's Name <span className="text-red-600">*</span>
             </label>
             <input
-              type="date"
-              value={personalInfo.dob}
+              type="text"
+              value={personalInfo.motherName}
               onChange={(e) =>
-                setPersonalInfo({ ...personalInfo, dob: e.target.value })
+                setPersonalInfo({
+                  ...personalInfo,
+                  motherName: e.target.value,
+                })
               }
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
+          {/* Date of Birth with Auto Age Calculation */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Gender *
+              Date of Birth <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={personalInfo.dob}
+                onChange={handleDateOfBirthChange}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              />
+              {personalInfo.age > 0 && (
+                <div className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg">
+                  <Calendar size={16} />
+                  <span className="text-sm font-medium">Age: {personalInfo.age} years</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Gender<span className="text-red-600">*</span>
             </label>
             <select
               value={personalInfo.gender}
@@ -528,7 +884,7 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Nationality *
+              Nationality <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -544,38 +900,7 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Mobile Number *
-            </label>
-            <input
-              type="tel"
-              value={personalInfo.mobileNumber}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  mobileNumber: e.target.value,
-                })
-              }
-              placeholder="9876543210"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Email ID *
-            </label>
-            <input
-              type="email"
-              value={personalInfo.emailId}
-              onChange={(e) =>
-                setPersonalInfo({ ...personalInfo, emailId: e.target.value })
-              }
-              placeholder="example@domain.com"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Aadhar Card Number *
+              Aadhar Card Number (Preferred)
             </label>
             <input
               type="text"
@@ -590,6 +915,184 @@ const MyApplications: React.FC = () => {
             />
           </div>
         </div>
+
+        
+      </div>
+
+          <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <FileCheck className="w-5 h-5 text-primary" />
+          Identification Details
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Identification Mark 1 <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.identificationMark1}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                identificationMark1: e.target.value,
+              })
+            }
+            placeholder="e.g., Mole on left cheek"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Mention any visible identification mark (mandatory)
+          </p>
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Identification Mark 2 <span className="text-slate-400 text-xs ml-1">(Optional)</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.identificationMark2}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                identificationMark2: e.target.value,
+              })
+            }
+            placeholder="e.g., Scar on right hand"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Additional identification mark (if any)
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+        <p className="text-xs text-blue-800 flex items-center gap-2">
+          <Info className="w-4 h-4" />
+          These identification marks will be verified during the examination and document verification process.
+        </p>
+      </div>
+    </div>
+
+      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+        <div className="absolute -top-4 left-5 bg-white px-3">
+          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-primary" />
+            Contact Details & Verification
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Mobile Number <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                value={personalInfo.mobileNumber}
+                onChange={(e) =>
+                  setPersonalInfo({
+                    ...personalInfo,
+                    mobileNumber: e.target.value,
+                  })
+                }
+                placeholder="9876543210"
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              />
+              {!mobileOtpVerified ? (
+                <button
+                  onClick={sendMobileOtp}
+                  disabled={mobileOtpSent}
+                  className="px-4 py-2 bg-primary text-white rounded-lg text-sm whitespace-nowrap disabled:opacity-50"
+                >
+                  {mobileOtpSent ? "OTP Sent" : "Send OTP"}
+                </button>
+              ) : (
+                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+                  <CheckCircle size={16} /> Verified
+                </span>
+              )}
+            </div>
+            {mobileOtpSent && !mobileOtpVerified && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
+                />
+                <button
+                  onClick={verifyMobileOtp}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Alternate Mobile Number
+            </label>
+            <input
+              type="tel"
+              value={personalInfo.alternateNumber}
+              onChange={(e) =>
+                setPersonalInfo({
+                  ...personalInfo,
+                  alternateNumber: e.target.value,
+                })
+              }
+              placeholder="Optional"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Email ID <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={personalInfo.emailId}
+                onChange={(e) =>
+                  setPersonalInfo({ ...personalInfo, emailId: e.target.value })
+                }
+                placeholder="example@domain.com"
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              />
+              {!emailOtpVerified ? (
+                <button
+                  onClick={sendEmailOtp}
+                  disabled={emailOtpSent}
+                  className="px-4 py-2 bg-primary text-white rounded-lg text-sm whitespace-nowrap disabled:opacity-50"
+                >
+                  {emailOtpSent ? "OTP Sent" : "Send OTP"}
+                </button>
+              ) : (
+                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+                  <CheckCircle size={16} /> Verified
+                </span>
+              )}
+            </div>
+            {emailOtpSent && !emailOtpVerified && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
+                />
+                <button
+                  onClick={verifyEmailOtp}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
@@ -602,7 +1105,7 @@ const MyApplications: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Village/Ward/Street *
+              House No./Street <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -621,7 +1124,7 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Post *
+              Post Office <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -638,9 +1141,9 @@ const MyApplications: React.FC = () => {
               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
             />
           </div>
-          <div>
+          {/* <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              District *
+              District <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -659,7 +1162,7 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              State *
+              State <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -675,10 +1178,55 @@ const MyApplications: React.FC = () => {
               }
               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
             />
-          </div>
+          </div> */}
+          <div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    State <span className="text-red-600">*</span>
+  </label>
+  <select
+    value={personalInfo.permanentAddress.state}
+    onChange={(e) => handleStateChange(e.target.value, true)}
+    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+  >
+    <option value="">Select State</option>
+    {Object.keys(districtsByState).map((state) => (
+      <option key={state} value={state}>
+        {state}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* District Dropdown - Updated */}
+<div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    District <span className="text-red-600">*</span>
+  </label>
+  <select
+    value={personalInfo.permanentAddress.district}
+    onChange={(e) =>
+      setPersonalInfo({
+        ...personalInfo,
+        permanentAddress: {
+          ...personalInfo.permanentAddress,
+          district: e.target.value,
+        },
+      })
+    }
+    disabled={!personalInfo.permanentAddress.state}
+    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
+  >
+    <option value="">Select District</option>
+    {availableDistricts.map((district) => (
+      <option key={district} value={district}>
+        {district}
+      </option>
+    ))}
+  </select>
+</div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Pincode *
+              Pincode <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -697,7 +1245,7 @@ const MyApplications: React.FC = () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Police Station *
+              Village/City/Town <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -717,157 +1265,212 @@ const MyApplications: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary" />
-            Correspondence Address
-          </h3>
-        </div>
-        <div className="flex items-center gap-3 mb-4">
-          <input
-            type="checkbox"
-            id="sameAsPermanent"
-            checked={personalInfo.sameAsPermanent}
-            onChange={(e) => {
+     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-primary" />
+          Correspondence Address
+        </h3>
+      </div>
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          type="checkbox"
+          id="sameAsPermanent"
+          checked={personalInfo.sameAsPermanent}
+          onChange={(e) => {
+            const isChecked = e.target.checked;
+            if (isChecked) {
+              // Copy permanent address to correspondence address
               setPersonalInfo({
                 ...personalInfo,
-                sameAsPermanent: e.target.checked,
+                sameAsPermanent: true,
+                correspondenceAddress: { ...personalInfo.permanentAddress },
               });
-              if (e.target.checked) handleCopyAddress();
-            }}
-            className="w-4 h-4 text-primary rounded"
-          />
-          <label
-            htmlFor="sameAsPermanent"
-            className="text-slate-700 font-medium"
-          >
-            Same as Permanent Address
+            } else {
+              setPersonalInfo({
+                ...personalInfo,
+                sameAsPermanent: false,
+              });
+            }
+          }}
+          className="w-4 h-4 text-primary rounded"
+        />
+        <label
+          htmlFor="sameAsPermanent"
+          className="text-slate-700 font-medium cursor-pointer"
+        >
+          Same as Permanent Address
+        </label>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            House No./Street <span className="text-red-600">*</span>
           </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.street}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  street: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Village/Ward/Street *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.street}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    street: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Post *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.post}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    post: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              District *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.district}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    district: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              State *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.state}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    state: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Pincode *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.pincode}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    pincode: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Police Station *
-            </label>
-            <input
-              type="text"
-              value={personalInfo.correspondenceAddress.policeStation}
-              onChange={(e) =>
-                setPersonalInfo({
-                  ...personalInfo,
-                  correspondenceAddress: {
-                    ...personalInfo.correspondenceAddress,
-                    policeStation: e.target.value,
-                  },
-                })
-              }
-              disabled={personalInfo.sameAsPermanent}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-            />
-          </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Post Office <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.post}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  post: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
+        </div>
+        {/* <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            District <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.district}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  district: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            State <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.state}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  state: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
+        </div> */}
+        <div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    State <span className="text-red-600">*</span>
+  </label>
+  <select
+    value={personalInfo.correspondenceAddress.state}
+    onChange={(e) => handleStateChange(e.target.value, false)}
+    disabled={personalInfo.sameAsPermanent}
+    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
+  >
+    <option value="">Select State</option>
+    {Object.keys(districtsByState).map((state) => (
+      <option key={state} value={state}>
+        {state}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* District Dropdown for Correspondence */}
+<div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    District <span className="text-red-600">*</span>
+  </label>
+  <select
+    value={personalInfo.correspondenceAddress.district}
+    onChange={(e) =>
+      setPersonalInfo({
+        ...personalInfo,
+        correspondenceAddress: {
+          ...personalInfo.correspondenceAddress,
+          district: e.target.value,
+        },
+      })
+    }
+    disabled={personalInfo.sameAsPermanent || !personalInfo.correspondenceAddress.state}
+    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
+  >
+    <option value="">Select District</option>
+    {availableDistricts.map((district) => (
+      <option key={district} value={district}>
+        {district}
+      </option>
+    ))}
+  </select>
+</div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Pincode <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.pincode}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  pincode: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Village/City/Town <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={personalInfo.correspondenceAddress.policeStation}
+            onChange={(e) =>
+              setPersonalInfo({
+                ...personalInfo,
+                correspondenceAddress: {
+                  ...personalInfo.correspondenceAddress,
+                  policeStation: e.target.value,
+                },
+              })
+            }
+            disabled={personalInfo.sameAsPermanent}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
+          />
         </div>
       </div>
+    </div>
     </div>
   );
 
@@ -880,16 +1483,18 @@ const MyApplications: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Reservation Category *
+              Reservation Category <span className="text-red-600">*</span>
             </label>
             <select
               value={reservationCategory.mainCategory}
-              onChange={(e) =>
+              onChange={(e) => {
                 setReservationCategory({
                   ...reservationCategory,
                   mainCategory: e.target.value,
-                })
-              }
+                });
+                const fee = e.target.value === "sc" || e.target.value === "st" ? "50" : "100";
+                setFeePayment({ ...feePayment, applicationFee: fee });
+              }}
               className="w-full h-12 border border-slate-300 rounded-lg px-4"
             >
               <option value="">Select Category</option>
@@ -926,7 +1531,7 @@ const MyApplications: React.FC = () => {
           )}
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Jharkhand Domicile Claim *
+              Jharkhand Domicile Claim <span className="text-red-600">*</span>
             </label>
             <select
               value={reservationCategory.isJharkhandDomicile}
@@ -955,7 +1560,7 @@ const MyApplications: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Physically Handicapped? *
+              Physically Handicapped? 
             </label>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
@@ -964,12 +1569,18 @@ const MyApplications: React.FC = () => {
                   name="pwd"
                   value="yes"
                   checked={reservationCategory.isPwd === "yes"}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setReservationCategory({
                       ...reservationCategory,
                       isPwd: e.target.value,
-                    })
-                  }
+                    });
+                    if (e.target.value === "yes") {
+                      setFeePayment({ ...feePayment, applicationFee: "0" });
+                    } else {
+                      const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
+                      setFeePayment({ ...feePayment, applicationFee: fee });
+                    }
+                  }}
                   className="w-4 h-4 text-primary"
                 />
                 Yes
@@ -980,12 +1591,14 @@ const MyApplications: React.FC = () => {
                   name="pwd"
                   value="no"
                   checked={reservationCategory.isPwd === "no"}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setReservationCategory({
                       ...reservationCategory,
                       isPwd: e.target.value,
-                    })
-                  }
+                    });
+                    const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
+                    setFeePayment({ ...feePayment, applicationFee: fee });
+                  }}
                   className="w-4 h-4 text-primary"
                 />
                 No
@@ -996,7 +1609,7 @@ const MyApplications: React.FC = () => {
             <>
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Type of Disability *
+                  Type of Disability 
                 </label>
                 <select
                   value={reservationCategory.pwdType}
@@ -1025,7 +1638,7 @@ const MyApplications: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Disability Percentage (%) *
+                  Disability Percentage (%) 
                 </label>
                 <input
                   type="number"
@@ -1040,22 +1653,6 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
-              {/* <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Upload Disability Certificate
-                </label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setReservationCategory({
-                      ...reservationCategory,
-                      pwdCertificate: e.target.files?.[0] || null,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  accept=".pdf,.jpg,.jpeg"
-                />
-              </div> */}
             </>
           )}
         </div>
@@ -1068,7 +1665,7 @@ const MyApplications: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Ex-Serviceman? *
+              Ex-Serviceman? 
             </label>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
@@ -1124,22 +1721,6 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
-              {/* <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Upload Discharge Book
-                </label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setReservationCategory({
-                      ...reservationCategory,
-                      exServicemanDischargeBook: e.target.files?.[0] || null,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  accept=".pdf"
-                />
-              </div> */}
             </>
           )}
         </div>
@@ -1228,22 +1809,6 @@ const MyApplications: React.FC = () => {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 ></textarea>
               </div>
-              {/* <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Upload Sports Certificate
-                </label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setReservationCategory({
-                      ...reservationCategory,
-                      sportsCertificate: e.target.files?.[0] || null,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  accept=".pdf,.jpg,.jpeg"
-                />
-              </div> */}
             </>
           )}
         </div>
@@ -1274,803 +1839,3452 @@ const MyApplications: React.FC = () => {
     </div>
   );
 
-  const renderEducationDetails = () => (
-    <div className="space-y-8">
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <Award className="w-5 h-5 text-primary" />
-            10th / SSC Education
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Board *
-            </label>
-            <input
-              type="text"
-              value={education.tenth.board}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  tenth: { ...education.tenth, board: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Roll Number *
-            </label>
-            <input
-              type="text"
-              value={education.tenth.rollNumber}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  tenth: { ...education.tenth, rollNumber: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage (%) *
-            </label>
-            <input
-              type="text"
-              value={education.tenth.percentage}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  tenth: { ...education.tenth, percentage: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passing Year *
-            </label>
-            <input
-              type="text"
-              value={education.tenth.yearOfPassing}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  tenth: { ...education.tenth, yearOfPassing: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-        </div>
-      </div>
+  // const renderEducationDetails = () => (
+  //   <div className="space-y-8">
+  //    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+  //     <div className="absolute -top-4 left-5 bg-white px-3">
+  //       <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+  //         <GraduationCap className="w-5 h-5 text-primary" />
+  //         Highest Qualification
+  //       </h3>
+  //     </div>
+  //     <div className="mt-1">
+  //        <label className="block text-slate-700 text-sm font-medium mb-2">
+  //            Select your highest educational qualification <span className="text-red-600">*</span>
+  //           </label>
+  //       <select
+  //         value={highestQualification}
+  //         onChange={(e) => setHighestQualification(e.target.value)}
+  //         className="w-full md:w-1/2 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+  //       >
+  //         <option value="graduation">Graduation</option>
+  //         <option value="postGraduation">Post Graduation</option>
+  //         <option value="diploma">Diploma</option>
+  //         <option value="phd">Ph.D</option>
+  //         <option value="others">Others</option>
+  //       </select>
+       
+       
+  //     </div>
+  //   </div>
+  //     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+        
+        
+  //       <div className="absolute -top-4 left-5 bg-white px-3">
+  //         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+  //           <Award className="w-5 h-5 text-primary" />
+  //           10th / SSC Education
+  //         </h3>
+  //       </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Board Name <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.board}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, board: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Roll Number <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.rollNumber}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, rollNumber: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Total Marks <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.totalMarks}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, totalMarks: e.target.value },
+  //               })
+  //             }
+  //             placeholder="e.g., 500"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Marks Obtained <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.marksObtained}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, marksObtained: e.target.value },
+  //               })
+  //             }
+  //             placeholder="e.g., 450"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Percentage (%) /CGPA <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.percentage}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, percentage: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passing Year <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.yearOfPassing}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, yearOfPassing: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passing Certificate No.<span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.tenth.passingCertificateNo}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 tenth: { ...education.tenth, passingCertificateNo: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //       </div>
+  //     </div>
 
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" />
-            12th / HSC Education
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Board *
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.board}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  twelfth: { ...education.twelfth, board: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Roll Number *
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.rollNumber}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  twelfth: { ...education.twelfth, rollNumber: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage (%) *
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.percentage}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  twelfth: { ...education.twelfth, percentage: e.target.value },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passing Year *
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.yearOfPassing}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  twelfth: {
-                    ...education.twelfth,
-                    yearOfPassing: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-        </div>
-      </div>
+  //     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+  //       <div className="absolute -top-4 left-5 bg-white px-3">
+  //         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+  //           <BookOpen className="w-5 h-5 text-primary" />
+  //           12th / HSC Education
+  //         </h3>
+  //       </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Board Name
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.board}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, board: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Roll Number 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.rollNumber}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, rollNumber: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Total Marks 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.totalMarks}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, totalMarks: e.target.value },
+  //               })
+  //             }
+  //             placeholder="e.g., 500"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Marks Obtained 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.marksObtained}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, marksObtained: e.target.value },
+  //               })
+  //             }
+  //             placeholder="e.g., 450"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Percentage (%) 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.percentage}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, percentage: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passing Year 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.yearOfPassing}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: {
+  //                   ...education.twelfth,
+  //                   yearOfPassing: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passing Certificate No. 
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.twelfth.passingCertificateNo}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 twelfth: { ...education.twelfth, passingCertificateNo: e.target.value },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //       </div>
+  //     </div>
 
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
-            Graduation Education
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              University *
-            </label>
-            <input
-              type="text"
-              value={education.graduation.university}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  graduation: {
-                    ...education.graduation,
-                    university: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passout Year *
-            </label>
-            <input
-              type="text"
-              value={education.graduation.passoutYear}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  graduation: {
-                    ...education.graduation,
-                    passoutYear: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage/CGPA *
-            </label>
-            <input
-              type="text"
-              value={education.graduation.percentage}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  graduation: {
-                    ...education.graduation,
-                    percentage: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Specialization/Subject *
-            </label>
-            <input
-              type="text"
-              value={education.graduation.specialization}
-              onChange={(e) =>
-                setEducation({
-                  ...education,
-                  graduation: {
-                    ...education.graduation,
-                    specialization: e.target.value,
-                  },
-                })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
-          </div>
-        </div>
-      </div>
+  //     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+  //       <div className="absolute -top-4 left-5 bg-white px-3">
+  //         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+  //           <GraduationCap className="w-5 h-5 text-primary" />
+  //           Graduation Education
+  //         </h3>
+  //       </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Course Name <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.graduationCourse}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   graduationCourse: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             placeholder="e.g., B.A., B.Sc., B.Com"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             University Name <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.university}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   university: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passout Year<span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.passoutYear}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   passoutYear: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Total Marks <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.totalMarks}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   totalMarks: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             placeholder="e.g., 3000"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Marks Obtained <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.marksObtained}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   marksObtained: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             placeholder="e.g., 2400"
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Percentage/CGPA <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.percentage}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   percentage: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Specialization/Subject <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.specialization}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   specialization: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //         <div>
+  //           <label className="block text-slate-700 text-sm font-medium mb-2">
+  //             Passing Certificate No. <span className="text-red-600">*</span>
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={education.graduation.passingCertificateNo}
+  //             onChange={(e) =>
+  //               setEducation({
+  //                 ...education,
+  //                 graduation: {
+  //                   ...education.graduation,
+  //                   passingCertificateNo: e.target.value,
+  //                 },
+  //               })
+  //             }
+  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //           />
+  //         </div>
+  //       </div>
+  //     </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.postGraduation.hasPostGraduation}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                postGraduation: {
-                  ...education.postGraduation,
-                  hasPostGraduation: e.target.checked,
-                },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">
-            Post-Graduation Qualification
-          </span>
+  //     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+  //       <label className="flex items-center gap-3 cursor-pointer mb-4">
+  //         <input
+  //           type="checkbox"
+  //           checked={education.postGraduation.hasPostGraduation}
+  //           onChange={(e) =>
+  //             setEducation({
+  //               ...education,
+  //               postGraduation: {
+  //                 ...education.postGraduation,
+  //                 hasPostGraduation: e.target.checked,
+  //               },
+  //             })
+  //           }
+  //           className="w-4 h-4 text-primary rounded"
+  //         />
+  //         <span className="font-semibold text-slate-800">
+  //           Post-Graduation Qualification
+  //         </span>
+  //       </label>
+  //       {education.postGraduation.hasPostGraduation && (
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               University/College Name
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.university}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     university: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Subject
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.subject}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     subject: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Total Marks
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.totalMarks}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     totalMarks: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               placeholder="e.g., 2000"
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Marks Obtained
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.marksObtained}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     marksObtained: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               placeholder="e.g., 1600"
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Passout Year
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.passoutYear}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     passoutYear: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Percentage
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.percentage}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     percentage: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Passing Certificate No.
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.postGraduation.passingCertificateNo}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   postGraduation: {
+  //                     ...education.postGraduation,
+  //                     passingCertificateNo: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //         </div>
+  //       )}
+  //     </div>
+
+  //     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+  //       <label className="flex items-center gap-3 cursor-pointer mb-4">
+  //         <input
+  //           type="checkbox"
+  //           checked={education.diploma.hasDiploma}
+  //           onChange={(e) =>
+  //             setEducation({
+  //               ...education,
+  //               diploma: { ...education.diploma, hasDiploma: e.target.checked },
+  //             })
+  //           }
+  //           className="w-4 h-4 text-primary rounded"
+  //         />
+  //         <span className="font-semibold text-slate-800">
+  //           Diploma / Additional Qualification
+  //         </span>
+  //       </label>
+  //       {education.diploma.hasDiploma && (
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Institute Name
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.instituteName}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: {
+  //                     ...education.diploma,
+  //                     instituteName: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Qualification Type
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.qualificationType}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: {
+  //                     ...education.diploma,
+  //                     qualificationType: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               placeholder="Diploma/Certificate"
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Total Marks
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.totalMarks}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: {
+  //                     ...education.diploma,
+  //                     totalMarks: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Marks Obtained
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.marksObtained}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: {
+  //                     ...education.diploma,
+  //                     marksObtained: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Year of Completion
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.year}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: { ...education.diploma, year: e.target.value },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Certificate No.
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.diploma.certificateNo}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   diploma: {
+  //                     ...education.diploma,
+  //                     certificateNo: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //         </div>
+  //       )}
+  //     </div>
+
+  //     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+  //       <label className="flex items-center gap-3 cursor-pointer mb-4">
+  //         <input
+  //           type="checkbox"
+  //           checked={education.experience.hasExperience}
+  //           onChange={(e) =>
+  //             setEducation({
+  //               ...education,
+  //               experience: {
+  //                 ...education.experience,
+  //                 hasExperience: e.target.checked,
+  //               },
+  //             })
+  //           }
+  //           className="w-4 h-4 text-primary rounded"
+  //         />
+  //         <span className="font-semibold text-slate-800">
+  //           Post-Qualification Experience
+  //         </span>
+  //       </label>
+  //       {education.experience.hasExperience && (
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Organization Name
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.experience.organization}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   experience: {
+  //                     ...education.experience,
+  //                     organization: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Designation
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.experience.designation}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   experience: {
+  //                     ...education.experience,
+  //                     designation: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Date of Joining
+  //             </label>
+  //             <input
+  //               type="date"
+  //               value={education.experience.dateOfJoining}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   experience: {
+  //                     ...education.experience,
+  //                     dateOfJoining: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Relieving Date
+  //             </label>
+  //             <input
+  //               type="date"
+  //               value={education.experience.relievingDate}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   experience: {
+  //                     ...education.experience,
+  //                     relievingDate: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <div className="grid grid-cols-2 gap-2">
+  //               <div>
+  //                 <label className="block text-sm font-medium text-slate-700 mb-2">
+  //                   Years
+  //                 </label>
+  //                 <input
+  //                   type="text"
+  //                   value={education.experience.durationYears}
+  //                   onChange={(e) =>
+  //                     setEducation({
+  //                       ...education,
+  //                       experience: {
+  //                         ...education.experience,
+  //                         durationYears: e.target.value,
+  //                       },
+  //                     })
+  //                   }
+  //                   placeholder="Years"
+  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //                 />
+  //               </div>
+  //               <div>
+  //                 <label className="block text-sm font-medium text-slate-700 mb-2">
+  //                   Months
+  //                 </label>
+  //                 <input
+  //                   type="text"
+  //                   value={education.experience.durationMonths}
+  //                   onChange={(e) =>
+  //                     setEducation({
+  //                       ...education,
+  //                       experience: {
+  //                         ...education.experience,
+  //                         durationMonths: e.target.value,
+  //                       },
+  //                     })
+  //                   }
+  //                   placeholder="Months"
+  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //                 />
+  //               </div>
+  //             </div>
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Experience Letter No.
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.experience.experienceLetterNo}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   experience: {
+  //                     ...education.experience,
+  //                     experienceLetterNo: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //         </div>
+  //       )}
+  //     </div>
+
+  //     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+  //       <label className="flex items-center gap-3 cursor-pointer mb-4">
+  //         <input
+  //           type="checkbox"
+  //           checked={education.contractualService.hasContractualService}
+  //           onChange={(e) =>
+  //             setEducation({
+  //               ...education,
+  //               contractualService: {
+  //                 ...education.contractualService,
+  //                 hasContractualService: e.target.checked,
+  //               },
+  //             })
+  //           }
+  //           className="w-4 h-4 text-primary rounded"
+  //         />
+  //         <span className="font-semibold text-slate-800">
+  //           Contractual Service at SDTL Namkum
+  //         </span>
+  //       </label>
+  //       {education.contractualService.hasContractualService && (
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Organization
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.contractualService.organization}
+  //               disabled
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
+  //             />
+  //           </div>
+  //           <div>
+  //             <label className="block text-sm font-medium text-slate-700 mb-2">
+  //               Contract ID
+  //             </label>
+  //             <input
+  //               type="text"
+  //               value={education.contractualService.contractId}
+  //               onChange={(e) =>
+  //                 setEducation({
+  //                   ...education,
+  //                   contractualService: {
+  //                     ...education.contractualService,
+  //                     contractId: e.target.value,
+  //                   },
+  //                 })
+  //               }
+  //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //             />
+  //           </div>
+  //           <div>
+  //             <div className="grid grid-cols-2 gap-2">
+  //               <div>
+  //                 <label className="block text-sm font-medium text-slate-700 mb-2">
+  //                   Years
+  //                 </label>
+  //                 <input
+  //                   type="text"
+  //                   value={education.contractualService.durationYears}
+  //                   onChange={(e) =>
+  //                     setEducation({
+  //                       ...education,
+  //                       contractualService: {
+  //                         ...education.contractualService,
+  //                         durationYears: e.target.value,
+  //                       },
+  //                     })
+  //                   }
+  //                   placeholder="Years"
+  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //                 />
+  //               </div>
+  //               <div>
+  //                 <label className="block text-sm font-medium text-slate-700 mb-2">
+  //                   Months
+  //                 </label>
+  //                 <input
+  //                   type="text"
+  //                   value={education.contractualService.durationMonths}
+  //                   onChange={(e) =>
+  //                     setEducation({
+  //                       ...education,
+  //                       contractualService: {
+  //                         ...education.contractualService,
+  //                         durationMonths: e.target.value,
+  //                       },
+  //                     })
+  //                   }
+  //                   placeholder="Months"
+  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+  //                 />
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       )}
+  //     </div>
+  //   </div>
+  // );
+
+//   const renderPostPreference = () => (
+//   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+//     <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//       <div className="mb-6">
+//         <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
+//           Post Preference Selection
+//         </h3>
+//         <p className="text-sm text-slate-500 mt-1">
+//           Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
+//         </p>
+//       </div>
+
+//       <section className="mb-8">
+//         <div className="flex items-center gap-3 mb-4">
+//           <div className="h-6 w-1 bg-primary rounded-full"></div>
+//           <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+//             1. Vacancy Stream Selection
+//           </h4>
+//         </div>
+
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//           <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+//             <div className="flex justify-between items-start">
+//               <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
+//               <input
+//                 type="radio"
+//                 name="vacancy_stream"
+//                 value="regular"
+//                 checked={postPreference.vacancyStream === "regular"}
+//                 onChange={(e) =>
+//                   setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                 }
+//                 className="w-4 h-4 accent-primary"
+//               />
+//             </div>
+//             <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
+//           </label>
+
+//           <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+//             <div className="flex justify-between items-start">
+//               <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
+//               <input
+//                 type="radio"
+//                 name="vacancy_stream"
+//                 value="backlog"
+//                 checked={postPreference.vacancyStream === "backlog"}
+//                 onChange={(e) =>
+//                   setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                 }
+//                 className="w-4 h-4 accent-primary"
+//               />
+//             </div>
+//             <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
+//           </label>
+
+//           <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
+//             <div className="flex justify-between items-start">
+//               <div>
+//                 <h3 className="font-bold text-primary">Both (Recommended)</h3>
+//               </div>
+//               <input
+//                 type="radio"
+//                 name="vacancy_stream"
+//                 value="both"
+//                 checked={postPreference.vacancyStream === "both"}
+//                 onChange={(e) =>
+//                   setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                 }
+//                 className="w-4 h-4 accent-primary"
+//               />
+//             </div>
+//             <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
+//           </label>
+//         </div>
+//       </section>
+
+//       <section>
+//         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+//           <div className="flex items-center gap-3">
+//             <div className="h-6 w-1 bg-primary rounded-full"></div>
+//             <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+//               2. Ranking Eligible Posts
+//             </h4>
+//           </div>
+//           <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+//             5 Posts Available
+//           </span>
+//         </div>
+
+//         <p className="text-xs text-slate-500 mb-4 italic">Enter priority number manually (1 = highest priority)</p>
+
+//         <div className="space-y-3">
+//           {posts.map((post) => (
+//             <div
+//               key={post.id}
+//               className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
+//             >
+//               <div className="flex items-center gap-3 shrink-0">
+//                 <span className="text-sm font-bold text-slate-400 w-4">{post.id}</span>
+//                 <GripVertical size={18} className="text-slate-400 cursor-grab" />
+//               </div>
+
+//               <div className="flex-1 min-w-0">
+//                 <h4 className="text-sm font-bold text-slate-800 truncate">{post.title}</h4>
+//                 <p className="text-xs text-slate-500 truncate mt-0.5">{post.dept}</p>
+//               </div>
+
+//               <div className="hidden md:block px-4 text-center border-x border-slate-200">
+//                 <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Grade Pay</span>
+//                 <span className="text-xs font-bold text-slate-600">{post.pay}</span>
+//               </div>
+
+//               <div className="shrink-0 ml-2">
+//                 <input
+//                   type="number"
+//                   min="1"
+//                   max="5"
+//                   value={postPreference.postRankings[post.id]}
+//                   onChange={(e) => handlePostRankingChange(post.id, parseInt(e.target.value))}
+//                   className="w-12 h-12 border border-slate-300 rounded-lg text-center font-bold text-primary focus:border-primary outline-none"
+//                 />
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//       </section>
+//     </div>
+
+//     <aside className="space-y-6">
+//       <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
+//         <div className="flex items-center gap-2 mb-5">
+//           <Info size={20} className="text-emerald-300" />
+//           <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
+//         </div>
+//         <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
+//           <li>Preferences once locked cannot be changed after the final submission of the form.</li>
+//           <li>Ranking must be unique for each post (e.g., you cannot have two posts at Priority 1).</li>
+//           <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
+//           <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
+//         </ul>
+//       </div>
+
+//       <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
+//         <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+//           <HelpCircle size={24} />
+//         </div>
+//         <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
+//         <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
+//           Contact the recruitment helpdesk for clarification on post duties and eligibility.
+//         </p>
+//         <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
+//           <FileText size={16} />
+//           Read Full Advertisement
+//         </button>
+//       </div>
+//     </aside>
+//   </div>
+// );
+
+// Replace the renderPostPreference function with this updated version:
+
+// const renderEducationDetails = () => (
+//   <div className="space-y-8">
+//     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//       <div className="absolute -top-4 left-5 bg-white px-3">
+//         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//           <GraduationCap className="w-5 h-5 text-primary" />
+//           Highest Qualification
+//         </h3>
+//       </div>
+//       <div className="mt-1">
+//         <label className="block text-slate-700 text-sm font-medium mb-2">
+//           Select your highest educational qualification <span className="text-red-600">*</span>
+//         </label>
+//         <select
+//           value={highestQualification}
+//           onChange={(e) => setHighestQualification(e.target.value)}
+//           className="w-full md:w-1/2 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+//         >
+//           <option value="graduation">Graduation</option>
+//           <option value="postGraduation">Post Graduation</option>
+//           <option value="diploma">Diploma</option>
+//           <option value="phd">Ph.D</option>
+//           <option value="others">Others</option>
+//         </select>
+//       </div>
+//     </div>
+    
+//     {/* 10th / SSC Education */}
+//     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//       <div className="absolute -top-4 left-5 bg-white px-3">
+//         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//           <Award className="w-5 h-5 text-primary" />
+//           10th / SSC Education
+//         </h3>
+//       </div>
+//       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Board Name <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={education.tenth.board}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, board: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Board</option>
+//             {boards.map((board) => (
+//               <option key={board} value={board}>
+//                 {board}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Roll Number <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.tenth.rollNumber}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, rollNumber: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Total Marks <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.tenth.totalMarks}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, totalMarks: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 500"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Marks Obtained <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.tenth.marksObtained}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, marksObtained: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 450"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Percentage (%) / CGPA <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.tenth.percentage}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, percentage: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passing Year <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={education.tenth.yearOfPassing}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, yearOfPassing: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Year</option>
+//             {passingYears.map((year) => (
+//               <option key={year} value={year}>
+//                 {year}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passing Certificate No. <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.tenth.passingCertificateNo}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 tenth: { ...education.tenth, passingCertificateNo: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//       </div>
+//     </div>
+
+//     {/* 12th / HSC Education */}
+//     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//       <div className="absolute -top-4 left-5 bg-white px-3">
+//         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//           <BookOpen className="w-5 h-5 text-primary" />
+//           12th / HSC Education
+//         </h3>
+//       </div>
+//       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Board Name
+//           </label>
+//           <select
+//             value={education.twelfth.board}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, board: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Board</option>
+//             {boards.map((board) => (
+//               <option key={board} value={board}>
+//                 {board}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Roll Number
+//           </label>
+//           <input
+//             type="text"
+//             value={education.twelfth.rollNumber}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, rollNumber: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Total Marks
+//           </label>
+//           <input
+//             type="text"
+//             value={education.twelfth.totalMarks}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, totalMarks: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 500"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Marks Obtained
+//           </label>
+//           <input
+//             type="text"
+//             value={education.twelfth.marksObtained}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, marksObtained: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 450"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Percentage (%)
+//           </label>
+//           <input
+//             type="text"
+//             value={education.twelfth.percentage}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, percentage: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passing Year
+//           </label>
+//           <select
+//             value={education.twelfth.yearOfPassing}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, yearOfPassing: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Year</option>
+//             {passingYears.map((year) => (
+//               <option key={year} value={year}>
+//                 {year}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passing Certificate No.
+//           </label>
+//           <input
+//             type="text"
+//             value={education.twelfth.passingCertificateNo}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 twelfth: { ...education.twelfth, passingCertificateNo: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//       </div>
+//     </div>
+
+//     {/* Graduation Education */}
+//     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//       <div className="absolute -top-4 left-5 bg-white px-3">
+//         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//           <GraduationCap className="w-5 h-5 text-primary" />
+//           Graduation Education
+//         </h3>
+//       </div>
+//       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Course Name <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={education.graduation.graduationCourse}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, graduationCourse: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Course</option>
+//             {graduationCourseNames.map((course) => (
+//               <option key={course} value={course}>
+//                 {course}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             University Name <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.graduation.university}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, university: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passout Year <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={education.graduation.passoutYear}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, passoutYear: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Year</option>
+//             {passingYears.map((year) => (
+//               <option key={year} value={year}>
+//                 {year}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Total Marks <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.graduation.totalMarks}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, totalMarks: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 3000"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Marks Obtained <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.graduation.marksObtained}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, marksObtained: e.target.value },
+//               })
+//             }
+//             placeholder="e.g., 2400"
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Percentage/CGPA <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.graduation.percentage}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, percentage: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Specialization/Subject <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={education.graduation.specialization}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, specialization: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           >
+//             <option value="">Select Subject</option>
+//             {subjects.map((subject) => (
+//               <option key={subject} value={subject}>
+//                 {subject}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Passing Certificate No. <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={education.graduation.passingCertificateNo}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 graduation: { ...education.graduation, passingCertificateNo: e.target.value },
+//               })
+//             }
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           />
+//         </div>
+//       </div>
+//     </div>
+
+//     {/* Post Graduation Section */}
+//     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+//       <label className="flex items-center gap-3 cursor-pointer mb-4">
+//         <input
+//           type="checkbox"
+//           checked={education.postGraduation.hasPostGraduation}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
+//             })
+//           }
+//           className="w-4 h-4 text-primary rounded"
+//         />
+//         <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
+//       </label>
+//       {education.postGraduation.hasPostGraduation && (
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               University/College Name
+//             </label>
+//             <input
+//               type="text"
+//               value={education.postGraduation.university}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, university: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Subject
+//             </label>
+//             <select
+//               value={education.postGraduation.subject}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, subject: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             >
+//               <option value="">Select Subject</option>
+//               {subjects.map((subject) => (
+//                 <option key={subject} value={subject}>
+//                   {subject}
+//                 </option>
+//               ))}
+//             </select>
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Total Marks
+//             </label>
+//             <input
+//               type="text"
+//               value={education.postGraduation.totalMarks}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, totalMarks: e.target.value },
+//                 })
+//               }
+//               placeholder="e.g., 2000"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Marks Obtained
+//             </label>
+//             <input
+//               type="text"
+//               value={education.postGraduation.marksObtained}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, marksObtained: e.target.value },
+//                 })
+//               }
+//               placeholder="e.g., 1600"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Passout Year
+//             </label>
+//             <select
+//               value={education.postGraduation.passoutYear}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, passoutYear: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             >
+//               <option value="">Select Year</option>
+//               {passingYears.map((year) => (
+//                 <option key={year} value={year}>
+//                   {year}
+//                 </option>
+//               ))}
+//             </select>
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Percentage
+//             </label>
+//             <input
+//               type="text"
+//               value={education.postGraduation.percentage}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, percentage: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Passing Certificate No.
+//             </label>
+//             <input
+//               type="text"
+//               value={education.postGraduation.passingCertificateNo}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//         </div>
+//       )}
+//     </div>
+
+//     {/* Diploma / Additional Qualification Section - Updated with Dropdowns */}
+// <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//   <label className="flex items-center gap-3 cursor-pointer mb-4">
+//     <input
+//       type="checkbox"
+//       checked={education.diploma.hasDiploma}
+//       onChange={(e) =>
+//         setEducation({
+//           ...education,
+//           diploma: { ...education.diploma, hasDiploma: e.target.checked },
+//         })
+//       }
+//       className="w-4 h-4 text-primary rounded"
+//     />
+//     <span className="font-semibold text-slate-800">
+//       Diploma / Additional Qualification
+//     </span>
+//   </label>
+//   {education.diploma.hasDiploma && (
+//     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Institute Name
+//         </label>
+//         <input
+//           type="text"
+//           value={education.diploma.instituteName}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 instituteName: e.target.value,
+//               },
+//             })
+//           }
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//           placeholder="e.g., Govt Polytechnic, Ranchi"
+//         />
+//       </div>
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Qualification Type
+//         </label>
+//         <select
+//           value={education.diploma.qualificationType}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 qualificationType: e.target.value,
+//               },
+//             })
+//           }
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         >
+//           <option value="">Select Qualification Type</option>
+//           <option value="Diploma">Diploma</option>
+//           <option value="Advanced Diploma">Advanced Diploma</option>
+//           <option value="Post Graduate Diploma">Post Graduate Diploma</option>
+//           <option value="Certificate Course">Certificate Course</option>
+//           <option value="Vocational Course">Vocational Course</option>
+//           <option value="PG Diploma">PG Diploma</option>
+//         </select>
+//       </div>
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Total Marks
+//         </label>
+//         <input
+//           type="text"
+//           value={education.diploma.totalMarks}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 totalMarks: e.target.value,
+//               },
+//             })
+//           }
+//           placeholder="e.g., 1000"
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         />
+//       </div>
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Marks Obtained
+//         </label>
+//         <input
+//           type="text"
+//           value={education.diploma.marksObtained}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 marksObtained: e.target.value,
+//               },
+//             })
+//           }
+//           placeholder="e.g., 850"
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         />
+//       </div>
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Year of Completion
+//         </label>
+//         <select
+//           value={education.diploma.year}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: { ...education.diploma, year: e.target.value },
+//             })
+//           }
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         >
+//           <option value="">Select Year</option>
+//           {passingYears.map((year) => (
+//             <option key={year} value={year}>
+//               {year}
+//             </option>
+//           ))}
+//         </select>
+//       </div>
+//       <div>
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Certificate No.
+//         </label>
+//         <input
+//           type="text"
+//           value={education.diploma.certificateNo}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 certificateNo: e.target.value,
+//               },
+//             })
+//           }
+//           placeholder="Certificate/Diploma Number"
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         />
+//       </div>
+//       <div className="md:col-span-2">
+//         <label className="block text-sm font-medium text-slate-700 mb-2">
+//           Specialization/Branch (if any)
+//         </label>
+//         <select
+//           value={education.diploma.qualificationType}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               diploma: {
+//                 ...education.diploma,
+//                 qualificationType: e.target.value,
+//               },
+//             })
+//           }
+//           className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//         >
+//           <option value="">Select Specialization</option>
+//           <option value="Computer Science">Computer Science</option>
+//           <option value="Mechanical Engineering">Mechanical Engineering</option>
+//           <option value="Civil Engineering">Civil Engineering</option>
+//           <option value="Electrical Engineering">Electrical Engineering</option>
+//           <option value="Electronics">Electronics</option>
+//           <option value="Information Technology">Information Technology</option>
+//           <option value="Pharmacy">Pharmacy</option>
+//           <option value="Agriculture">Agriculture</option>
+//           <option value="Business Administration">Business Administration</option>
+//           <option value="Hotel Management">Hotel Management</option>
+//         </select>
+//       </div>
+//     </div>
+//   )}
+// </div>
+
+//     {/* Experience Section with Year and Month Dropdowns */}
+//     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//       <label className="flex items-center gap-3 cursor-pointer mb-4">
+//         <input
+//           type="checkbox"
+//           checked={education.experience.hasExperience}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               experience: { ...education.experience, hasExperience: e.target.checked },
+//             })
+//           }
+//           className="w-4 h-4 text-primary rounded"
+//         />
+//         <span className="font-semibold text-slate-800">Post-Qualification Experience</span>
+//       </label>
+//       {education.experience.hasExperience && (
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Organization Name
+//             </label>
+//             <input
+//               type="text"
+//               value={education.experience.organization}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   experience: { ...education.experience, organization: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Designation
+//             </label>
+//             <input
+//               type="text"
+//               value={education.experience.designation}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   experience: { ...education.experience, designation: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Date of Joining
+//             </label>
+//             <input
+//               type="date"
+//               value={education.experience.dateOfJoining}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   experience: { ...education.experience, dateOfJoining: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Relieving Date
+//             </label>
+//             <input
+//               type="date"
+//               value={education.experience.relievingDate}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   experience: { ...education.experience, relievingDate: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <div className="grid grid-cols-2 gap-2">
+//               <div>
+//                 <label className="block text-sm font-medium text-slate-700 mb-2">
+//                   Years
+//                 </label>
+//                 <select
+//                   value={education.experience.durationYears}
+//                   onChange={(e) =>
+//                     setEducation({
+//                       ...education,
+//                       experience: { ...education.experience, durationYears: e.target.value },
+//                     })
+//                   }
+//                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//                 >
+//                   <option value="">Select Years</option>
+//                   {yearsRange.map((year) => (
+//                     <option key={year} value={year}>
+//                       {year}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+//               <div>
+//                 <label className="block text-sm font-medium text-slate-700 mb-2">
+//                   Months
+//                 </label>
+//                 <select
+//                   value={education.experience.durationMonths}
+//                   onChange={(e) =>
+//                     setEducation({
+//                       ...education,
+//                       experience: { ...education.experience, durationMonths: e.target.value },
+//                     })
+//                   }
+//                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//                 >
+//                   <option value="">Select Months</option>
+//                   {months.map((month) => (
+//                     <option key={month} value={month}>
+//                       {month}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+//             </div>
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Experience Letter No.
+//             </label>
+//             <input
+//               type="text"
+//               value={education.experience.experienceLetterNo}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   experience: { ...education.experience, experienceLetterNo: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//         </div>
+//       )}
+//     </div>
+
+//     {/* Contractual Service Section with Year and Month Dropdowns */}
+//     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//       <label className="flex items-center gap-3 cursor-pointer mb-4">
+//         <input
+//           type="checkbox"
+//           checked={education.contractualService.hasContractualService}
+//           onChange={(e) =>
+//             setEducation({
+//               ...education,
+//               contractualService: { ...education.contractualService, hasContractualService: e.target.checked },
+//             })
+//           }
+//           className="w-4 h-4 text-primary rounded"
+//         />
+//         <span className="font-semibold text-slate-800">Contractual Service at SDTL Namkum</span>
+//       </label>
+//       {education.contractualService.hasContractualService && (
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Organization
+//             </label>
+//             <input
+//               type="text"
+//               value={education.contractualService.organization}
+//               disabled
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
+//             />
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium text-slate-700 mb-2">
+//               Contract ID
+//             </label>
+//             <input
+//               type="text"
+//               value={education.contractualService.contractId}
+//               onChange={(e) =>
+//                 setEducation({
+//                   ...education,
+//                   contractualService: { ...education.contractualService, contractId: e.target.value },
+//                 })
+//               }
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//           <div>
+//             <div className="grid grid-cols-2 gap-2">
+//               <div>
+//                 <label className="block text-sm font-medium text-slate-700 mb-2">
+//                   Years
+//                 </label>
+//                 <select
+//                   value={education.contractualService.durationYears}
+//                   onChange={(e) =>
+//                     setEducation({
+//                       ...education,
+//                       contractualService: { ...education.contractualService, durationYears: e.target.value },
+//                     })
+//                   }
+//                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//                 >
+//                   <option value="">Select Years</option>
+//                   {yearsRange.map((year) => (
+//                     <option key={year} value={year}>
+//                       {year}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+//               <div>
+//                 <label className="block text-sm font-medium text-slate-700 mb-2">
+//                   Months
+//                 </label>
+//                 <select
+//                   value={education.contractualService.durationMonths}
+//                   onChange={(e) =>
+//                     setEducation({
+//                       ...education,
+//                       contractualService: { ...education.contractualService, durationMonths: e.target.value },
+//                     })
+//                   }
+//                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//                 >
+//                   <option value="">Select Months</option>
+//                   {months.map((month) => (
+//                     <option key={month} value={month}>
+//                       {month}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   </div>
+// );
+
+const renderEducationDetails = () => (
+  <div className="space-y-8">
+    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <GraduationCap className="w-5 h-5 text-primary" />
+          Highest Qualification
+        </h3>
+      </div>
+      <div className="mt-1">
+        <label className="block text-slate-700 text-sm font-medium mb-2">
+          Select your highest educational qualification <span className="text-red-600">*</span>
         </label>
-        {education.postGraduation.hasPostGraduation && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                University/College Name
-              </label>
-              <input
-                type="text"
-                value={education.postGraduation.university}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: {
-                      ...education.postGraduation,
-                      university: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Subject
-              </label>
-              <input
-                type="text"
-                value={education.postGraduation.subject}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: {
-                      ...education.postGraduation,
-                      subject: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Passout Year
-              </label>
-              <input
-                type="text"
-                value={education.postGraduation.passoutYear}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: {
-                      ...education.postGraduation,
-                      passoutYear: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Percentage
-              </label>
-              <input
-                type="text"
-                value={education.postGraduation.percentage}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: {
-                      ...education.postGraduation,
-                      percentage: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.diploma.hasDiploma}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                diploma: { ...education.diploma, hasDiploma: e.target.checked },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">
-            Diploma / Additional Qualification
-          </span>
-        </label>
-        {education.diploma.hasDiploma && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Institute Name
-              </label>
-              <input
-                type="text"
-                value={education.diploma.instituteName}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    diploma: {
-                      ...education.diploma,
-                      instituteName: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Qualification Type
-              </label>
-              <input
-                type="text"
-                value={education.diploma.qualificationType}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    diploma: {
-                      ...education.diploma,
-                      qualificationType: e.target.value,
-                    },
-                  })
-                }
-                placeholder="Diploma/Certificate"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Year of Completion
-              </label>
-              <input
-                type="text"
-                value={education.diploma.year}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, year: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.experience.hasExperience}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                experience: {
-                  ...education.experience,
-                  hasExperience: e.target.checked,
-                },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">
-            Post-Qualification Experience
-          </span>
-        </label>
-        {education.experience.hasExperience && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Organization Name
-              </label>
-              <input
-                type="text"
-                value={education.experience.organization}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: {
-                      ...education.experience,
-                      organization: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Designation
-              </label>
-              <input
-                type="text"
-                value={education.experience.designation}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: {
-                      ...education.experience,
-                      designation: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Date of Joining
-              </label>
-              <input
-                type="date"
-                value={education.experience.dateOfJoining}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: {
-                      ...education.experience,
-                      dateOfJoining: e.target.value,
-                    },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Years
-                  </label>
-                  <input
-                    type="text"
-                    value={education.experience.durationYears}
-                    onChange={(e) =>
-                      setEducation({
-                        ...education,
-                        experience: {
-                          ...education.experience,
-                          durationYears: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Years"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Months
-                  </label>
-                  <input
-                    type="text"
-                    value={education.experience.durationMonths}
-                    onChange={(e) =>
-                      setEducation({
-                        ...education,
-                        experience: {
-                          ...education.experience,
-                          durationMonths: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Months"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.contractualService.hasContractualService}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                contractualService: {
-                  ...education.contractualService,
-                  hasContractualService: e.target.checked,
-                },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">
-            Contractual Service at SDTL Namkum
-          </span>
-        </label>
-        {education.contractualService.hasContractualService && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Organization
-              </label>
-              <input
-                type="text"
-                value={education.contractualService.organization}
-                disabled
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
-              />
-            </div>
-            <div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Years
-                  </label>
-                  <input
-                    type="text"
-                    value={education.contractualService.durationYears}
-                    onChange={(e) =>
-                      setEducation({
-                        ...education,
-                        contractualService: {
-                          ...education.contractualService,
-                          durationYears: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Years"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Months
-                  </label>
-                  <input
-                    type="text"
-                    value={education.contractualService.durationMonths}
-                    onChange={(e) =>
-                      setEducation({
-                        ...education,
-                        contractualService: {
-                          ...education.contractualService,
-                          durationMonths: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Months"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SearchableDropdown
+          options={["graduation", "postGraduation", "diploma", "phd", "others"]}
+          value={highestQualification}
+          onChange={setHighestQualification}
+          placeholder="Select Qualification"
+          required
+          className="w-full md:w-1/2"
+        />
       </div>
     </div>
-  );
-
-  const renderPostPreference = () => (
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {/* Main Content - Left Side */}
-    <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
-          Post Preference Selection
+    
+    {/* 10th / SSC Education */}
+    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <Award className="w-5 h-5 text-primary" />
+          10th / SSC Education
         </h3>
-        <p className="text-sm text-slate-500 mt-1">
-          Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
-        </p>
       </div>
-
-      {/* Vacancy Stream Selection */}
-      <section className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-6 w-1 bg-primary rounded-full"></div>
-          <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-            1. Vacancy Stream Selection
-          </h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Board Name <span className="text-red-600">*</span>
+          </label>
+          <SearchableDropdown
+            options={boards}
+            value={education.tenth.board}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, board: value },
+              })
+            }
+            placeholder="Select Board"
+            required
+          />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-            <div className="flex justify-between items-start">
-              <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
-              <input
-                type="radio"
-                name="vacancy_stream"
-                value="regular"
-                checked={postPreference.vacancyStream === "regular"}
-                onChange={(e) =>
-                  setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                }
-                className="w-4 h-4 accent-primary"
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Roll Number <span className="text-red-600">*</span>
           </label>
-
-          <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-            <div className="flex justify-between items-start">
-              <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
-              <input
-                type="radio"
-                name="vacancy_stream"
-                value="backlog"
-                checked={postPreference.vacancyStream === "backlog"}
-                onChange={(e) =>
-                  setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                }
-                className="w-4 h-4 accent-primary"
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
-          </label>
-
-          <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-primary">Both (Recommended)</h3>
-              </div>
-              <input
-                type="radio"
-                name="vacancy_stream"
-                value="both"
-                checked={postPreference.vacancyStream === "both"}
-                onChange={(e) =>
-                  setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                }
-                className="w-4 h-4 accent-primary"
-              />
-            </div>
-            <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
-          </label>
+          <input
+            type="text"
+            value={education.tenth.rollNumber}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, rollNumber: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
         </div>
-      </section>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Total Marks <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.tenth.totalMarks}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, totalMarks: e.target.value },
+              })
+            }
+            placeholder="e.g., 500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Marks Obtained <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.tenth.marksObtained}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, marksObtained: e.target.value },
+              })
+            }
+            placeholder="e.g., 450"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Percentage (%) / CGPA <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.tenth.percentage}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, percentage: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passing Year <span className="text-red-600">*</span>
+          </label>
+          <SearchableDropdown
+            options={passingYears}
+            value={education.tenth.yearOfPassing}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, yearOfPassing: value },
+              })
+            }
+            placeholder="Select Year"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passing Certificate No. <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.tenth.passingCertificateNo}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                tenth: { ...education.tenth, passingCertificateNo: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
 
-      {/* Ranking Eligible Posts */}
-      <section>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-1 bg-primary rounded-full"></div>
-            <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-              2. Ranking Eligible Posts
-            </h4>
+    {/* 12th / HSC Education */}
+    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-primary" />
+          12th / HSC Education
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Board Name
+          </label>
+          <SearchableDropdown
+            options={boards}
+            value={education.twelfth.board}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, board: value },
+              })
+            }
+            placeholder="Select Board"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Roll Number
+          </label>
+          <input
+            type="text"
+            value={education.twelfth.rollNumber}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, rollNumber: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Total Marks
+          </label>
+          <input
+            type="text"
+            value={education.twelfth.totalMarks}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, totalMarks: e.target.value },
+              })
+            }
+            placeholder="e.g., 500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Marks Obtained
+          </label>
+          <input
+            type="text"
+            value={education.twelfth.marksObtained}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, marksObtained: e.target.value },
+              })
+            }
+            placeholder="e.g., 450"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Percentage (%)
+          </label>
+          <input
+            type="text"
+            value={education.twelfth.percentage}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, percentage: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passing Year
+          </label>
+          <SearchableDropdown
+            options={passingYears}
+            value={education.twelfth.yearOfPassing}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, yearOfPassing: value },
+              })
+            }
+            placeholder="Select Year"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passing Certificate No.
+          </label>
+          <input
+            type="text"
+            value={education.twelfth.passingCertificateNo}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                twelfth: { ...education.twelfth, passingCertificateNo: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* Graduation Education */}
+    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <GraduationCap className="w-5 h-5 text-primary" />
+          Graduation Education
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Course Name <span className="text-red-600">*</span>
+          </label>
+          <SearchableDropdown
+            options={graduationCourseNames}
+            value={education.graduation.graduationCourse}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, graduationCourse: value },
+              })
+            }
+            placeholder="Select Course"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            University Name <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.graduation.university}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, university: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passout Year <span className="text-red-600">*</span>
+          </label>
+          <SearchableDropdown
+            options={passingYears}
+            value={education.graduation.passoutYear}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, passoutYear: value },
+              })
+            }
+            placeholder="Select Year"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Total Marks <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.graduation.totalMarks}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, totalMarks: e.target.value },
+              })
+            }
+            placeholder="e.g., 3000"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Marks Obtained <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.graduation.marksObtained}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, marksObtained: e.target.value },
+              })
+            }
+            placeholder="e.g., 2400"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Percentage/CGPA <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.graduation.percentage}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, percentage: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Specialization/Subject <span className="text-red-600">*</span>
+          </label>
+          <SearchableDropdown
+            options={subjects}
+            value={education.graduation.specialization}
+            onChange={(value) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, specialization: value },
+              })
+            }
+            placeholder="Select Subject"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 text-sm font-medium mb-2">
+            Passing Certificate No. <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="text"
+            value={education.graduation.passingCertificateNo}
+            onChange={(e) =>
+              setEducation({
+                ...education,
+                graduation: { ...education.graduation, passingCertificateNo: e.target.value },
+              })
+            }
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* Post Graduation Section */}
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          checked={education.postGraduation.hasPostGraduation}
+          onChange={(e) =>
+            setEducation({
+              ...education,
+              postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
+            })
+          }
+          className="w-4 h-4 text-primary rounded"
+        />
+        <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
+      </label>
+      {education.postGraduation.hasPostGraduation && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              University/College Name
+            </label>
+            <input
+              type="text"
+              value={education.postGraduation.university}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, university: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
           </div>
-          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-            5 Posts Available
-          </span>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Subject
+            </label>
+            <SearchableDropdown
+              options={subjects}
+              value={education.postGraduation.subject}
+              onChange={(value) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, subject: value },
+                })
+              }
+              placeholder="Select Subject"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Total Marks
+            </label>
+            <input
+              type="text"
+              value={education.postGraduation.totalMarks}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, totalMarks: e.target.value },
+                })
+              }
+              placeholder="e.g., 2000"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Marks Obtained
+            </label>
+            <input
+              type="text"
+              value={education.postGraduation.marksObtained}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, marksObtained: e.target.value },
+                })
+              }
+              placeholder="e.g., 1600"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Passout Year
+            </label>
+            <SearchableDropdown
+              options={passingYears}
+              value={education.postGraduation.passoutYear}
+              onChange={(value) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, passoutYear: value },
+                })
+              }
+              placeholder="Select Year"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Percentage
+            </label>
+            <input
+              type="text"
+              value={education.postGraduation.percentage}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, percentage: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Passing Certificate No.
+            </label>
+            <input
+              type="text"
+              value={education.postGraduation.passingCertificateNo}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
         </div>
+      )}
+    </div>
 
-        <p className="text-xs text-slate-500 mb-4 italic">Enter priority number manually (1 = highest priority)</p>
+    {/* Diploma Section with Searchable Dropdowns */}
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          checked={education.diploma.hasDiploma}
+          onChange={(e) =>
+            setEducation({
+              ...education,
+              diploma: { ...education.diploma, hasDiploma: e.target.checked },
+            })
+          }
+          className="w-4 h-4 text-primary rounded"
+        />
+        <span className="font-semibold text-slate-800">Diploma / Additional Qualification</span>
+      </label>
+      {education.diploma.hasDiploma && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Institute Name
+            </label>
+            <input
+              type="text"
+              value={education.diploma.instituteName}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, instituteName: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              placeholder="e.g., Govt Polytechnic, Ranchi"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Qualification Type
+            </label>
+            <SearchableDropdown
+              options={["Diploma", "Advanced Diploma", "Post Graduate Diploma", "Certificate Course", "Vocational Course", "PG Diploma"]}
+              value={education.diploma.qualificationType}
+              onChange={(value) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, qualificationType: value },
+                })
+              }
+              placeholder="Select Qualification Type"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Total Marks
+            </label>
+            <input
+              type="text"
+              value={education.diploma.totalMarks}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, totalMarks: e.target.value },
+                })
+              }
+              placeholder="e.g., 1000"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Marks Obtained
+            </label>
+            <input
+              type="text"
+              value={education.diploma.marksObtained}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, marksObtained: e.target.value },
+                })
+              }
+              placeholder="e.g., 850"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Year of Completion
+            </label>
+            <SearchableDropdown
+              options={passingYears}
+              value={education.diploma.year}
+              onChange={(value) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, year: value },
+                })
+              }
+              placeholder="Select Year"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Certificate No.
+            </label>
+            <input
+              type="text"
+              value={education.diploma.certificateNo}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  diploma: { ...education.diploma, certificateNo: e.target.value },
+                })
+              }
+              placeholder="Certificate/Diploma Number"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+    </div>
 
-        <div className="space-y-3">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-sm font-bold text-slate-400 w-4">{post.id}</span>
-                <GripVertical size={18} className="text-slate-400 cursor-grab" />
+    {/* Experience Section with Searchable Dropdowns for Years/Months */}
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          checked={education.experience.hasExperience}
+          onChange={(e) =>
+            setEducation({
+              ...education,
+              experience: { ...education.experience, hasExperience: e.target.checked },
+            })
+          }
+          className="w-4 h-4 text-primary rounded"
+        />
+        <span className="font-semibold text-slate-800">Post-Qualification Experience</span>
+      </label>
+      {education.experience.hasExperience && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Organization Name
+            </label>
+            <input
+              type="text"
+              value={education.experience.organization}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  experience: { ...education.experience, organization: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Designation
+            </label>
+            <input
+              type="text"
+              value={education.experience.designation}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  experience: { ...education.experience, designation: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Date of Joining
+            </label>
+            <input
+              type="date"
+              value={education.experience.dateOfJoining}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  experience: { ...education.experience, dateOfJoining: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Relieving Date
+            </label>
+            <input
+              type="date"
+              value={education.experience.relievingDate}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  experience: { ...education.experience, relievingDate: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Years
+                </label>
+                <SearchableDropdown
+                  options={yearsRange}
+                  value={education.experience.durationYears}
+                  onChange={(value) =>
+                    setEducation({
+                      ...education,
+                      experience: { ...education.experience, durationYears: value },
+                    })
+                  }
+                  placeholder="Select Years"
+                />
               </div>
-
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-slate-800 truncate">{post.title}</h4>
-                <p className="text-xs text-slate-500 truncate mt-0.5">{post.dept}</p>
-              </div>
-
-              <div className="hidden md:block px-4 text-center border-x border-slate-200">
-                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Grade Pay</span>
-                <span className="text-xs font-bold text-slate-600">{post.pay}</span>
-              </div>
-
-              <div className="shrink-0 ml-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="5"
-                  value={postPreference.postRankings[post.id]}
-                  onChange={(e) => handlePostRankingChange(post.id, parseInt(e.target.value))}
-                  className="w-12 h-12 border border-slate-300 rounded-lg text-center font-bold text-primary focus:border-primary outline-none"
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Months
+                </label>
+                <SearchableDropdown
+                  options={months}
+                  value={education.experience.durationMonths}
+                  onChange={(value) =>
+                    setEducation({
+                      ...education,
+                      experience: { ...education.experience, durationMonths: value },
+                    })
+                  }
+                  placeholder="Select Months"
                 />
               </div>
             </div>
-          ))}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Experience Letter No.
+            </label>
+            <input
+              type="text"
+              value={education.experience.experienceLetterNo}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  experience: { ...education.experience, experienceLetterNo: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
         </div>
-      </section>
+      )}
     </div>
 
-    {/* Sidebar - Right Side */}
-    <aside className="space-y-6">
-      {/* SELECTION RULES */}
-      <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2 mb-5">
-          <Info size={20} className="text-emerald-300" />
-          <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
+    {/* Contractual Service Section with Searchable Dropdowns */}
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <label className="flex items-center gap-3 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          checked={education.contractualService.hasContractualService}
+          onChange={(e) =>
+            setEducation({
+              ...education,
+              contractualService: { ...education.contractualService, hasContractualService: e.target.checked },
+            })
+          }
+          className="w-4 h-4 text-primary rounded"
+        />
+        <span className="font-semibold text-slate-800">Contractual Service at SDTL Namkum</span>
+      </label>
+      {education.contractualService.hasContractualService && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Organization
+            </label>
+            <input
+              type="text"
+              value={education.contractualService.organization}
+              disabled
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Contract ID
+            </label>
+            <input
+              type="text"
+              value={education.contractualService.contractId}
+              onChange={(e) =>
+                setEducation({
+                  ...education,
+                  contractualService: { ...education.contractualService, contractId: e.target.value },
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Years
+                </label>
+                <SearchableDropdown
+                  options={yearsRange}
+                  value={education.contractualService.durationYears}
+                  onChange={(value) =>
+                    setEducation({
+                      ...education,
+                      contractualService: { ...education.contractualService, durationYears: value },
+                    })
+                  }
+                  placeholder="Select Years"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Months
+                </label>
+                <SearchableDropdown
+                  options={months}
+                  value={education.contractualService.durationMonths}
+                  onChange={(value) =>
+                    setEducation({
+                      ...education,
+                      contractualService: { ...education.contractualService, durationMonths: value },
+                    })
+                  }
+                  placeholder="Select Months"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
-          <li>Preferences once locked cannot be changed after the final submission of the form.</li>
-          <li>Ranking must be unique for each post (e.g., you cannot have two posts at Priority 1).</li>
-          <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
-          <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
-        </ul>
-      </div>
-
-      {/* NEED HELP BOX */}
-      <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
-        <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <HelpCircle size={24} />
-        </div>
-        <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
-        <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
-          Contact the recruitment helpdesk for clarification on post duties and eligibility.
-        </p>
-        <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
-          <FileText size={16} />
-          Read Full Advertisement
-        </button>
-      </div>
-    </aside>
+      )}
+    </div>
   </div>
 );
 
+const renderPostPreference = () => {
+  // Get available priority numbers for a specific post
+  const getAvailablePriorities = (currentPostId: number) => {
+    const usedPriorities = Object.entries(postPreference.postRankings)
+      .filter(([id, priority]) => Number(id) !== currentPostId && priority !== 0)
+      .map(([, priority]) => priority);
+    
+    const allPriorities = [1, 2, 3, 4, 5];
+    return allPriorities.filter(p => !usedPriorities.includes(p));
+  };
+
+  // Handle priority change from dropdown
+  const handlePriorityChange = (postId: number, priority: number) => {
+    // Check if this priority is already used by another post
+    const isPriorityUsed = Object.entries(postPreference.postRankings)
+      .some(([id, p]) => Number(id) !== postId && p === priority);
+    
+    if (isPriorityUsed && priority !== 0) {
+      alert(`Priority ${priority} is already selected for another post. Please choose a different priority.`);
+      return;
+    }
+    
+    setPostPreference({
+      ...postPreference,
+      postRankings: { ...postPreference.postRankings, [postId]: priority },
+    });
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
+            Post Preference Selection
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">
+            Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
+          </p>
+        </div>
+
+        <section className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-6 w-1 bg-primary rounded-full"></div>
+            <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+              1. Vacancy Stream Selection
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
+                <input
+                  type="radio"
+                  name="vacancy_stream"
+                  value="regular"
+                  checked={postPreference.vacancyStream === "regular"}
+                  onChange={(e) =>
+                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+                  }
+                  className="w-4 h-4 accent-primary"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
+            </label>
+
+            <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
+                <input
+                  type="radio"
+                  name="vacancy_stream"
+                  value="backlog"
+                  checked={postPreference.vacancyStream === "backlog"}
+                  onChange={(e) =>
+                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+                  }
+                  className="w-4 h-4 accent-primary"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
+            </label>
+
+            <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-primary">Both (Recommended)</h3>
+                </div>
+                <input
+                  type="radio"
+                  name="vacancy_stream"
+                  value="both"
+                  checked={postPreference.vacancyStream === "both"}
+                  onChange={(e) =>
+                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+                  }
+                  className="w-4 h-4 accent-primary"
+                />
+              </div>
+              <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-1 bg-primary rounded-full"></div>
+              <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+                2. Ranking Eligible Posts
+              </h4>
+            </div>
+            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+              5 Posts Available
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500 mb-4 italic">Select priority number from dropdown (1 = highest priority). Each priority number can be used only once.</p>
+
+          <div className="space-y-3">
+            {posts.map((post) => {
+              const currentPriority = postPreference.postRankings[post.id];
+              const availablePriorities = getAvailablePriorities(post.id);
+              
+              return (
+                <div
+                  key={post.id}
+                  className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-bold text-slate-400 w-2">{post.id}</span>
+                    
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-slate-800 truncate">{post.title}</h4>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">{post.dept}</p>
+                  </div>
+
+                  <div className="hidden md:block px-4 text-center border-x border-slate-200">
+                    <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Grade Pay</span>
+                    <span className="text-xs font-bold text-slate-600">{post.pay}</span>
+                  </div>
+
+                  <div className="shrink-0 ml-2">
+                    <select
+                      value={currentPriority}
+                      onChange={(e) => handlePriorityChange(post.id, parseInt(e.target.value))}
+                      className="w-30 h-12 border border-slate-300 rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2"
+                    >
+                      <option value={0}>Select</option>
+                      {availablePriorities.map((priority) => (
+                        <option key={priority} value={priority}>
+                          Priority {priority}
+                        </option>
+                      ))}
+                      {currentPriority !== 0 && !availablePriorities.includes(currentPriority) && (
+                        <option value={currentPriority} disabled>
+                          Priority {currentPriority} (Taken)
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Show warning if not all posts are ranked */}
+          {Object.values(postPreference.postRankings).some(p => p === 0) && (
+            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-xs text-amber-800 flex items-center gap-2">
+                <AlertCircle size={14} />
+                Please assign priorities to all posts before proceeding.
+              </p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <aside className="space-y-6">
+        <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-5">
+            <Info size={20} className="text-emerald-300" />
+            <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
+          </div>
+          <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
+            <li>Preferences once locked cannot be changed after the final submission of the form.</li>
+            <li>Ranking must be unique for each post (e.g., you cannot have two posts at Priority 1).</li>
+            <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
+            <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
+          </ul>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
+          <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <HelpCircle size={24} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
+          <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
+            Contact the recruitment helpdesk for clarification on post duties and eligibility.
+          </p>
+          <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
+            <FileText size={16} />
+            Read Full Advertisement
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+  const renderLanguageSelection = () => {
+    const paperOneOptions = ["Hindi", "English"];
+    const paperTwoOptions = [
+      "Hindi Language & Literature",
+      "English Language & Literature",
+      "Sanskrit Language & Literature",
+      "Urdu Language & Literature",
+      "Bengali Language & Literature",
+      "Santhali Language & Literature",
+    ];
+    const paperThreeOptions = [
+      "General Studies",
+      "General Science",
+      "Mathematics",
+      "Physics",
+      "Chemistry",
+      "Zoology",
+      "Botany",
+      "Statistics",
+      "Economics",
+      "Commerce",
+      "Geology",
+      "Dairy Technology",
+      "Fisheries Science",
+      "Pharmacy",
+      "Pharmaceutical Chemistry",
+      "Ayurveda",
+    ];
+
+    return (
+      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+        <div className="absolute -top-4 left-5 bg-white px-3">
+          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+            <Languages className="w-5 h-5 text-primary" />
+            Language Selection for Examination
+          </h3>
+        </div>
+        <div className="space-y-6 mt-4">
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Paper-I Language <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={languageSelection.paperOneLanguage}
+              onChange={(e) =>
+                setLanguageSelection({
+                  ...languageSelection,
+                  paperOneLanguage: e.target.value,
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="">Select Language</option>
+              {paperOneOptions.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Paper-II Language/Subject <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={languageSelection.paperTwoLanguage}
+              onChange={(e) =>
+                setLanguageSelection({
+                  ...languageSelection,
+                  paperTwoLanguage: e.target.value,
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="">Select Language</option>
+              {paperTwoOptions.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+            
+            
+          </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Paper-III Subject Selection <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={languageSelection.paperThreeLanguage}
+              onChange={(e) =>
+                setLanguageSelection({
+                  ...languageSelection,
+                  paperThreeLanguage: e.target.value,
+                })
+              }
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="">Select Subject</option>
+              {paperThreeOptions.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
+            
+            
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderCenterSelection = () => (
     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
@@ -2157,6 +5371,15 @@ const MyApplications: React.FC = () => {
 
   const renderFeePayment = () => {
     const totalFee = calculateTotalFee();
+    let applicableFeeText = "";
+    if (reservationCategory.isPwd === "yes") {
+      applicableFeeText = "PwD Candidates (Fee: ₹0)";
+    } else if (reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st") {
+      applicableFeeText = "SC / ST (Fee: ₹50)";
+    } else {
+      applicableFeeText = "UR / EWS / OBC-II / EBC-I (Fee: ₹100)";
+    }
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2201,6 +5424,19 @@ const MyApplications: React.FC = () => {
                   </span>
                 </div>
               </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-blue-800">
+                  Applicable Fee: <strong>{applicableFeeText}</strong>
+                </p>
+                <div className="mt-2 text-xs text-blue-700">
+                  <p>Fee Structure:</p>
+                  <ul className="list-disc pl-5 mt-1">
+                    <li>UR / EWS / OBC-II / EBC-I: ₹100</li>
+                    <li>SC / ST: ₹50</li>
+                    <li>PwD Candidates: ₹0</li>
+                  </ul>
+                </div>
+              </div>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
               <h4 className="text-xs font-bold text-primary uppercase mb-5">
@@ -2231,7 +5467,7 @@ const MyApplications: React.FC = () => {
                     Net Banking, Card, UPI
                   </span>
                 </label>
-                <label
+                {/* <label
                   className={`border-2 rounded-lg p-5 flex flex-col items-center text-center cursor-pointer transition-all ${feePayment.paymentMode === "offline" ? "border-primary bg-primary/5" : "border-slate-300 hover:border-primary/50"}`}
                 >
                   <input
@@ -2254,7 +5490,7 @@ const MyApplications: React.FC = () => {
                   <span className="text-xs text-slate-500">
                     Generate Bank Challan
                   </span>
-                </label>
+                </label> */}
               </div>
             </div>
             {feePayment.paymentMode && (
@@ -2468,27 +5704,13 @@ const MyApplications: React.FC = () => {
       },
       {
         key: "pwdCertificate",
-        label: "PwD Certificate",
+        label: "Disability Certificate",
         required: false,
         type: "pdf",
         size: "Max 500KB",
       },
       {
-        key: "pwdCertificate",
-        label: "Disability  Certificate",
-        required: false,
-        type: "pdf",
-        size: "Max 500KB",
-      },
-      {
-        key: "pwdCertificate",
-        label: "Service Certificate",
-        required: false,
-        type: "pdf",
-        size: "Max 500KB",
-      },
-      {
-        key: "pwdCertificate",
+        key: "sportsCertificate",
         label: "Sports Certificate",
         required: false,
         type: "pdf",
@@ -2595,12 +5817,20 @@ const MyApplications: React.FC = () => {
               <span className="font-semibold">{personalInfo.fathersName}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-slate-500">Mother's Name:</span>
+              <span className="font-semibold">{personalInfo.motherName}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-slate-500">DOB:</span>
               <span className="font-semibold">{personalInfo.dob}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Mobile:</span>
               <span className="font-semibold">{personalInfo.mobileNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Alternate Mobile:</span>
+              <span className="font-semibold">{personalInfo.alternateNumber || "N/A"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Email:</span>
@@ -2687,6 +5917,40 @@ const MyApplications: React.FC = () => {
           )}
         </div>
       </div>
+      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="flex justify-between border-b pb-3 mb-4">
+          <div className="flex items-center gap-2 font-bold text-primary">
+            <Languages size={18} />
+            <h3>Language Selection</h3>
+          </div>
+          <button
+            onClick={() => setCurrentStep(4)}
+            className="text-xs font-bold text-primary hover:underline"
+          >
+            <Edit3 size={14} /> Edit
+          </button>
+        </div>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Paper-I Language:</span>
+            <span className="font-semibold">
+              {languageSelection.paperOneLanguage || "Not Selected"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Paper-II Language:</span>
+            <span className="font-semibold">
+              {languageSelection.paperTwoLanguage || "Not Selected"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Paper-III Subject:</span>
+            <span className="font-semibold">
+              {languageSelection.paperThreeLanguage || "Not Selected"}
+            </span>
+          </div>
+        </div>
+      </div>
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
         <div className="flex items-center gap-2 text-primary font-bold mb-3">
           <CheckSquare size={18} />
@@ -2769,9 +6033,11 @@ const MyApplications: React.FC = () => {
         <div className="flex items-center gap-1 text-slate-500">
           <HelpCircle size={14} /> Issue? Contact Help Desk
         </div>
-        <a href="#" className="font-bold text-primary">
+        <span 
+        onClick={() => navigate("/dashboard")}
+          className="font-bold text-primary cursor-pointer">
           Go to Dashboard →
-        </a>
+        </span>
       </div>
     </div>
   );
@@ -2836,12 +6102,21 @@ const MyApplications: React.FC = () => {
                 Next <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
+              <div className="flex gap-10">
+                 <button
+              onClick={handleSaveDraft}
+                className="flex items-center gap-2 px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-900"
+              >
+                <Send className="w-4 h-4" /> Save Draft
+              </button>
+
               <button
                 onClick={handleFinalSubmit}
                 className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 <Send className="w-4 h-4" /> Submit Application
               </button>
+              </div>
             )}
           </div>
         </>

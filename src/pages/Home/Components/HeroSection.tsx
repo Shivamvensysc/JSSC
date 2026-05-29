@@ -304,7 +304,7 @@
 // }
 
 
-// HeroSection.tsx
+
 
 import {
   ArrowRight,
@@ -312,7 +312,6 @@ import {
   FileText,
   GraduationCap,
   MapPin,
-  ShieldCheck,
   Users,
   ChevronRight,
   Sparkles,
@@ -321,6 +320,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const keyDates = [
   {
@@ -384,6 +384,7 @@ const benefits = [
 ];
 
 export default function HeroSection() {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   // const [currentDateIndex, setCurrentDateIndex] = useState(0);
   console.log(scrolled)
@@ -458,13 +459,15 @@ export default function HeroSection() {
 
               {/* ACTION BUTTONS */}
               <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-slideUp animation-delay-300">
-                <button className="group relative overflow-hidden bg-yellow-400 text-primary px-8 py-3.5 rounded-xl font-bold text-base transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                <button
+                 onClick={() => navigate("/apply-now")}
+                   className="group relative overflow-hidden bg-yellow-400 text-primary px-8 py-3.5 rounded-xl font-bold text-base transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2">
                   <span className="relative z-10">Apply Now</span>
                   <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
                   <div className="absolute inset-0 bg-yellow-300 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
                 </button>
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                {/* <div className="flex flex-col sm:flex-row gap-3">
                   <button className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white font-semibold text-sm hover:bg-white/20 transition-all duration-300 group">
                     <ShieldCheck size={16} className="group-hover:rotate-12 transition-transform" />
                     Regular Vacancy PDF
@@ -474,7 +477,7 @@ export default function HeroSection() {
                     <ShieldCheck size={16} className="group-hover:rotate-12 transition-transform" />
                     Backlog Vacancy PDF
                   </button>
-                </div>
+                </div> */}
               </div>
             </div>
 

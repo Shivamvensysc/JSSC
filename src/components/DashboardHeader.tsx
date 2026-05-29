@@ -16,6 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 interface DashboardHeaderProps {
   toggleSidebar: () => void;
@@ -100,6 +101,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   }, []);
 
   const handleLogout = () => {
+    toast.success("Candidate logout successfully")
     navigate("/");
   };
 

@@ -28,9 +28,12 @@ import AdmitCardManagement from "../components/admin/AdmitCardManagement";
 import SystemDataExport from "../components/admin/SystemDataExport";
 import CommunicationsAdminPortal from "../components/admin/CommunicationsAdminPortal";
 import ScrollToTop from "../components/common/ScrollToTop";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const Index = () => {
   return (
     <>
+    <ToastContainer />
     <ScrollToTop />
     <Routes>
       {/* ================= PUBLIC ROUTES ================= */}
