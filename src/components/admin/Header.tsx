@@ -1,6 +1,7 @@
 import {  Menu, ChevronLeft, Search, Bell, Settings, LogOut, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Header({ isCollapsed, onToggle }: { isCollapsed: boolean, onToggle: () => void }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -36,7 +37,10 @@ export default function Header({ isCollapsed, onToggle }: { isCollapsed: boolean
     };
   }, []);
 
-
+ const handleLogout = ()=>{
+  toast.success("Logout successfully")
+  navigate("/admin-login")
+ }
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Searching for:", searchQuery);
@@ -174,7 +178,7 @@ export default function Header({ isCollapsed, onToggle }: { isCollapsed: boolean
                   <div className="border-t border-[#E1E5E3] my-1"></div>
                   
                   <button
-                    onClick={() => navigate("/admin-login")}
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors text-left"
                   >
                     <LogOut size={18} className="text-red-600" />

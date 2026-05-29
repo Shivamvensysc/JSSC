@@ -1,12 +1,6 @@
 // // Footer.tsx
 
-import {
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  Clock,
-} from "lucide-react";
+import { Globe, Mail, Phone, MapPin, Clock } from "lucide-react";
 
 import { Link } from "react-router-dom";
 
@@ -104,19 +98,15 @@ export default function Footer() {
 
   return (
     <footer className="relative overflow-hidden bg-gradient-to-r from-[#004d40] via-[#005c4b] to-[#003b32]">
-      
       {/* BACKGROUND BLUR EFFECTS */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-3xl rounded-full" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 blur-3xl rounded-full" />
 
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-10 py-14">
-
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-10 py-6">
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-14">
-
           {/* BRAND SECTION */}
           <div className="space-y-6">
-            
             {/* LOGO */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center backdrop-blur-md shadow-xl">
@@ -134,11 +124,8 @@ export default function Footer() {
               </div>
             </div>
 
-
-
             {/* CONTACT */}
             <div className="space-y-3 ">
-
               <div className="flex items-start gap-3 text-white/80">
                 <MapPin className="w-5 h-5 mt-0.5 text-yellow-300" />
                 <span className="text-sm leading-6">
@@ -153,16 +140,12 @@ export default function Footer() {
 
               <div className="flex items-center gap-3 text-white/80">
                 <Mail className="w-5 h-5 text-yellow-300" />
-                <span className="text-sm">
-                  support@jssc.jharkhand.gov.in
-                </span>
+                <span className="text-sm">support@jssc.jharkhand.gov.in</span>
               </div>
 
               <div className="flex items-center gap-3 text-white/80">
                 <Clock className="w-5 h-5 text-yellow-300" />
-                <span className="text-sm">
-                  Mon-Fri: 10:00 AM - 6:00 PM
-                </span>
+                <span className="text-sm">Mon-Fri: 10:00 AM - 6:00 PM</span>
               </div>
             </div>
           </div>
@@ -170,7 +153,6 @@ export default function Footer() {
           {/* LINK SECTIONS */}
           {footerLinks.map((section) => (
             <div key={section.title} className="lg:mx-auto">
-              
               <h3 className="relative inline-block text-white text-xl font-semibold mb-6">
                 {section.title}
                 <span className="absolute left-0 -bottom-2 w-24 h-[3px] rounded-full bg-yellow-400" />
@@ -206,10 +188,8 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM SECTION */}
-        <div className="mt-10 pt-4 border-t border-white/10">
-
+        <div className="mt-6 pt-2 border-t border-white/10">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-
             {/* SOCIAL */}
             <div className="flex items-center gap-3">
               {socialIcons.map((social) => {
@@ -248,11 +228,11 @@ export default function Footer() {
             {/* COPYRIGHT */}
             <div className="text-center">
               <p className="text-sm text-white/80">
-                © {currentYear} Jharkhand Staff Selection Commission.
-                All rights reserved.
+                © {currentYear} Jharkhand Staff Selection Commission. All rights
+                reserved.
               </p>
 
-              <p className="text-sm text-white/60 mt-2">
+              <p className="text-sm text-white/60 ">
                 Designed & Developed by JSSC Technical Team
               </p>
             </div>

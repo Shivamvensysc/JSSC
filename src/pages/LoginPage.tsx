@@ -124,7 +124,7 @@ export default function CandidateLogin() {
           <span
             
             onClick={() => navigate("/apply-now")}
-            className="inline-flex items-center gap-2 mt-2 text-[14px] font-extrabold text-[#003A2B] hover:underline uppercase tracking-wide transition-all"
+            className="inline-flex items-center cursor-pointer gap-2 mt-2 text-[14px] font-extrabold text-[#003A2B] hover:underline uppercase tracking-wide transition-all"
           >
             New Candidate? Register
             <MoveRight size={16} />

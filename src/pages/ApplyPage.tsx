@@ -1,9 +1,12 @@
 
-import { CalendarDays, CircleAlert, MoveRight, RefreshCw } from "lucide-react";
+import {  CircleAlert, MoveRight, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function CandidateRegistrationStep1() {
   const navigate = useNavigate();
+  const handleRegisterClick = ()=>{
+    navigate("/candidate-login")
+  }
   return (
     <div className="min-h-screen bg-[#F4F5F7] px-3 py-6 md:px-6">
       <div className="max-w-[770px] mx-auto">
@@ -60,17 +63,10 @@ export default function CandidateRegistrationStep1() {
 
                 <div className="relative">
                   <input
-                    type="text"
+                    type="date"
                     placeholder="dd-mm-yyyy"
                     className="w-full py-2.5 border border-[#B9C2BD] rounded-lg px-4 pr-12 text-[15px] outline-none focus:border-primary placeholder:text-[#111827]"
                   />
-
-                  <button className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <CalendarDays
-                      size={20}
-                      className="text-[#111827]"
-                    />
-                  </button>
                 </div>
 
                 <p className="text-[13px] text-[#4B5563] mt-2">
@@ -189,7 +185,9 @@ export default function CandidateRegistrationStep1() {
 
             {/* ACTION FOOTER */}
             <div className="mt-5 flex flex-col items-center gap-4">
-              <button className="w-full py-3 bg-[#003A2B] hover:bg-[#002B20] text-white text-[18px] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 tracking-wide shadow-md">
+              <button 
+              onClick={handleRegisterClick}
+                className="w-full py-3 bg-[#003A2B] hover:bg-[#002B20] text-white text-[18px] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 tracking-wide shadow-md">
                 Register & Generate OTP
                 <MoveRight size={20} />
               </button>
