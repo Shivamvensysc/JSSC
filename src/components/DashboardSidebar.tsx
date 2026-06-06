@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
     label: "My Applications",
     icon: FileText,
   },
-  { path: "/dashboard/result", label: "Result", icon: Award },
+  // { path: "/dashboard/result", label: "Result", icon: Award },
   // { path: "/dashboard/admit-card", label: "Admit Card", icon: CreditCard },
   {
     path: "/dashboard/payment-status",
