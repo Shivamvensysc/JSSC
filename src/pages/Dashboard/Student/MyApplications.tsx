@@ -26,13 +26,13 @@ import {
   Globe,
   Sliders,
   Languages,
-  KeyRound,
+  KeyRound,X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 // API Base URL
-const API_BASE_URL = "https://7q7gdq1rke.execute-api.ap-south-1.amazonaws.com/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -156,7 +156,8 @@ interface Education {
     university: string;
     passoutYear: string;
     percentage: string;
-    subject: string;
+    // subject: string;
+    subject: string[];
     totalMarks: string;
     marksObtained: string;
     passingCertificateNo: string;
@@ -376,10 +377,22 @@ const MyApplications: React.FC = () => {
     "Open School Board", "State Open School",
   ];
 
+  // const graduationCourseNames = [
+  //   "BSc", "BSc (Hons)", "BPharma", "B.A.M.S (Ayurveda)", "BFSc",
+  //   "BTech Dairy Technology", "BSc Dairy Science", "BA", "BCom",
+  // ];
+
   const graduationCourseNames = [
-    "BSc", "BSc (Hons)", "BPharma", "B.A.M.S (Ayurveda)", "BFSc",
-    "BTech Dairy Technology", "BSc Dairy Science", "BA", "BCom",
-  ];
+  "Bachelor of Science (B.Sc)",
+  "Bachelor of Science Honours (B.Sc Hons.)",
+  "Bachelor of Pharmacy (B.Pharm)",
+  "Bachelor of Ayurvedic Medicine and Surgery (B.A.M.S)",
+  "Bachelor of Fisheries Science (B.F.Sc)",
+  "Bachelor of Technology in Dairy Technology (B.Tech Dairy Technology)",
+  "Bachelor of Science in Dairy Science (B.Sc Dairy Science)",
+  "Bachelor of Arts (B.A)",
+  "Bachelor of Commerce (B.Com)",
+];
 
   const subjects = [
     "Entomology", "Zoology", "Botany", "Mathematics", "Physics", "Chemistry",
@@ -397,6 +410,7 @@ const MyApplications: React.FC = () => {
     disabled = false,
     className = "",
   }) => {
+    console.log(required)
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -472,9 +486,99 @@ const MyApplications: React.FC = () => {
     );
   };
 
+   const MultiSelectDropdown: React.FC<{
+    options: string[];
+    values: string[];
+    onChange: (values: string[]) => void;
+    placeholder: string;
+    disabled?: boolean;
+    error?: string;
+  }> = ({ options, values, onChange, placeholder, disabled = false, error }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const filteredOptions = options.filter((option) =>
+      option.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    const toggleOption = (option: string) => {
+      if (values.includes(option)) {
+        onChange(values.filter((item) => item !== option));
+      } else {
+        onChange([...values, option]);
+      }
+    };
+
+    return (
+      <div className="relative">
+        <div
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-pointer bg-white flex flex-wrap gap-2 items-center ${
+            disabled ? "bg-slate-100 cursor-not-allowed" : ""
+          } ${error ? "border-red-500" : "border-slate-300"}`}
+        >
+          {values.length > 0 ? (
+            values.map((item) => (
+              <span
+                key={item}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {item}
+                <button
+                  type="button"
+                  onClick={() => toggleOption(item)}
+                  className="text-primary hover:text-red-600"
+                >
+                  ×
+                </button>
+              </span>
+            ))
+          ) : (
+            <span className="text-slate-400">{placeholder}</span>
+          )}
+        </div>
+        {isOpen && !disabled && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+            <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+              <div className="p-2 border-b border-slate-200">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="overflow-y-auto max-h-48">
+                {filteredOptions.map((option) => (
+                  <label
+                    key={option}
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={values.includes(option)}
+                      onChange={() => toggleOption(option)}
+                    />
+                    {option}
+                  </label>
+                ))}
+                {filteredOptions.length === 0 && (
+                  <div className="px-4 py-2 text-sm text-slate-500 text-center">No options found</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const generateYears = () => {
     const years = [];
-    for (let i = 2026; i >= 1970; i--) {
+    for (let i = 2022; i >= 1970; i--) {
       years.push(i.toString());
     }
     return years;
@@ -558,7 +662,7 @@ const MyApplications: React.FC = () => {
       university: "",
       passoutYear: "",
       percentage: "",
-      subject: "",
+      subject: [],
       totalMarks: "",
       marksObtained: "",
       passingCertificateNo: "",
@@ -601,6 +705,7 @@ const MyApplications: React.FC = () => {
     paperTwoLanguage: "",
     paperThreeLanguage: "",
   });
+  
 
   const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
     mainCategory: "",
@@ -1156,13 +1261,13 @@ const fetchAndAutoFillData = async () => {
         
         // Set post graduation flag and data
         const pgQual = qualifications.find((q: any) => q.level === "post_graduation");
-        if (pgQual) {
-          let pgSubjectValue = pgQual.specialization || "";
-          const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
-          if (pgSubjectValue) {
-            const foundSubject = availableSubjects.find(s => s.toLowerCase() === pgSubjectValue.toLowerCase());
-            if (foundSubject) pgSubjectValue = foundSubject;
-          }
+if (pgQual) {
+  let pgSubjectValue: string[] = [];
+  const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
+  if (pgQual.specialization) {
+    // Split by comma if multiple subjects, or create array with single subject
+    pgSubjectValue = pgQual.specialization.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
           
           setEducation(prev => ({
             ...prev,
@@ -1481,9 +1586,99 @@ useEffect(() => {
     });
   };
 
-  const handleFileUpload = (field: keyof Documents, file: File | null) => {
-    setDocuments({ ...documents, [field]: file });
+  // const handleFileUpload = (field: keyof Documents, file: File | null) => {
+  //   setDocuments({ ...documents, [field]: file });
+  // };
+
+  // Add this state for file preview URLs if needed
+const [filePreviewUrls, setFilePreviewUrls] = useState<{ [key: string]: string }>({});
+
+// Add cleanup effect
+useEffect(() => {
+  return () => {
+    // Cleanup all preview URLs when component unmounts
+    Object.values(filePreviewUrls).forEach(url => {
+      if (url) URL.revokeObjectURL(url);
+    });
   };
+}, []);
+
+// Add this helper function
+const validateFileSize = (file: File, maxSizeMB: number = 2): boolean => {
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    toast.error(`File size should be less than ${maxSizeMB}MB`);
+    return false;
+  }
+  return true;
+};
+
+const validateFileType = (file: File, acceptedTypes: string[]): boolean => {
+  const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+  if (!acceptedTypes.includes(fileExtension)) {
+    toast.error(`Invalid file type. Accepted: ${acceptedTypes.join(', ')}`);
+    return false;
+  }
+  return true;
+};
+
+const handleFileUpload = (field: keyof Documents, file: File | null) => {
+  if (!file) {
+    if (filePreviewUrls[field]) {
+      URL.revokeObjectURL(filePreviewUrls[field]);
+    }
+    setDocuments({ ...documents, [field]: null });
+    setFilePreviewUrls(prev => {
+      const newState = { ...prev };
+      delete newState[field];
+      return newState;
+    });
+    return;
+  }
+
+  // Validate file type based on field
+  let acceptedTypes: string[] = [];
+  if (field === 'photo' || field === 'signature') {
+    acceptedTypes = ['.jpg', '.jpeg', '.png'];
+  } else {
+    acceptedTypes = ['.pdf'];
+  }
+
+  if (!validateFileType(file, acceptedTypes)) {
+    return;
+  }
+
+  if (!validateFileSize(file, 2)) {
+    return;
+  }
+
+  // Clean up preview URL for old file
+  if (filePreviewUrls[field]) {
+    URL.revokeObjectURL(filePreviewUrls[field]);
+  }
+
+  // Create preview URL for image files
+  if (file.type.startsWith('image/')) {
+    const previewUrl = URL.createObjectURL(file);
+    setFilePreviewUrls(prev => ({ ...prev, [field]: previewUrl }));
+  }
+
+  setDocuments({ ...documents, [field]: file });
+};
+
+// Add remove file function
+const removeFile = (field: keyof Documents) => {
+  if (filePreviewUrls[field]) {
+    URL.revokeObjectURL(filePreviewUrls[field]);
+  }
+  setDocuments({ ...documents, [field]: null });
+  setFilePreviewUrls(prev => {
+    const newState = { ...prev };
+    delete newState[field];
+    return newState;
+  });
+  toast.info(`${field} removed`);
+};
 
   const sendMobileOtp = () => {
     if (personalInfo.mobileNumber.length === 10) {
@@ -1681,7 +1876,8 @@ useEffect(() => {
         university: education.postGraduation.university,
         passoutYear: education.postGraduation.passoutYear,
         percentage: education.postGraduation.percentage,
-        subject: education.postGraduation.subject,
+        // subject: education.postGraduation.subject,
+        subject: education.postGraduation.subject.join(', '),
         totalMarks: education.postGraduation.totalMarks,
         marksObtained: education.postGraduation.marksObtained,
         passingCertificateNo: education.postGraduation.passingCertificateNo,
@@ -2730,22 +2926,36 @@ useEffect(() => {
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Jharkhand Domicile Claim <span className="text-red-600">*</span>
               </label>
-              <select
-                value={reservationCategory.isJharkhandDomicile}
-                onChange={(e) =>
-                  setReservationCategory({
-                    ...reservationCategory,
-                    isJharkhandDomicile: e.target.value,
-                  })
-                }
-                className="w-full h-12 border border-slate-300 rounded-lg px-4"
-              >
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-              <p className="text-xs text-slate-500 mt-1">
-                Mandatory for all applicants
-              </p>
+               <div className="flex gap-6 mt-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="domicile"
+                    value="yes"
+                    checked={reservationCategory.isJharkhandDomicile === "yes"}
+                    onChange={(e) => {
+                      setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
+                      // setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+                    }}
+                    className="w-4 h-4 text-primary"
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="domicile"
+                    value="no"
+                    checked={reservationCategory.isJharkhandDomicile === "no"}
+                    onChange={(e) => {
+                      setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
+                      // setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+                    }}
+                    className="w-4 h-4 text-primary"
+                  />
+                  No
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -2824,13 +3034,9 @@ useEffect(() => {
                     <option value="physical">
                       Physical Challenges/Locomotive Disability (PCEP)
                     </option>
-                    <option value="autism">Autism</option>
-                    <option value="intellectual">Intellectual Disability</option>
-                    <option value="learning">Learning Disability</option>
-                    <option value="mental">Mental Disability</option>
-                    <option value="multiple">
-                      Multiple Disabilities (AILMD)
-                    </option>
+                    <option value="autism">Autism/Int.,Learn.,Mental Disability(AILMD) </option>
+                   
+                   
                   </select>
                 </div>
                 <div>
@@ -2908,18 +3114,20 @@ useEffect(() => {
                   Years of Service
                 </label>
                 <input
-                  type="text"
+                  type="number"
+                  min={0}
+                  max={30}
                   value={reservationCategory.exServicemanYears}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
+                    // clearFieldError("exServicemanYears");
+                    const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
                     setReservationCategory({
                       ...reservationCategory,
                       exServicemanYears: value,
                     });
                   }}
-                  onKeyDown={validateNumberInput}
-                  placeholder="Enter years of service"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                  placeholder="0-30"
+                  className= "w-full px-4 py-2 border rounded-lg"
                 />
               </div>
             )}
@@ -3054,7 +3262,7 @@ useEffect(() => {
             Select your highest educational qualification <span className="text-red-600">*</span>
           </label>
           <SearchableDropdown
-            options={["graduation", "postGraduation", "diploma", "phd", "others"]}
+            options={["Graduation", "PostGraduation", "Diploma", "PhD", "others"]}
             value={highestQualification}
             onChange={setHighestQualification}
             placeholder="Select Qualification"
@@ -3126,7 +3334,7 @@ useEffect(() => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Marks Obtained <span className="text-red-600">*</span>
+              Marks Obtained 
             </label>
             <input
               type="text"
@@ -3444,17 +3652,16 @@ useEffect(() => {
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Specialization/Subject <span className="text-red-600">*</span>
             </label>
-            <SearchableDropdown
+            <MultiSelectDropdown
               options={subjectsList.length > 0 ? subjectsList : subjects}
-              value={education.graduation.specialization}
-              onChange={(value) =>
+              values={education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : []}
+              onChange={(values) => {
                 setEducation({
                   ...education,
-                  graduation: { ...education.graduation, specialization: value },
-                })
-              }
-              placeholder="Select Subject"
-              required
+                  graduation: { ...education.graduation, specialization: values.join(", ") },
+                });
+              }}
+              placeholder="Select Subject(s)"
             />
           </div>
           <div>
@@ -3510,21 +3717,21 @@ useEffect(() => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Subject
-              </label>
-              <SearchableDropdown
-                options={subjectsList.length > 0 ? subjectsList : subjects}
-                value={education.postGraduation.subject}
-                onChange={(value) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: { ...education.postGraduation, subject: value },
-                  })
-                }
-                placeholder="Select Subject"
-              />
-            </div>
+  <label className="block text-sm font-medium text-slate-700 mb-2">
+    Subject
+  </label>
+  <MultiSelectDropdown
+    options={subjectsList.length > 0 ? subjectsList : subjects}
+    values={education.postGraduation.subject}
+    onChange={(values) =>
+      setEducation({
+        ...education,
+        postGraduation: { ...education.postGraduation, subject: values },
+      })
+    }
+    placeholder="Select Subject(s)"
+  />
+</div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Total Marks
@@ -4507,137 +4714,287 @@ useEffect(() => {
     );
   };
 
+  // const renderDocuments = () => {
+  //   // Conditional document fields based on education selections
+  //   const getDocumentFields = () => {
+  //     const baseFields = [
+  //       { key: "photo", label: "Passport Size Photograph", required: true, type: "image", size: "20KB-50KB" },
+  //       { key: "signature", label: "Signature Scan", required: true, type: "image", size: "10KB-20KB" },
+  //       { key: "tenthMarksheet", label: "10th Marksheet", required: true, type: "pdf", size: "100KB-500KB" },
+  //       { key: "twelfthMarksheet", label: "12th Marksheet", required: true, type: "pdf", size: "100KB-500KB" },
+  //       { key: "graduationMarksheet", label: "Graduation Degree Certificate", required: true, type: "pdf", size: "Max 500KB" },
+  //       { key: "domicileCertificate", label: "Domicile Certificate", required: true, type: "pdf", size: "Max 500KB" },
+  //     ];
+
+  //     // Add post-graduation document if selected
+  //     if (isPostGraduationRequired()) {
+  //       baseFields.push({
+  //         key: "postGraduationCertificate",
+  //         label: "Post-Graduation Certificate",
+  //         required: true,
+  //         type: "pdf",
+  //         size: "Max 500KB",
+  //       });
+  //     }
+
+  //     // Add diploma document if selected
+  //     if (isDiplomaRequired()) {
+  //       baseFields.push({
+  //         key: "diplomaCertificate",
+  //         label: "Diploma Certificate",
+  //         required: true,
+  //         type: "pdf",
+  //         size: "Max 500KB",
+  //       });
+  //     }
+
+  //     // Add experience document if selected
+  //     if (isExperienceRequired()) {
+  //       baseFields.push({
+  //         key: "experienceCertificate",
+  //         label: "Experience Certificate",
+  //         required: true,
+  //         type: "pdf",
+  //         size: "Max 500KB",
+  //       });
+  //     }
+
+  //     // Add contractual service document if selected
+  //     if (isContractualServiceRequired()) {
+  //       baseFields.push({
+  //         key: "contractualServiceCertificate",
+  //         label: "Contractual Service Certificate",
+  //         required: true,
+  //         type: "pdf",
+  //         size: "Max 500KB",
+  //       });
+  //     }
+
+  //     // Optional documents
+  //     baseFields.push(
+  //       { key: "ewsCertificate", label: "EWS Certificate", required: false, type: "pdf", size: "Max 500KB" },
+  //       { key: "castCertificate", label: "Caste Certificate", required: false, type: "pdf", size: "Max 500KB" },
+  //       { key: "pwdCertificate", label: "Disability Certificate", required: false, type: "pdf", size: "Max 500KB" },
+  //       { key: "sportsCertificate", label: "Sports Certificate", required: false, type: "pdf", size: "Max 500KB" },
+  //       { key: "aadharCard", label: "Aadhar Card", required: false, type: "pdf", size: "Max 500KB" }
+  //     );
+
+  //     return baseFields;
+  //   };
+
+  //   const documentFields = getDocumentFields();
+
+  //   return (
+  //     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+  //       <div className="absolute -top-4 left-5 bg-white px-3">
+  //         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+  //           <FileCheck className="w-5 h-5 text-primary" />
+  //           Upload Documents
+  //         </h3>
+  //       </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+  //         {documentFields.map((field) => {
+  //           const uploadedFile = documents[field.key as keyof Documents];
+  //           return (
+  //             <div key={field.key}>
+  //               <label className="block text-sm font-semibold text-slate-700 mb-2">
+  //                 {field.label}
+  //                 {field.required && <span className="text-red-500 ml-1">*</span>}
+  //               </label>
+  //               <div className="relative border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:border-primary transition-all">
+  //                 <input
+  //                   type="file"
+  //                   accept={field.type === "image" ? ".jpg,.jpeg,.png" : ".pdf"}
+  //                   onChange={(e) =>
+  //                     handleFileUpload(
+  //                       field.key as keyof Documents,
+  //                       e.target.files?.[0] || null,
+  //                     )
+  //                   }
+  //                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
+  //                 />
+  //                 <div className="min-h-[100px] px-4 py-3 flex flex-col items-center justify-center text-center">
+  //                   {uploadedFile ? (
+  //                     <>
+  //                       <CheckCircle className="w-8 h-8 text-green-500 mb-2" />
+  //                       <p className="text-xs font-medium text-green-700 truncate">
+  //                         {uploadedFile.name}
+  //                       </p>
+  //                     </>
+  //                   ) : (
+  //                     <>
+  //                       <FileText className="w-8 h-8 text-slate-400 mb-2" />
+  //                       <p className="text-xs text-slate-500">
+  //                         Click to upload
+  //                       </p>
+  //                       <p className="text-xs text-slate-400">{field.size}</p>
+  //                     </>
+  //                   )}
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           );
+  //         })}
+  //       </div>
+  //       <div className="mt-6 p-4 bg-amber-50 rounded-xl">
+  //         <p className="text-xs text-amber-800">
+  //           <strong>Important:</strong> Ensure all documents are clear and
+  //           legible. Uploaded documents must be in prescribed format and size.
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
   const renderDocuments = () => {
-    // Conditional document fields based on education selections
-    const getDocumentFields = () => {
+  // Conditional document fields based on education selections
+  const getDocumentFields = () => {
       const baseFields = [
         { key: "photo", label: "Passport Size Photograph", required: true, type: "image", size: "20KB-50KB" },
         { key: "signature", label: "Signature Scan", required: true, type: "image", size: "10KB-20KB" },
         { key: "tenthMarksheet", label: "10th Marksheet", required: true, type: "pdf", size: "100KB-500KB" },
         { key: "twelfthMarksheet", label: "12th Marksheet", required: true, type: "pdf", size: "100KB-500KB" },
         { key: "graduationMarksheet", label: "Graduation Degree Certificate", required: true, type: "pdf", size: "Max 500KB" },
-        { key: "domicileCertificate", label: "Domicile Certificate", required: true, type: "pdf", size: "Max 500KB" },
+        { key: "aadharCard", label: "Aadhar Card", required: true, type: "pdf", size: "Max 500KB" },
       ];
 
-      // Add post-graduation document if selected
-      if (isPostGraduationRequired()) {
-        baseFields.push({
-          key: "postGraduationCertificate",
-          label: "Post-Graduation Certificate",
-          required: true,
-          type: "pdf",
-          size: "Max 500KB",
-        });
+      if (reservationCategory.isJharkhandDomicile === "yes") {
+        baseFields.push({ key: "domicileCertificate", label: "Domicile Certificate", required: true, type: "pdf", size: "Max 500KB" });
       }
-
-      // Add diploma document if selected
-      if (isDiplomaRequired()) {
-        baseFields.push({
-          key: "diplomaCertificate",
-          label: "Diploma Certificate",
-          required: true,
-          type: "pdf",
-          size: "Max 500KB",
-        });
+      if (["ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+        baseFields.push({ key: "ewsCertificate", label: "EWS Certificate", required: true, type: "pdf", size: "Max 500KB" });
       }
-
-      // Add experience document if selected
-      if (isExperienceRequired()) {
-        baseFields.push({
-          key: "experienceCertificate",
-          label: "Experience Certificate",
-          required: true,
-          type: "pdf",
-          size: "Max 500KB",
-        });
+      if (reservationCategory.mainCategory && !["unreserved", "unreserved_(ur)", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+        baseFields.push({ key: "castCertificate", label: "Caste Certificate", required: true, type: "pdf", size: "Max 500KB" });
       }
-
-      // Add contractual service document if selected
-      if (isContractualServiceRequired()) {
-        baseFields.push({
-          key: "contractualServiceCertificate",
-          label: "Contractual Service Certificate",
-          required: true,
-          type: "pdf",
-          size: "Max 500KB",
-        });
+      if (education.postGraduation.hasPostGraduation) {
+        baseFields.push({ key: "postGraduationCertificate", label: "Post-Graduation Certificate", required: true, type: "pdf", size: "Max 500KB" });
       }
-
-      // Optional documents
-      baseFields.push(
-        { key: "ewsCertificate", label: "EWS Certificate", required: false, type: "pdf", size: "Max 500KB" },
-        { key: "castCertificate", label: "Caste Certificate", required: false, type: "pdf", size: "Max 500KB" },
-        { key: "pwdCertificate", label: "Disability Certificate", required: false, type: "pdf", size: "Max 500KB" },
-        { key: "sportsCertificate", label: "Sports Certificate", required: false, type: "pdf", size: "Max 500KB" },
-        { key: "aadharCard", label: "Aadhar Card", required: false, type: "pdf", size: "Max 500KB" }
-      );
+      if (education.diploma.hasDiploma) {
+        baseFields.push({ key: "diplomaCertificate", label: "Diploma Certificate", required: true, type: "pdf", size: "Max 500KB" });
+      }
+      if (education.experience.hasExperience) {
+        baseFields.push({ key: "experienceCertificate", label: "Experience Certificate", required: true, type: "pdf", size: "Max 500KB" });
+      }
+      if (education.contractualService.hasContractualService) {
+        baseFields.push({ key: "contractualServiceCertificate", label: "Contractual Service Certificate", required: true, type: "pdf", size: "Max 500KB" });
+      }
+      if (reservationCategory.isPwd === "yes") {
+        baseFields.push({ key: "pwdCertificate", label: "Disability Certificate", required: true, type: "pdf", size: "Max 500KB" });
+      }
+      if (reservationCategory.isSportsQuota === "yes") {
+        baseFields.push({ key: "sportsCertificate", label: "Sports Certificate", required: true, type: "pdf", size: "Max 500KB" });
+      }
 
       return baseFields;
     };
 
     const documentFields = getDocumentFields();
-
-    return (
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-primary" />
-            Upload Documents
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-          {documentFields.map((field) => {
-            const uploadedFile = documents[field.key as keyof Documents];
-            return (
-              <div key={field.key}>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
-                </label>
-                <div className="relative border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:border-primary transition-all">
-                  <input
-                    type="file"
-                    accept={field.type === "image" ? ".jpg,.jpeg,.png" : ".pdf"}
-                    onChange={(e) =>
-                      handleFileUpload(
-                        field.key as keyof Documents,
-                        e.target.files?.[0] || null,
-                      )
+  return (
+    <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      <div className="absolute -top-4 left-5 bg-white px-3">
+        <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+          <FileCheck className="w-5 h-5 text-primary" />
+          Upload Documents
+        </h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+        {documentFields.map((field) => {
+          const uploadedFile = documents[field.key as keyof Documents];
+          const previewUrl = filePreviewUrls[field.key];
+          const isImage = field.type === "image";
+          
+          return (
+            <div key={field.key} className="border border-slate-200 rounded-xl p-4 bg-slate-50/30">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                {field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              
+              <div className="relative">
+                <input
+                  type="file"
+                  accept={field.accept}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file) {
+                      // Validate file size (max 2MB)
+                      if (file.size > 2 * 1024 * 1024) {
+                        toast.error(`${field.label} size should be less than 2MB`);
+                        return;
+                      }
+                      handleFileUpload(field.key as keyof Documents, file);
                     }
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                  />
-                  <div className="min-h-[100px] px-4 py-3 flex flex-col items-center justify-center text-center">
-                    {uploadedFile ? (
-                      <>
-                        <CheckCircle className="w-8 h-8 text-green-500 mb-2" />
-                        <p className="text-xs font-medium text-green-700 truncate">
-                          {uploadedFile.name}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-8 h-8 text-slate-400 mb-2" />
-                        <p className="text-xs text-slate-500">
-                          Click to upload
-                        </p>
-                        <p className="text-xs text-slate-400">{field.size}</p>
-                      </>
-                    )}
-                  </div>
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                />
+                
+                <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white p-3 hover:border-primary transition-all min-h-[100px]">
+                  {uploadedFile ? (
+                    <div className="flex flex-col items-center justify-center text-center gap-2">
+                      {isImage && previewUrl ? (
+                        <div className="relative">
+                          <img 
+                            src={previewUrl} 
+                            alt={field.label}
+                            className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(field.key as keyof Documents);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <FileText className="w-8 h-8 text-green-500" />
+                          <p className="text-xs font-medium text-green-700 truncate max-w-[200px]">
+                            {uploadedFile.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {(uploadedFile.size / 1024).toFixed(2)} KB
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(field.key as keyof Documents);
+                            }}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <FileText className="w-8 h-8 text-slate-400 mb-2" />
+                      <p className="text-xs text-slate-500">Click to upload</p>
+                      <p className="text-xs text-slate-400 mt-1">{field.size}</p>
+                      <p className="text-xs text-slate-400">Format: {field.accept}</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-        <div className="mt-6 p-4 bg-amber-50 rounded-xl">
-          <p className="text-xs text-amber-800">
-            <strong>Important:</strong> Ensure all documents are clear and
-            legible. Uploaded documents must be in prescribed format and size.
-          </p>
-        </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  };
+      <div className="mt-6 p-4 bg-amber-50 rounded-xl">
+        <p className="text-xs text-amber-800">
+          <strong>Important:</strong> Ensure all documents are clear and
+          legible. Maximum file size: 2MB per document.
+        </p>
+      </div>
+    </div>
+  );
+};
 
   const renderApplicationReview = () => {
     if (loadingReview) {
@@ -5244,3 +5601,4 @@ useEffect(() => {
 };
 
 export default MyApplications;
+

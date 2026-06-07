@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, FC } from "react";
+import { useState, useEffect, useRef} from "react";
+import type { FC } from "react";
 import { X, Mail, Smartphone, AlertCircle, Clock } from "lucide-react";
 
 interface OTPVerificationModalProps {
@@ -39,7 +40,8 @@ const OTPVerificationModal: FC<OTPVerificationModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    // let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (isOpen && timeLeft > 0 && isResendDisabled) {
       timer = setInterval(() => {
         setTimeLeft((prev) => {
@@ -172,7 +174,10 @@ const OTPVerificationModal: FC<OTPVerificationModalProps> = ({
             {otp.map((digit, index) => (
               <input
                 key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
+                // ref={(el) => (inputRefs.current[index] = el)}
+                ref={(el) => {
+  inputRefs.current[index] = el;
+}}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}

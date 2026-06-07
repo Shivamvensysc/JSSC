@@ -511,8 +511,9 @@
 
 
 
-import { useEffect, useMemo, useState, FC } from "react";
-import type React from "react";
+import { useEffect, useMemo, useState,} from "react";
+import type { FC } from "react";
+import type React from "react"
 import { CircleAlert, Eye, EyeOff, MoveRight, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import OTPVerificationModal from "../components/OTPVerificationModal";

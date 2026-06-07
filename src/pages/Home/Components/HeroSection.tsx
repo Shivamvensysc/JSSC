@@ -317,7 +317,6 @@ import {
   Sparkles,
   Clock,
   Award,
-  TrendingUp,
   ShieldCheck
 } from "lucide-react";
 import { useState, useEffect } from "react";

@@ -229,7 +229,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 // API Configuration
-const API_BASE_URL = "https://7q7gdq1rke.execute-api.ap-south-1.amazonaws.com/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {

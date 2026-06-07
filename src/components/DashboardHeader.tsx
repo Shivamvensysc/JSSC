@@ -35,7 +35,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
 }) => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
