@@ -4,8 +4,6 @@ import {
   Bell,
   User,
   LogOut,
-  Moon,
-  Sun,
   Settings,
   UserCircle,
   Shield,
@@ -102,13 +100,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const handleLogout = () => {
     toast.success("Candidate logout successfully")
-    navigate("/");
+    navigate("/candidate-login");
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // Add theme toggle logic here if needed
-  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -160,19 +154,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         {/* Right side - Icons */}
         <div className="flex items-center gap-2 md:gap-3 ml-auto lg:ml-0">
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300"
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-          </button>
-
           {/* Notification Bell */}
           <div className="relative" ref={notificationRef}>
             <button

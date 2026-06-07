@@ -318,6 +318,7 @@ import {
   Clock,
   Award,
   TrendingUp,
+  ShieldCheck
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -374,13 +375,6 @@ const stats = [
     label: "Work Location",
     trend: "State-wide Posting",
   },
-];
-
-const benefits = [
-  "Competitive Salary Package",
-  "Career Growth Opportunities",
-  "Job Security",
-  "Pension Benefits",
 ];
 
 export default function HeroSection() {
@@ -447,15 +441,8 @@ export default function HeroSection() {
                 various state departments. Join us in building a better Jharkhand.
               </p>
 
-              {/* BENEFITS */}
-              <div className="mt-6 flex flex-wrap gap-3 animate-slideUp animation-delay-200">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
-                    <TrendingUp size={12} className="text-yellow-400" />
-                    <span className="text-white text-xs font-medium">{benefit}</span>
-                  </div>
-                ))}
-              </div>
+           
+           
 
               {/* ACTION BUTTONS */}
               <div className="mt-10 flex flex-col sm:flex-row gap-4 animate-slideUp animation-delay-300">
@@ -467,17 +454,14 @@ export default function HeroSection() {
                   <div className="absolute inset-0 bg-yellow-300 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
                 </button>
 
-                {/* <div className="flex flex-col sm:flex-row gap-3">
-                  <button className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white font-semibold text-sm hover:bg-white/20 transition-all duration-300 group">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={()=> navigate('/candidate-login')}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white font-semibold text-sm hover:bg-white/20 transition-all duration-300 group">
                     <ShieldCheck size={16} className="group-hover:rotate-12 transition-transform" />
-                    Regular Vacancy PDF
+                    Already Register Candidate 
                   </button>
-
-                  <button className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white font-semibold text-sm hover:bg-white/20 transition-all duration-300 group">
-                    <ShieldCheck size={16} className="group-hover:rotate-12 transition-transform" />
-                    Backlog Vacancy PDF
-                  </button>
-                </div> */}
+                </div>
               </div>
             </div>
 
