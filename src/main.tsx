@@ -7,6 +7,7 @@ import './auth/cognito.ts'
 import { Amplify } from "aws-amplify";
 
 Amplify.configure({
+  
   Auth: {
     Cognito: {
       userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
@@ -16,6 +17,7 @@ Amplify.configure({
 });
 
 createRoot(document.getElementById("root")!).render(
+  
   <StrictMode>
     <BrowserRouter>
       <App />
