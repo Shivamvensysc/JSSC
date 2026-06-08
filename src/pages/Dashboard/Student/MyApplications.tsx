@@ -1187,7 +1187,7 @@ const fetchAndAutoFillData = async () => {
           }
           
           let specValue = gradQual.specialization || "";
-          const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
+          // const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
           
           setEducation(prev => ({
             ...prev,
@@ -1208,7 +1208,7 @@ const fetchAndAutoFillData = async () => {
         const pgQual = qualifications.find((q: any) => q.level === "post_graduation");
         if (pgQual) {
           let pgSubjectValue: string[] = [];
-          const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
+          // const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
           if (pgQual.specialization) {
             pgSubjectValue = pgQual.specialization.split(',').map((s: string) => s.trim()).filter(Boolean);
           }
@@ -1697,10 +1697,10 @@ const removeFile = (field: keyof Documents) => {
     }
   };
 
-  const verifyEmailOtp = () => {
-    setEmailOtpVerified(true);
-    toast.success("Email verified successfully!");
-  };
+  // const verifyEmailOtp = () => {
+  //   setEmailOtpVerified(true);
+  //   toast.success("Email verified successfully!");
+  // };
 
   const calculateTotalFee = () => {
     let fee = 100;
@@ -2157,24 +2157,24 @@ const removeFile = (field: keyof Documents) => {
   };
 
   // Check if post graduation document is required
-  const isPostGraduationRequired = () => {
-    return education.postGraduation.hasPostGraduation;
-  };
+  // const isPostGraduationRequired = () => {
+  //   return education.postGraduation.hasPostGraduation;
+  // };
 
   // Check if diploma document is required
-  const isDiplomaRequired = () => {
-    return education.diploma.hasDiploma;
-  };
+  // const isDiplomaRequired = () => {
+  //   return education.diploma.hasDiploma;
+  // };
 
   // Check if experience document is required
-  const isExperienceRequired = () => {
-    return education.experience.hasExperience;
-  };
+  // const isExperienceRequired = () => {
+  //   return education.experience.hasExperience;
+  // };
 
   // Check if contractual service document is required
-  const isContractualServiceRequired = () => {
-    return education.contractualService.hasContractualService;
-  };
+  // const isContractualServiceRequired = () => {
+  //   return education.contractualService.hasContractualService;
+  // };
 
   if (loading || !initialDataLoaded) {
     return (

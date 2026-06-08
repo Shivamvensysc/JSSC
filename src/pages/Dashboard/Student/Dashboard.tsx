@@ -218,7 +218,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { 
   CheckCircle2, 
-  Wallet, 
   RefreshCw, 
   Lock, 
   Download, 
