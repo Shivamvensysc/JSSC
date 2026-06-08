@@ -86,10 +86,10 @@ export default function CandidateLogin() {
         return;
       }
       
-      if (!password.trim()) {
-        toast.error("Password is required");
-        return;
-      }
+      // if (!password.trim()) {
+      //   toast.error("Password is required");
+      //   return;
+      // }
 
       if (!captchaId) {
         toast.error("Please refresh CAPTCHA");

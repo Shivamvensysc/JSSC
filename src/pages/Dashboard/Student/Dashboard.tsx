@@ -441,36 +441,57 @@ export default function CandidateDashboard() {
               <div className="relative pl-6 space-y-8 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#E1E5E3]">
                 
                 {/* STEP 1: REGISTRATION */}
-                <div className="relative">
-                  <span className="absolute -left-[25px] top-0.5 bg-white rounded-full p-px text-[#137333]">
-                    <CheckCircle2 size={16} className="fill-[#E6F4EA]" />
-                  </span>
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <h4 className="text-[15px] font-bold text-[#111827]">Registration Complete</h4>
-                      <p className="text-[13px] text-[#5F6368] mt-0.5">
-                        Completed on {formatDate(submissionDate)}
-                      </p>
-                    </div>
-                    <CheckCircle2 size={20} className="text-[#137333] shrink-0" />
-                  </div>
-                </div>
+               {/* STEP 1: REGISTRATION */}
+<div className="relative">
+  <span className="absolute -left-[25px] top-0.5 bg-white rounded-full p-px text-[#137333]">
+    <CheckCircle2 size={16} className="fill-[#E6F4EA]" />
+  </span>
 
-                {/* STEP 2: PAYMENT */}
-                <div className="relative">
-                  <span className="absolute -left-[25px] top-0.5 bg-white rounded-full p-px text-[#137333]">
-                    <CheckCircle2 size={16} className="fill-[#E6F4EA]" />
-                  </span>
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <h4 className="text-[15px] font-bold text-[#111827]">Payment Confirmed</h4>
-                      <p className="text-[13px] font-mono text-[#5F6368] mt-0.5">
-                        Transaction ID: TXN882910022 - ₹100.00
-                      </p>
-                    </div>
-                    <Wallet size={20} className="text-[#374151] shrink-0" />
-                  </div>
-                </div>
+  <div className="flex justify-between items-start gap-4">
+    <div>
+      <h4 className="text-[15px] font-bold text-[#111827]">
+        Registration Complete
+      </h4>
+      <p className="text-[13px] text-[#5F6368] mt-0.5">
+        Completed on {formatDate(submissionDate)}
+      </p>
+    </div>
+
+    <button
+      onClick={() => console.log("Download Application Form")}
+      className="flex items-center gap-2 px-3 py-2 bg-[#003A2B] hover:bg-[#002B20] text-white text-[13px] font-medium rounded-lg transition-colors shrink-0"
+    >
+      <Download size={14} />
+      Download Form
+    </button>
+  </div>
+</div>
+
+{/* STEP 2: PAYMENT */}
+<div className="relative">
+  <span className="absolute -left-[25px] top-0.5 bg-white rounded-full p-px text-[#137333]">
+    <CheckCircle2 size={16} className="fill-[#E6F4EA]" />
+  </span>
+
+  <div className="flex justify-between items-start gap-4">
+    <div>
+      <h4 className="text-[15px] font-bold text-[#111827]">
+        Payment Confirmed
+      </h4>
+      <p className="text-[13px] font-mono text-[#5F6368] mt-0.5">
+        Transaction ID: TXN882910022 - ₹100.00
+      </p>
+    </div>
+
+    <button
+      onClick={() => console.log("Download Receipt")}
+      className="flex items-center gap-2 px-3 py-2 bg-[#137333] hover:bg-[#0f5c2a] text-white text-[13px] font-medium rounded-lg transition-colors shrink-0"
+    >
+      <Download size={14} />
+      Download Receipt
+    </button>
+  </div>
+</div>
 
                 {/* STEP 3: Edit application - Disabled Mode */}
                 <div className="relative">

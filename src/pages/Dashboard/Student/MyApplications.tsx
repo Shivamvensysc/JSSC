@@ -421,7 +421,21 @@ const validateStep0 = (): boolean => {
   if (!personalInfo.emailId) errors.emailId = "Email ID is required";
   if (personalInfo.emailId && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.emailId)) errors.emailId = "Invalid email format";
   
-  
+// Date of Birth Validation - ADD THIS SECTION
+  if (!personalInfo.dob) {
+    errors.dob = "Date of birth is required";
+  } else {
+    const birthDate = new Date(personalInfo.dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 21) {
+      errors.dob = `Age must be at least 21 years. Current age: ${age} years`;
+    }
+  }
   
   // Identification Marks
   if (!personalInfo.identificationMark1.trim()) errors.identificationMark1 = "Identification mark is required";
@@ -1497,7 +1511,28 @@ useEffect(() => {
     const dob = e.target.value;
     const age = calculateAge(dob);
     setPersonalInfo({ ...personalInfo, dob, age });
-  };
+    // Clear DOB error when user selects a date
+  if (dob) {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      calculatedAge--;
+    }
+    if (calculatedAge >= 21) {
+      setStepErrors(prev => ({ 
+        ...prev, 
+        [0]: { ...prev[0], dob: "" } 
+      }));
+    }
+  } else {
+    setStepErrors(prev => ({ 
+      ...prev, 
+      [0]: { ...prev[0], dob: "Date of birth is required" } 
+    }));
+  }
+};
 
   const handlePermanentStateChange = (stateId: number, stateName: string) => {
     setPersonalInfo({
@@ -2280,7 +2315,9 @@ const removeFile = (field: keyof Documents) => {
                 type="date"
                 value={personalInfo.dob}
                 onChange={handleDateOfBirthChange}
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+                 className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+          errors.dob ? 'border-red-500' : 'border-slate-300'
+        }`}
               />
               {personalInfo.age > 0 && (
                 <div className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg">
@@ -2289,6 +2326,17 @@ const removeFile = (field: keyof Documents) => {
                 </div>
               )}
             </div>
+             {errors.dob && (
+      <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
+    )}
+    {personalInfo.dob && personalInfo.age < 21 && personalInfo.age > 0 && (
+      <p className="text-red-500 text-xs mt-1">
+        ⚠️ You must be at least 21 years old to apply. Current age: {personalInfo.age} years
+      </p>
+    )}
+    <p className="text-xs text-slate-500">
+      Minimum age requirement: 21 years as on the last date of application
+    </p>
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">

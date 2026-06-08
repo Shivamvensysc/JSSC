@@ -1,150 +1,151 @@
-// import {
-//   CognitoUserPool,
-//   CognitoUser,
-//   CognitoUserAttribute,
-// } from "amazon-cognito-identity-js";
+// // import {
+// //   CognitoUserPool,
+// //   CognitoUser,
+// //   CognitoUserAttribute,
+// // } from "amazon-cognito-identity-js";
 
-// import type { ISignUpResult } from "amazon-cognito-identity-js";
+// // import type { ISignUpResult } from "amazon-cognito-identity-js";
 
-// // ======================
-// // CONFIG
-// // ======================
+// // // ======================
+// // // CONFIG
+// // // ======================
 
-// const poolData = {
-//   UserPoolId: "ap-south-1_ta89ivYut",
-//   ClientId: "4d7mif0h3qqgqs8l1drq8gg32m",
-// };
+// // const poolData = {
+// //   UserPoolId: "ap-south-1_ta89ivYut",
+// //   ClientId: "4d7mif0h3qqgqs8l1drq8gg32m",
+// // };
 
-// export const userPool = new CognitoUserPool(poolData);
+// // export const userPool = new CognitoUserPool(poolData);
 
-// // ======================
-// // TYPES
-// // ======================
+// // // ======================
+// // // TYPES
+// // // ======================
 
-// export interface CognitoResponse {
-//   message?: string;
-//   result?: unknown;
-// }
+// // export interface CognitoResponse {
+// //   message?: string;
+// //   result?: unknown;
+// // }
 
-// export interface SendOtpResponse {
-//   userSub: string;
-//   username: string;
-//   codeDeliveryDetails?: unknown;
-//   rawResult: ISignUpResult;
-// }
+// // export interface SendOtpResponse {
+// //   userSub: string;
+// //   username: string;
+// //   codeDeliveryDetails?: unknown;
+// //   rawResult: ISignUpResult;
+// // }
 
-// export interface VerifyOtpResponse {
-//   status: string;
-//   message: string;
-// }
+// // export interface VerifyOtpResponse {
+// //   status: string;
+// //   message: string;
+// // }
 
-// // ======================
-// // SEND OTP / SIGN UP
-// // ======================
+// // // ======================
+// // // SEND OTP / SIGN UP
+// // // ======================
 
-// export const sendOtp = async (
-//   email: string
-// ): Promise<SendOtpResponse> => {
-//   return new Promise((resolve, reject) => {
-//     const attributeList: CognitoUserAttribute[] = [];
+// // export const sendOtp = async (
+// //   email: string
+// // ): Promise<SendOtpResponse> => {
+// //   return new Promise((resolve, reject) => {
+// //     const attributeList: CognitoUserAttribute[] = [];
 
-//     const emailAttribute = new CognitoUserAttribute({
-//       Name: "email",
-//       Value: email,
-//     });
+// //     const emailAttribute = new CognitoUserAttribute({
+// //       Name: "email",
+// //       Value: email,
+// //     });
 
-//     attributeList.push(emailAttribute);
+// //     attributeList.push(emailAttribute);
 
-//     userPool.signUp(
-//       email,
-//       "Temp@123456Aa",
-//       attributeList,
-//       [],
-//       (err, result) => {
-//         if (err) {
-//           reject(err);
-//           return;
-//         }
+// //     userPool.signUp(
+// //       email,
+// //       "Temp@123456Aa",
+// //       attributeList,
+// //       [],
+// //       (err, result) => {
+// //         if (err) {
+// //           reject(err);
+// //           return;
+// //         }
 
-//         if (!result) {
-//           reject(new Error("Signup failed"));
-//           return;
-//         }
+// //         if (!result) {
+// //           reject(new Error("Signup failed"));
+// //           return;
+// //         }
 
-//         console.log("Signup Result:", result);
-//         console.log("Cognito User Sub:", result.userSub);
+// //         console.log("Signup Result:", result);
+// //         console.log("Cognito User Sub:", result.userSub);
 
-//         resolve({
-//           userSub: result.userSub,
-//           username: result.user?.getUsername?.() || email,
-//           codeDeliveryDetails: result.codeDeliveryDetails,
-//           rawResult: result,
-//         });
-//       }
-//     );
-//   });
-// };
+// //         resolve({
+// //           userSub: result.userSub,
+// //           username: result.user?.getUsername?.() || email,
+// //           codeDeliveryDetails: result.codeDeliveryDetails,
+// //           rawResult: result,
+// //         });
+// //       }
+// //     );
+// //   });
+// // };
 
-// // ======================
-// // VERIFY OTP / CONFIRM SIGN UP
-// // ======================
+// // // ======================
+// // // VERIFY OTP / CONFIRM SIGN UP
+// // // ======================
 
-// export const verifyOtp = async (
-//   email: string,
-//   otp: string
-// ): Promise<VerifyOtpResponse> => {
-//   return new Promise((resolve, reject) => {
-//     const cognitoUser = new CognitoUser({
-//       Username: email,
-//       Pool: userPool,
-//     });
+// // export const verifyOtp = async (
+// //   email: string,
+// //   otp: string
+// // ): Promise<VerifyOtpResponse> => {
+// //   return new Promise((resolve, reject) => {
+// //     const cognitoUser = new CognitoUser({
+// //       Username: email,
+// //       Pool: userPool,
+// //     });
 
-//     cognitoUser.confirmRegistration(
-//       otp,
-//       true,
-//       (err, result) => {
-//         if (err) {
-//           reject(err);
-//           return;
-//         }
+// //     cognitoUser.confirmRegistration(
+// //       otp,
+// //       true,
+// //       (err, result) => {
+// //         if (err) {
+// //           reject(err);
+// //           return;
+// //         }
 
-//         console.log("Confirm Registration Result:", result);
+// //         console.log("Confirm Registration Result:", result);
 
-//         resolve({
-//           status: result || "SUCCESS",
-//           message: "Email verified successfully",
-//         });
-//       }
-//     );
-//   });
-// };
+// //         resolve({
+// //           status: result || "SUCCESS",
+// //           message: "Email verified successfully",
+// //         });
+// //       }
+// //     );
+// //   });
+// // };
 
-// // ======================
-// // RESEND OTP
-// // ======================
+// // // ======================
+// // // RESEND OTP
+// // // ======================
 
-// export const resendOtp = async (
-//   email: string
-// ): Promise<unknown> => {
-//   return new Promise((resolve, reject) => {
-//     const cognitoUser = new CognitoUser({
-//       Username: email,
-//       Pool: userPool,
-//     });
+// // export const resendOtp = async (
+// //   email: string
+// // ): Promise<unknown> => {
+// //   return new Promise((resolve, reject) => {
+// //     const cognitoUser = new CognitoUser({
+// //       Username: email,
+// //       Pool: userPool,
+// //     });
 
-//     cognitoUser.resendConfirmationCode((err, result) => {
-//       if (err) {
-//         reject(err);
-//         return;
-//       }
+// //     cognitoUser.resendConfirmationCode((err, result) => {
+// //       if (err) {
+// //         reject(err);
+// //         return;
+// //       }
 
-//       console.log("Resend OTP Result:", result);
-//       resolve(result);
-//     });
-//   });
-// };
+// //       console.log("Resend OTP Result:", result);
+// //       resolve(result);
+// //     });
+// //   });
+// // };
 
-//new way to do 
+// //new way to do 
+
 import {
   CognitoUserPool,
   CognitoUser,
@@ -252,3 +253,119 @@ export const resendOtp = async (email: string): Promise<unknown> => {
     });
   });
 };
+
+
+// import {
+//   CognitoUserPool,
+//   CognitoUser,
+//   CognitoUserAttribute,
+// } from "amazon-cognito-identity-js";
+
+// import type { ISignUpResult } from "amazon-cognito-identity-js";
+
+// const poolData = {
+//   UserPoolId: "ap-south-1_ta89ivYut",
+//   ClientId: "4d7mif0h3qqgqs8l1drq8gg32m",
+// };
+
+// export const userPool = new CognitoUserPool(poolData);
+
+// export interface SendOtpResponse {
+//   userSub: string;
+//   username: string;
+//   codeDeliveryDetails?: unknown;
+//   rawResult: ISignUpResult;
+// }
+
+// export interface VerifyOtpResponse {
+//   status: string;
+//   message: string;
+// }
+
+// const generateOtpStagePassword = (): string => {
+//   const randomText =
+//     Math.random().toString(36).slice(2) +
+//     Math.random().toString(36).slice(2);
+
+//   return `Temp@${randomText}1A`;
+// };
+
+// export const sendOtp = async (email: string): Promise<SendOtpResponse> => {
+//   return new Promise((resolve, reject) => {
+//     const temporaryPassword = generateOtpStagePassword();
+
+//     const attributeList: CognitoUserAttribute[] = [
+//       new CognitoUserAttribute({
+//         Name: "email",
+//         Value: email,
+//       }),
+//     ];
+
+//     userPool.signUp(
+//       email,
+//       temporaryPassword,
+//       attributeList,
+//       [],
+//       (err, result) => {
+//         if (err) {
+//           reject(err);
+//           return;
+//         }
+
+//         if (!result) {
+//           reject(new Error("Signup failed"));
+//           return;
+//         }
+
+//         resolve({
+//           userSub: result.userSub,
+//           username: result.user?.getUsername?.() || email,
+//           codeDeliveryDetails: result.codeDeliveryDetails,
+//           rawResult: result,
+//         });
+//       }
+//     );
+//   });
+// };
+
+// export const verifyOtp = async (
+//   email: string,
+//   otp: string
+// ): Promise<VerifyOtpResponse> => {
+//   return new Promise((resolve, reject) => {
+//     const cognitoUser = new CognitoUser({
+//       Username: email,
+//       Pool: userPool,
+//     });
+
+//     cognitoUser.confirmRegistration(otp, true, (err, result) => {
+//       if (err) {
+//         reject(err);
+//         return;
+//       }
+
+//       resolve({
+//         status: result || "SUCCESS",
+//         message: "Email verified successfully",
+//       });
+//     });
+//   });
+// };
+
+// export const resendOtp = async (email: string): Promise<unknown> => {
+//   return new Promise((resolve, reject) => {
+//     const cognitoUser = new CognitoUser({
+//       Username: email,
+//       Pool: userPool,
+//     });
+
+//     cognitoUser.resendConfirmationCode((err, result) => {
+//       if (err) {
+//         reject(err);
+//         return;
+//       }
+
+//       resolve(result);
+//     });
+//   });
+// };

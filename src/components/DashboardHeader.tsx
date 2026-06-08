@@ -253,8 +253,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <div className="hidden md:block">
-                <p className="text-slate-800 text-sm font-medium">Mihir Malaviya</p>
-                <p className="text-slate-500 text-xs">Student ID: STU12345</p>
+                <p className="text-slate-800 text-sm font-medium">Candidate</p>
+                <p className="text-slate-500 text-xs">Candidate ID: STU12345</p>
               </div>
             </div>
 
@@ -266,10 +266,10 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-2 shadow-lg">
                     <User className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-white font-semibold text-lg">Mihir Malaviya</h3>
-                  <p className="text-text-secondary text-sm">
+                  <h3 className="text-white font-semibold text-lg">Candidate</h3>
+                  {/* <p className="text-text-secondary text-sm">
                     mihir.malaviya@example.com
-                  </p>
+                  </p> */}
                 </div>
 
                 {/* Profile Menu Items */}
