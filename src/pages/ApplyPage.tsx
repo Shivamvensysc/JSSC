@@ -217,7 +217,6 @@ const hasSpecialChar =
       dateOfBirth: dob,
       mobileNumber,
       captchaId,
-      captchaText: captcha,
       cognitoSubId,
     };
 

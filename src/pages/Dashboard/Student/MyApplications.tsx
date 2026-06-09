@@ -122,31 +122,77 @@ interface PersonalInfo {
   sameAsPermanent: boolean;
 }
 
+// interface Education {
+//   tenth: {
+//     board: string;
+//     percentage: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//     passingCertificateNo: string;
+//   };
+//   twelfth: {
+//     board: string;
+//     percentage: string;
+//     passingCertificateNo: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//   };
+//   graduation: {
+//     graduationCourse: string;
+//     university: string;
+//     percentage: string;
+//     specialization: string;
+//     passingCertificateNo: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//   };
+//   postGraduation: {
+//     hasPostGraduation: boolean;
+//     university: string;
+//     percentage: string;
+//     subject: string[];
+//     totalMarks: string;
+//     marksObtained: string;
+//     passingCertificateNo: string;
+//   };
+
+  
+//   experience: {
+//     hasExperience: boolean;
+//     durationMonths: string;
+//     durationYears: string;
+//     organization: string;
+//     designation: string;
+//     dateOfJoining: string;
+//     relievingDate: string;
+//     experienceLetterNo: string;
+//   };
+  
+  
+// }
+
 interface Education {
   tenth: {
     board: string;
-    rollNumber: string;
     percentage: string;
-    yearOfPassing: string;
     totalMarks: string;
     marksObtained: string;
     passingCertificateNo: string;
   };
   twelfth: {
     board: string;
-    rollNumber: string;
     percentage: string;
-    yearOfPassing: string;
     passingCertificateNo: string;
     totalMarks: string;
     marksObtained: string;
   };
   graduation: {
     graduationCourse: string;
+    graduationCourseId?: number;
     university: string;
-    passoutYear: string;
     percentage: string;
     specialization: string;
+    specializationIds?: number[];
     passingCertificateNo: string;
     totalMarks: string;
     marksObtained: string;
@@ -154,22 +200,12 @@ interface Education {
   postGraduation: {
     hasPostGraduation: boolean;
     university: string;
-    passoutYear: string;
     percentage: string;
-    // subject: string;
     subject: string[];
+    subjectIds?: number[];
     totalMarks: string;
     marksObtained: string;
     passingCertificateNo: string;
-  };
-  diploma: {
-    hasDiploma: boolean;
-    instituteName: string;
-    qualificationType: string;
-    year: string;
-    totalMarks: string;
-    marksObtained: string;
-    certificateNo: string;
   };
   experience: {
     hasExperience: boolean;
@@ -180,13 +216,6 @@ interface Education {
     dateOfJoining: string;
     relievingDate: string;
     experienceLetterNo: string;
-  };
-  contractualService: {
-    hasContractualService: boolean;
-    durationYears: string;
-    durationMonths: string;
-    organization: string;
-    contractId: string;
   };
 }
 
@@ -203,12 +232,17 @@ interface LanguageSelection {
 
 interface ReservationCategory {
   mainCategory: string;
+  categoryCertificateNumber: string;
+  categoryCertificateAuthority: string; // Add this
   mainCategoryId?: number;
   subCategory: string;
   subCategoryId?: number;
   isPwd: string;
   pwdType: string;
+  pwdTypeId?: number;
   pwdPercentage: string;
+  pwdCertificateNumber: string;
+  pwdCertificateAuthority: string; // Add this
   pwdCertificate: File | null;
   isExServiceman: string;
   exServicemanYears: string;
@@ -216,8 +250,12 @@ interface ReservationCategory {
   isSportsQuota: string;
   sportsLevel: string;
   sportsAchievement: string;
+  sportsCertificateNumber: string;
+  sportsCertificateAuthority: string; // Add this
   sportsCertificate: File | null;
   isJharkhandDomicile: string;
+  domicileCertificateNumber: string;
+  domicileCertificateAuthority: string; // Add this
   domicileCertificate: File | null;
   declaration: boolean;
 }
@@ -340,7 +378,8 @@ import { toast } from "react-toastify";
 const MyApplications: React.FC = () => {
   
 const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
-
+// Add this with other API Data States
+const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [mobileOtpSent, setMobileOtpSent] = useState(false);
@@ -401,8 +440,7 @@ const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]:
     "Ayurveda", "Pharmaceutics"
   ];
 
-  // Add these validation functions after your existing helper functions (around line 800)
-
+  
 // Validation for Step 0 - Personal Info
 const validateStep0 = (): boolean => {
   const errors: { [field: string]: string } = {};
@@ -465,17 +503,53 @@ const validateStep0 = (): boolean => {
 };
 
 // Validation for Step 1 - Reservation Category
+// const validateStep1 = (): boolean => {
+//   const errors: { [field: string]: string } = {};
+  
+//   if (!reservationCategory.mainCategory) errors.mainCategory = "Please select a category";
+//   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
+  
+//   if (reservationCategory.isPwd === "yes") {
+//     if (!reservationCategory.pwdType) errors.pwdType = "Please select disability type";
+//     if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
+//     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
+//     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
+//   }
+  
+//   if (reservationCategory.isExServiceman === "yes") {
+//     if (!reservationCategory.exServicemanYears) errors.exServicemanYears = "Please enter years of service";
+//     const years = parseInt(reservationCategory.exServicemanYears);
+//     if (years < 0 || years > 30) errors.exServicemanYears = "Years of service must be between 0 and 30";
+//   }
+  
+//   if (reservationCategory.isSportsQuota === "yes") {
+//     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
+//     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
+//   }
+  
+//   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
+  
+//   setStepErrors(prev => ({ ...prev, [1]: errors }));
+//   return Object.keys(errors).length === 0;
+// };
+
+// Validation for Step 1 - Reservation Category
 const validateStep1 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  if (!reservationCategory.mainCategory) errors.mainCategory = "Please select a category";
+  if (!reservationCategory.mainCategoryId) errors.mainCategory = "Please select a category";
   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
   
+  if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.domicileCertificateNumber.trim()) {
+    errors.domicileCertificateNumber = "Domicile certificate number is required";
+  }
+  
   if (reservationCategory.isPwd === "yes") {
-    if (!reservationCategory.pwdType) errors.pwdType = "Please select disability type";
+    if (!reservationCategory.pwdTypeId) errors.pwdType = "Please select disability type";
     if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
+    if (!reservationCategory.pwdCertificateNumber.trim()) errors.pwdCertificateNumber = "PwD certificate number is required";
   }
   
   if (reservationCategory.isExServiceman === "yes") {
@@ -487,6 +561,7 @@ const validateStep1 = (): boolean => {
   if (reservationCategory.isSportsQuota === "yes") {
     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
+    if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
   }
   
   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
@@ -504,10 +579,7 @@ const validateStep2 = (): boolean => {
                        (education.tenth.totalMarks && education.tenth.marksObtained);
   
   if (!education.tenth.board) errors.tenthBoard = "10th board is required";
-  if (!education.tenth.rollNumber) errors.tenthRollNumber = "10th roll number is required";
   if (!tenthIsValid) errors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  if (!education.tenth.yearOfPassing) errors.tenthYear = "10th passing year is required";
-  if (education.tenth.yearOfPassing && parseInt(education.tenth.yearOfPassing) > 2022) errors.tenthYear = "10th passing year cannot be after 2022";
   if (!education.tenth.passingCertificateNo) errors.tenthCertificate = "10th certificate number is required";
   
   // 12th validation
@@ -515,10 +587,7 @@ const validateStep2 = (): boolean => {
                          (education.twelfth.totalMarks && education.twelfth.marksObtained);
   
   if (!education.twelfth.board) errors.twelfthBoard = "12th board is required";
-  if (!education.twelfth.rollNumber) errors.twelfthRollNumber = "12th roll number is required";
   if (!twelfthIsValid) errors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  if (!education.twelfth.yearOfPassing) errors.twelfthYear = "12th passing year is required";
-  if (education.twelfth.yearOfPassing && parseInt(education.twelfth.yearOfPassing) > 2024) errors.twelfthYear = "12th passing year cannot be after 2024";
   
   // Graduation validation
   const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
@@ -526,7 +595,6 @@ const validateStep2 = (): boolean => {
   
   if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
   if (!education.graduation.university) errors.graduationUniversity = "University name is required";
-  if (!education.graduation.passoutYear) errors.graduationYear = "Passout year is required";
   if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
   if (!education.graduation.specialization) errors.graduationSpecialization = "Specialization/Subject is required";
   if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
@@ -661,73 +729,80 @@ const validateCurrentStep = (): boolean => {
     );
   };
 
-   const MultiSelectDropdown: React.FC<{
-    options: string[];
-    values: string[];
-    onChange: (values: string[]) => void;
-    placeholder: string;
-    disabled?: boolean;
-    error?: string;
-  }> = ({ options, values, onChange, placeholder, disabled = false, error }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-    const filteredOptions = options.filter((option) =>
-      option.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+  
+  
+  const MultiSelectDropdown: React.FC<{
+  options: string[];
+  values: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  disabled?: boolean;
+  error?: string;
+}> = ({ options, values, onChange, placeholder, disabled = false, error }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Add safety check - ensure options is an array
+  const safeOptions = Array.isArray(options) ? options : [];
+  
+  const filteredOptions = safeOptions.filter((option) =>
+    option && option.toLowerCase().includes((searchTerm || "").toLowerCase())
+  );
 
-    const toggleOption = (option: string) => {
-      if (values.includes(option)) {
-        onChange(values.filter((item) => item !== option));
-      } else {
-        onChange([...values, option]);
-      }
-    };
+  const toggleOption = (option: string) => {
+    if (values.includes(option)) {
+      onChange(values.filter((item) => item !== option));
+    } else {
+      onChange([...values, option]);
+    }
+  };
 
-    return (
-      <div className="relative">
-        <div
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-pointer bg-white flex flex-wrap gap-2 items-center ${
-            disabled ? "bg-slate-100 cursor-not-allowed" : ""
-          } ${error ? "border-red-500" : "border-slate-300"}`}
-        >
-          {values.length > 0 ? (
-            values.map((item) => (
-              <span
-                key={item}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary"
-                onClick={(event) => event.stopPropagation()}
+  return (
+    <div className="relative">
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-pointer bg-white flex flex-wrap gap-2 items-center ${
+          disabled ? "bg-slate-100 cursor-not-allowed" : ""
+        } ${error ? "border-red-500" : "border-slate-300"}`}
+      >
+        {values.length > 0 ? (
+          values.map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {item}
+              <button
+                type="button"
+                onClick={() => toggleOption(item)}
+                className="text-primary hover:text-red-600"
               >
-                {item}
-                <button
-                  type="button"
-                  onClick={() => toggleOption(item)}
-                  className="text-primary hover:text-red-600"
-                >
-                  ×
-                </button>
-              </span>
-            ))
-          ) : (
-            <span className="text-slate-400">{placeholder}</span>
-          )}
-        </div>
-        {isOpen && !disabled && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-            <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
-              <div className="p-2 border-b border-slate-200">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-              <div className="overflow-y-auto max-h-48">
-                {filteredOptions.map((option) => (
+                ×
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-slate-400">{placeholder}</span>
+        )}
+      </div>
+      {isOpen && !disabled && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+            <div className="p-2 border-b border-slate-200">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="overflow-y-auto max-h-48">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
                   <label
                     key={option}
                     className="flex items-center gap-2 px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-slate-700"
@@ -739,27 +814,20 @@ const validateCurrentStep = (): boolean => {
                     />
                     {option}
                   </label>
-                ))}
-                {filteredOptions.length === 0 && (
-                  <div className="px-4 py-2 text-sm text-slate-500 text-center">No options found</div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-slate-500 text-center">
+                  No options found
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </div>
-    );
-  };
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
-  const generateYears = () => {
-    const years = [];
-    for (let i = 2022; i >= 1970; i--) {
-      years.push(i.toString());
-    }
-    return years;
-  };
-
-  const passingYears = generateYears();
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const yearsRange = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
 
@@ -801,23 +869,19 @@ const validateCurrentStep = (): boolean => {
     sameAsPermanent: false,
   });
 
-  const [highestQualification, setHighestQualification] = useState("graduation");
+
 const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   const [education, setEducation] = useState<Education>({
     tenth: {
       board: "",
-      rollNumber: "",
       percentage: "",
-      yearOfPassing: "",
       totalMarks: "",
       marksObtained: "",
       passingCertificateNo: "",
     },
     twelfth: {
       board: "",
-      rollNumber: "",
       percentage: "",
-      yearOfPassing: "",
       passingCertificateNo: "",
       totalMarks: "",
       marksObtained: "",
@@ -825,7 +889,6 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     graduation: {
       graduationCourse: "",
       university: "",
-      passoutYear: "",
       percentage: "",
       specialization: "",
       passingCertificateNo: "",
@@ -835,22 +898,13 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     postGraduation: {
       hasPostGraduation: false,
       university: "",
-      passoutYear: "",
       percentage: "",
       subject: [],
       totalMarks: "",
       marksObtained: "",
       passingCertificateNo: "",
     },
-    diploma: {
-      hasDiploma: false,
-      instituteName: "",
-      qualificationType: "",
-      year: "",
-      totalMarks: "",
-      marksObtained: "",
-      certificateNo: "",
-    },
+  
     experience: {
       hasExperience: false,
       durationMonths: "",
@@ -860,13 +914,6 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
       dateOfJoining: "",
       relievingDate: "",
       experienceLetterNo: "",
-    },
-    contractualService: {
-      hasContractualService: false,
-      durationYears: "",
-      durationMonths: "",
-      organization: "SDTL Namkum",
-      contractId: "",
     },
   });
 
@@ -882,26 +929,57 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   });
   
 
-  const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
-    mainCategory: "",
-    mainCategoryId: undefined,
-    subCategory: "",
-    subCategoryId: undefined,
-    isPwd: "no",
-    pwdType: "",
-    pwdPercentage: "",
-    pwdCertificate: null,
-    isExServiceman: "no",
-    exServicemanYears: "",
-    exServicemanDischargeBook: null,
-    isSportsQuota: "no",
-    sportsLevel: "",
-    sportsAchievement: "",
-    sportsCertificate: null,
-    isJharkhandDomicile: "yes",
-    domicileCertificate: null,
-    declaration: false,
-  });
+  // const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
+  //   mainCategory: "",
+  //   mainCategoryId: undefined,
+  //   subCategory: "",
+  //   subCategoryId: undefined,
+  //   isPwd: "no",
+  //   pwdType: "",
+  //   pwdPercentage: "",
+  //   pwdCertificate: null,
+  //   isExServiceman: "no",
+  //   exServicemanYears: "",
+  //   exServicemanDischargeBook: null,
+  //   isSportsQuota: "no",
+  //   sportsLevel: "",
+  //   sportsAchievement: "",
+  //   sportsCertificate: null,
+  //   isJharkhandDomicile: "yes",
+  //   domicileCertificate: null,
+  //   declaration: false,
+  // });
+
+ const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
+  mainCategory: "",
+  mainCategoryId: undefined,
+  subCategory: "",
+  subCategoryId: undefined,
+  categoryCertificateNumber: "",
+  categoryCertificateAuthority: "", // Add this
+  isPwd: "no",
+  pwdType: "",
+  pwdTypeId: undefined,
+  pwdPercentage: "",
+  pwdCertificateNumber: "",
+  pwdCertificateAuthority: "", // Add this
+  pwdCertificate: null,
+  isExServiceman: "no",
+  exServicemanYears: "",
+  exServicemanDischargeBook: null,
+  isSportsQuota: "no",
+  sportsLevel: "",
+  sportsAchievement: "",
+  sportsCertificateNumber: "",
+  sportsCertificateAuthority: "", // Add this
+  sportsCertificate: null,
+  isJharkhandDomicile: "yes",
+  domicileCertificateNumber: "",
+  domicileCertificateAuthority: "", // Add this
+  domicileCertificate: null,
+  declaration: false,
+});
+
 
   const [feePayment, setFeePayment] = useState<FeePayment>({
     applicationFee: "100",
@@ -1118,17 +1196,8 @@ const fetchAndAutoFillData = async () => {
       if (data.steps?.education) {
         const edu = data.steps.education;
         // Convert highestQualification to lowercase for dropdown matching
-        const highestQualMap: { [key: string]: string } = {
-          "PhD": "PhD",
-          "phd": "PhD",
-          "PostGraduation": "PostGraduation",
-          "postgraduation": "PostGraduation",
-          "Graduation": "Graduation",
-          "graduation": "Graduation",
-          "Diploma": "Diploma",
-          "diploma": "Diploma"
-        };
-        setHighestQualification(highestQualMap[edu.highestQualification] || "Graduation");
+        
+        
         
         const qualifications = edu.qualifications || [];
         
@@ -1229,22 +1298,22 @@ const fetchAndAutoFillData = async () => {
           }));
         }
         
-        const dipQual = qualifications.find((q: any) => q.level === "diploma");
-        if (dipQual) {
-          setEducation(prev => ({
-            ...prev,
-            diploma: {
-              ...prev.diploma,
-              hasDiploma: true,
-              instituteName: dipQual.institutionName || "",
-              qualificationType: dipQual.degree || "",
-              year: dipQual.yearOfPassing?.toString() || "",
-              totalMarks: dipQual.totalMarks?.toString() || "",
-              marksObtained: dipQual.marksObtained?.toString() || "",
-              certificateNo: dipQual.grade || "",
-            }
-          }));
-        }
+        // const dipQual = qualifications.find((q: any) => q.level === "diploma");
+        // if (dipQual) {
+        //   setEducation(prev => ({
+        //     ...prev,
+        //     diploma: {
+        //       ...prev.diploma,
+        //       hasDiploma: true,
+        //       instituteName: dipQual.institutionName || "",
+        //       qualificationType: dipQual.degree || "",
+        //       year: dipQual.yearOfPassing?.toString() || "",
+        //       totalMarks: dipQual.totalMarks?.toString() || "",
+        //       marksObtained: dipQual.marksObtained?.toString() || "",
+        //       certificateNo: dipQual.grade || "",
+        //     }
+        //   }));
+        // }
         
         if (edu.experience?.hasExperience) {
           setEducation(prev => ({
@@ -1263,18 +1332,18 @@ const fetchAndAutoFillData = async () => {
           }));
         }
         
-        if (edu.contractualService?.hasContractualService) {
-          setEducation(prev => ({
-            ...prev,
-            contractualService: {
-              ...prev.contractualService,
-              hasContractualService: true,
-              durationYears: edu.contractualService.durationYears?.toString() || "",
-              durationMonths: edu.contractualService.durationMonths?.toString() || "",
-              contractId: edu.contractualService.contractId || "",
-            }
-          }));
-        }
+        // if (edu.contractualService?.hasContractualService) {
+        //   setEducation(prev => ({
+        //     ...prev,
+        //     contractualService: {
+        //       ...prev.contractualService,
+        //       hasContractualService: true,
+        //       durationYears: edu.contractualService.durationYears?.toString() || "",
+        //       durationMonths: edu.contractualService.durationMonths?.toString() || "",
+        //       contractId: edu.contractualService.contractId || "",
+        //     }
+        //   }));
+        // }
       }
       
       // Auto-fill post preferences - FIXED: Properly map post rankings
@@ -1582,7 +1651,64 @@ useEffect(() => {
     });
   };
 
-  
+  // Add these with other API Data States
+const [subjectsApiList, setSubjectsApiList] = useState<{ subjectId: number; subjectName: string }[]>([]);
+const [degreesList, setDegreesList] = useState<{ degreeId: number; degreeName: string }[]>([]);
+// Fetch all API data on component mount
+useEffect(() => {
+  const fetchApiData = async () => {
+    setLoading(true);
+    try {
+      const subjectsResponse = await apiService.getSubjects();
+      if (subjectsResponse.data.success) {
+        const subjects = subjectsResponse.data.data.map((sub: Subject) => sub.subName);
+        setSubjectsList(subjects);
+        // Store the full subjects data with IDs
+        setSubjectsApiList(subjectsResponse.data.data);
+      }
+
+      // Add degrees API call here
+      const degreesResponse = await axios.get(`${API_BASE_URL}/degrees`, getAuthHeaders());
+      if (degreesResponse.data.success) {
+        setDegreesList(degreesResponse.data.data);
+      }
+
+      const categoriesResponse = await apiService.getCategories();
+      if (categoriesResponse.data.success) {
+        setCategoriesList(categoriesResponse.data.data);
+      }
+
+      // Add disabilities API call here
+      const disabilitiesResponse = await axios.get(`${API_BASE_URL}/disabilities`, getAuthHeaders());
+      if (disabilitiesResponse.data.success) {
+        setDisabilitiesList(disabilitiesResponse.data.data);
+      }
+
+      const countriesResponse = await apiService.getCountries();
+      if (countriesResponse.data.success) {
+        setCountriesList(countriesResponse.data.data);
+        if (countriesResponse.data.data.length > 0) {
+          const countryId = countriesResponse.data.data[0].countryId;
+          const statesResponse = await apiService.getStatesByCountry(countryId);
+          if (statesResponse.data.success) {
+            setStatesList(statesResponse.data.data);
+          }
+        }
+      }
+      
+      // Fetch and auto-fill application data after initial API data is loaded
+      await fetchAndAutoFillData();
+      setInitialDataLoaded(true);
+    } catch (error) {
+      console.error("Error fetching API data:", error);
+      toast.error("Failed to load form data. Please refresh the page.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchApiData();
+}, []);
   
   // Add this state for file preview URLs if needed
 const [filePreviewUrls, setFilePreviewUrls] = useState<{ [key: string]: string }>({});
@@ -1740,8 +1866,8 @@ const removeFile = (field: keyof Documents) => {
         permanentAddress: {
           street: personalInfo.permanentAddress.street,
           post: personalInfo.permanentAddress.post,
-          state: personalInfo.permanentAddress.state,
-          district: personalInfo.permanentAddress.district,
+          state: personalInfo.permanentAddress.stateId ? String(personalInfo.permanentAddress.stateId) : "",
+          district: personalInfo.permanentAddress.districtId ? String(personalInfo.permanentAddress.districtId) : "",
           pincode: personalInfo.permanentAddress.pincode,
           cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
         },
@@ -1750,8 +1876,10 @@ const removeFile = (field: keyof Documents) => {
           ? {
               street: personalInfo.permanentAddress.street,
               post: personalInfo.permanentAddress.post,
-              state: personalInfo.permanentAddress.state,
-              district: personalInfo.permanentAddress.district,
+              // state: personalInfo.permanentAddress.stateId,
+              // district: personalInfo.permanentAddress.districtId,
+              state: personalInfo.correspondenceAddress.stateId ? String(personalInfo.correspondenceAddress.stateId) : "", // Send state ID as string
+            district: personalInfo.correspondenceAddress.districtId ? String(personalInfo.correspondenceAddress.districtId) : "",
               pincode: personalInfo.permanentAddress.pincode,
               cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
             }
@@ -1782,152 +1910,250 @@ const removeFile = (field: keyof Documents) => {
   };
 
   // Save Step 2 API call
-  const saveStep2 = async () => {
-    setSavingStep(true);
+  // const saveStep2 = async () => {
+  //   setSavingStep(true);
     
-    const selectedCategory = categoriesList.find(
-      cat => cat.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.mainCategory ||
-             cat.catName.toLowerCase() === reservationCategory.mainCategory
-    );
+  //   const selectedCategory = categoriesList.find(
+  //     cat => cat.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.mainCategory ||
+  //            cat.catName.toLowerCase() === reservationCategory.mainCategory
+  //   );
     
-    let subCategoryId = 0;
-    if (reservationCategory.subCategory && selectedCategory?.subCategories) {
-      const selectedSubCategory = selectedCategory.subCategories.find(
-        sub => sub.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.subCategory
-      );
-      if (selectedSubCategory) {
-        subCategoryId = selectedSubCategory.catId;
-      }
-    }
+  //   let subCategoryId = 0;
+  //   if (reservationCategory.subCategory && selectedCategory?.subCategories) {
+  //     const selectedSubCategory = selectedCategory.subCategories.find(
+  //       sub => sub.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.subCategory
+  //     );
+  //     if (selectedSubCategory) {
+  //       subCategoryId = selectedSubCategory.catId;
+  //     }
+  //   }
 
-    const payload = {
-      reservationCategory: {
-        mainCategory: selectedCategory?.catId || 0,
-        subCategory: subCategoryId,
-        isPwd: reservationCategory.isPwd === "yes",
-        pwdType: reservationCategory.pwdType,
-        pwdPercentage: reservationCategory.pwdPercentage,
-        isExServiceman: reservationCategory.isExServiceman === "yes",
-        exServicemanYears: reservationCategory.exServicemanYears,
-        isSportsQuota: reservationCategory.isSportsQuota === "yes",
-        sportsLevel: reservationCategory.sportsLevel,
-        sportsAchievement: reservationCategory.sportsAchievement,
-        isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
-        declaration: reservationCategory.declaration,
-      },
-    };
+  //   const payload = {
+  //     reservationCategory: {
+  //       mainCategory: selectedCategory?.catId || 0,
+  //       subCategory: subCategoryId,
+  //       isPwd: reservationCategory.isPwd === "yes",
+  //       pwdType: reservationCategory.pwdType,
+  //       pwdPercentage: reservationCategory.pwdPercentage,
+  //       isExServiceman: reservationCategory.isExServiceman === "yes",
+  //       exServicemanYears: reservationCategory.exServicemanYears,
+  //       isSportsQuota: reservationCategory.isSportsQuota === "yes",
+  //       sportsLevel: reservationCategory.sportsLevel,
+  //       sportsAchievement: reservationCategory.sportsAchievement,
+  //       isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
+  //       declaration: reservationCategory.declaration,
+  //     },
+  //   };
 
-    try {
-      const response = await apiService.saveStep2(payload);
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setCurrentStep(currentStep + 1);
-      }
-    } catch (error: any) {
-      console.error("Error saving step 2:", error);
-      toast.error(error.response?.data?.message || "Failed to save reservation details");
-    } finally {
-      setSavingStep(false);
-    }
+  //   try {
+  //     const response = await apiService.saveStep2(payload);
+  //     if (response.data.success) {
+  //       toast.success(response.data.message);
+  //       setCurrentStep(currentStep + 1);
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error saving step 2:", error);
+  //     toast.error(error.response?.data?.message || "Failed to save reservation details");
+  //   } finally {
+  //     setSavingStep(false);
+  //   }
+  // };
+
+const saveStep2 = async () => {
+  setSavingStep(true);
+  
+  const payload = {
+    reservationCategory: {
+      mainCategory: reservationCategory.mainCategoryId || 0,
+      subCategory: reservationCategory.subCategoryId || 0,
+      categoryCertificateNumber: reservationCategory.categoryCertificateNumber,
+      categoryCertificateAuthority: reservationCategory.categoryCertificateAuthority,
+      isPwd: reservationCategory.isPwd === "yes",
+      pwdType: reservationCategory.pwdTypeId || 0,
+      pwdPercentage: reservationCategory.pwdPercentage,
+      pwdCertificateNumber: reservationCategory.pwdCertificateNumber,
+      pwdCertificateAuthority: reservationCategory.pwdCertificateAuthority,
+      isExServiceman: reservationCategory.isExServiceman === "yes",
+      exServicemanYears: reservationCategory.exServicemanYears,
+      isSportsQuota: reservationCategory.isSportsQuota === "yes",
+      sportsLevel: reservationCategory.sportsLevel,
+      sportsAchievement: reservationCategory.sportsAchievement,
+      sportsCertificateNumber: reservationCategory.sportsCertificateNumber,
+      sportsCertificateAuthority: reservationCategory.sportsCertificateAuthority,
+      isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
+      domicileCertificateNumber: reservationCategory.domicileCertificateNumber,
+      domicileCertificateAuthority: reservationCategory.domicileCertificateAuthority,
+      declaration: reservationCategory.declaration,
+    },
   };
+
+  try {
+    const response = await apiService.saveStep2(payload);
+    if (response.data.success) {
+      toast.success(response.data.message);
+      setCurrentStep(currentStep + 1);
+    }
+  } catch (error: any) {
+    console.error("Error saving step 2:", error);
+    toast.error(error.response?.data?.message || "Failed to save reservation details");
+  } finally {
+    setSavingStep(false);
+  }
+};
 
   // Save Step 3 API call
-  const saveStep3 = async () => {
-    setSavingStep(true);
+  // const saveStep3 = async () => {
+  //   setSavingStep(true);
     
-    const payload = {
-      highestQualification: highestQualification,
-      tenth: {
-        board: education.tenth.board,
-        rollNumber: education.tenth.rollNumber,
-        percentage: education.tenth.percentage,
-        yearOfPassing: education.tenth.yearOfPassing,
-        totalMarks: education.tenth.totalMarks,
-        marksObtained: education.tenth.marksObtained,
-        passingCertificateNo: education.tenth.passingCertificateNo,
-      },
-      twelfth: {
-        board: education.twelfth.board,
-        rollNumber: education.twelfth.rollNumber,
-        percentage: education.twelfth.percentage,
-        yearOfPassing: education.twelfth.yearOfPassing,
-        totalMarks: education.twelfth.totalMarks,
-        marksObtained: education.twelfth.marksObtained,
-        passingCertificateNo: education.twelfth.passingCertificateNo,
-      },
-      graduation: {
-        graduationCourse: education.graduation.graduationCourse,
-        university: education.graduation.university,
-        passoutYear: education.graduation.passoutYear,
-        percentage: education.graduation.percentage,
-        specialization: education.graduation.specialization,
-        totalMarks: education.graduation.totalMarks,
-        marksObtained: education.graduation.marksObtained,
-        passingCertificateNo: education.graduation.passingCertificateNo,
-      },
-      postGraduation: {
-        hasPostGraduation: education.postGraduation.hasPostGraduation,
-        university: education.postGraduation.university,
-        passoutYear: education.postGraduation.passoutYear,
-        percentage: education.postGraduation.percentage,
-        // subject: education.postGraduation.subject,
-        subject: education.postGraduation.subject.join(', '),
-        totalMarks: education.postGraduation.totalMarks,
-        marksObtained: education.postGraduation.marksObtained,
-        passingCertificateNo: education.postGraduation.passingCertificateNo,
-      },
-      diploma: {
-        hasDiploma: education.diploma.hasDiploma,
-        instituteName: education.diploma.instituteName,
-        qualificationType: education.diploma.qualificationType,
-        year: education.diploma.year,
-        totalMarks: education.diploma.totalMarks,
-        marksObtained: education.diploma.marksObtained,
-        certificateNo: education.diploma.certificateNo,
-      },
-      experience: {
-        hasExperience: education.experience.hasExperience,
-        durationMonths: education.experience.durationMonths,
-        durationYears: education.experience.durationYears,
-        organization: education.experience.organization,
-        designation: education.experience.designation,
-        dateOfJoining: education.experience.dateOfJoining,
-        relievingDate: education.experience.relievingDate,
-        experienceLetterNo: education.experience.experienceLetterNo,
-      },
-      contractualService: {
-        hasContractualService: education.contractualService.hasContractualService,
-        durationYears: education.contractualService.durationYears,
-        durationMonths: education.contractualService.durationMonths,
-        organization: education.contractualService.organization,
-        contractId: education.contractualService.contractId,
-      },
-    };
+  //   const payload = {
+  //     highestQualification: highestQualification,
+  //     tenth: {
+  //       board: education.tenth.board,
+  //       percentage: education.tenth.percentage,
+  //       totalMarks: education.tenth.totalMarks,
+  //       marksObtained: education.tenth.marksObtained,
+  //       passingCertificateNo: education.tenth.passingCertificateNo,
+  //     },
+  //     twelfth: {
+  //       board: education.twelfth.board,
+  //       percentage: education.twelfth.percentage,
+  //       totalMarks: education.twelfth.totalMarks,
+  //       marksObtained: education.twelfth.marksObtained,
+  //       passingCertificateNo: education.twelfth.passingCertificateNo,
+  //     },
+  //     graduation: {
+  //       graduationCourse: education.graduation.graduationCourse,
+  //       university: education.graduation.university,
+  //       percentage: education.graduation.percentage,
+  //       specialization: education.graduation.specialization,
+  //       totalMarks: education.graduation.totalMarks,
+  //       marksObtained: education.graduation.marksObtained,
+  //       passingCertificateNo: education.graduation.passingCertificateNo,
+  //     },
+  //     postGraduation: {
+  //       hasPostGraduation: education.postGraduation.hasPostGraduation,
+  //       university: education.postGraduation.university,
+  //       percentage: education.postGraduation.percentage,
+  //       // subject: education.postGraduation.subject,
+  //       subject: education.postGraduation.subject.join(', '),
+  //       totalMarks: education.postGraduation.totalMarks,
+  //       marksObtained: education.postGraduation.marksObtained,
+  //       passingCertificateNo: education.postGraduation.passingCertificateNo,
+  //     },
+     
+      
+  //     experience: {
+  //       hasExperience: education.experience.hasExperience,
+  //       durationMonths: education.experience.durationMonths,
+  //       durationYears: education.experience.durationYears,
+  //       organization: education.experience.organization,
+  //       designation: education.experience.designation,
+  //       dateOfJoining: education.experience.dateOfJoining,
+  //       relievingDate: education.experience.relievingDate,
+  //       experienceLetterNo: education.experience.experienceLetterNo,
+  //     },
+      
+      
+  //   };
 
-    try {
-      const response = await apiService.saveStep3(payload);
-      if (response.data.success) {
-        toast.success(response.data.message);
-        if (response.data.posts && response.data.posts.length > 0) {
-          setDynamicPosts(response.data.posts);
-          const initialRankings: { [key: number]: number } = {};
-          response.data.posts.forEach((post: Post) => {
-            initialRankings[post.postId] = 0;
-          });
-          setPostPreference(prev => ({
-            ...prev,
-            postRankings: initialRankings,
-          }));
-        }
-        setCurrentStep(currentStep + 1);
-      }
-    } catch (error: any) {
-      console.error("Error saving step 3:", error);
-      toast.error(error.response?.data?.message || "Failed to save education details");
-    } finally {
-      setSavingStep(false);
-    }
+  //   try {
+  //     const response = await apiService.saveStep3(payload);
+  //     if (response.data.success) {
+  //       toast.success(response.data.message);
+  //       if (response.data.posts && response.data.posts.length > 0) {
+  //         setDynamicPosts(response.data.posts);
+  //         const initialRankings: { [key: number]: number } = {};
+  //         response.data.posts.forEach((post: Post) => {
+  //           initialRankings[post.postId] = 0;
+  //         });
+  //         setPostPreference(prev => ({
+  //           ...prev,
+  //           postRankings: initialRankings,
+  //         }));
+  //       }
+  //       setCurrentStep(currentStep + 1);
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error saving step 3:", error);
+  //     toast.error(error.response?.data?.message || "Failed to save education details");
+  //   } finally {
+  //     setSavingStep(false);
+  //   }
+  // };
+
+  // Save Step 3 API call
+const saveStep3 = async () => {
+  setSavingStep(true);
+  
+  const payload = {
+    tenth: {
+      board: education.tenth.board,
+      percentage: education.tenth.percentage,
+      totalMarks: education.tenth.totalMarks,
+      marksObtained: education.tenth.marksObtained,
+      passingCertificateNo: education.tenth.passingCertificateNo,
+    },
+    twelfth: {
+      board: education.twelfth.board,
+      percentage: education.twelfth.percentage,
+      totalMarks: education.twelfth.totalMarks,
+      marksObtained: education.twelfth.marksObtained,
+      passingCertificateNo: education.twelfth.passingCertificateNo,
+    },
+    graduation: {
+      graduationCourse: education.graduation.graduationCourseId || 0,
+      university: education.graduation.university,
+      percentage: education.graduation.percentage,
+      specialization: education.graduation.specializationIds?.join(',') || '',
+      totalMarks: education.graduation.totalMarks,
+      marksObtained: education.graduation.marksObtained,
+      passingCertificateNo: education.graduation.passingCertificateNo,
+    },
+    postGraduation: {
+      hasPostGraduation: education.postGraduation.hasPostGraduation,
+      university: education.postGraduation.university,
+      percentage: education.postGraduation.percentage,
+      subject: education.postGraduation.subjectIds?.join(',') || '',
+      totalMarks: education.postGraduation.totalMarks,
+      marksObtained: education.postGraduation.marksObtained,
+      passingCertificateNo: education.postGraduation.passingCertificateNo,
+    },
+    experience: {
+      hasExperience: education.experience.hasExperience,
+      durationMonths: education.experience.durationMonths,
+      durationYears: education.experience.durationYears,
+      organization: education.experience.organization,
+      designation: education.experience.designation,
+      dateOfJoining: education.experience.dateOfJoining,
+      relievingDate: education.experience.relievingDate,
+      experienceLetterNo: education.experience.experienceLetterNo,
+    },
   };
+
+  try {
+    const response = await apiService.saveStep3(payload);
+    if (response.data.success) {
+      toast.success(response.data.message);
+      if (response.data.posts && response.data.posts.length > 0) {
+        setDynamicPosts(response.data.posts);
+        const initialRankings: { [key: number]: number } = {};
+        response.data.posts.forEach((post: Post) => {
+          initialRankings[post.postId] = 0;
+        });
+        setPostPreference(prev => ({
+          ...prev,
+          postRankings: initialRankings,
+        }));
+      }
+      setCurrentStep(currentStep + 1);
+    }
+  } catch (error: any) {
+    console.error("Error saving step 3:", error);
+    toast.error(error.response?.data?.message || "Failed to save education details");
+  } finally {
+    setSavingStep(false);
+  }
+};
 
   // Save Step 4 API call (Language Selection)
   const saveStep4 = async () => {
@@ -2000,6 +2226,54 @@ const removeFile = (field: keyof Documents) => {
       setSavingStep(false);
     }
   };
+
+  // Fetch all API data on component mount
+useEffect(() => {
+  const fetchApiData = async () => {
+    setLoading(true);
+    try {
+      const subjectsResponse = await apiService.getSubjects();
+      if (subjectsResponse.data.success) {
+        const subjects = subjectsResponse.data.data.map((sub: Subject) => sub.subName);
+        setSubjectsList(subjects);
+      }
+
+      const categoriesResponse = await apiService.getCategories();
+      if (categoriesResponse.data.success) {
+        setCategoriesList(categoriesResponse.data.data);
+      }
+
+      // Add disabilities API call here
+      const disabilitiesResponse = await axios.get(`${API_BASE_URL}/disabilities`, getAuthHeaders());
+      if (disabilitiesResponse.data.success) {
+        setDisabilitiesList(disabilitiesResponse.data.data);
+      }
+
+      const countriesResponse = await apiService.getCountries();
+      if (countriesResponse.data.success) {
+        setCountriesList(countriesResponse.data.data);
+        if (countriesResponse.data.data.length > 0) {
+          const countryId = countriesResponse.data.data[0].countryId;
+          const statesResponse = await apiService.getStatesByCountry(countryId);
+          if (statesResponse.data.success) {
+            setStatesList(statesResponse.data.data);
+          }
+        }
+      }
+      
+      // Fetch and auto-fill application data after initial API data is loaded
+      await fetchAndAutoFillData();
+      setInitialDataLoaded(true);
+    } catch (error) {
+      console.error("Error fetching API data:", error);
+      toast.error("Failed to load form data. Please refresh the page.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchApiData();
+}, []);
 
   // Save Step 6 API call (Post Preferences)
   const saveStep6 = async () => {
@@ -2111,38 +2385,6 @@ const removeFile = (field: keyof Documents) => {
 
   const navigate = useNavigate();
 
-  const getCategoryOptions = () => {
-    const mainCategories = categoriesList
-      .filter(cat => cat.catParentId === null)
-      .map(cat => ({ value: cat.catName.toLowerCase().replace(/\s+/g, '_'), label: cat.catName, id: cat.catId }));
-    
-    if (mainCategories.length === 0) {
-      return [
-        { value: "unreserved", label: "Unreserved (UR)", id: 0 },
-        { value: "bc1", label: "BC-I", id: 0 },
-        { value: "bc2", label: "BC-II", id: 0 },
-        { value: "sc", label: "Scheduled Caste (SC)", id: 0 },
-        { value: "st", label: "Scheduled Tribe (ST)", id: 0 },
-        { value: "ews", label: "EWS", id: 0 },
-      ];
-    }
-    return mainCategories;
-  };
-
-  const getStSubCategories = () => {
-    const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
-    if (stCategory && stCategory.subCategories) {
-      return stCategory.subCategories.map(sub => ({ 
-        value: sub.catName.toLowerCase().replace(/\s+/g, '_'), 
-        label: sub.catName,
-        id: sub.catId 
-      }));
-    }
-    return [
-      { value: "primitive", label: "Primitive Tribe (Adim Janjati)", id: 0 },
-      { value: "other", label: "Other ST", id: 0 },
-    ];
-  };
 
   const getStateOptions = () => {
     return statesList.map(state => ({ id: state.stateId, name: state.stateName }));
@@ -2156,25 +2398,7 @@ const removeFile = (field: keyof Documents) => {
     return correspondenceDistricts.map(district => ({ id: district.districtId, name: district.districtName }));
   };
 
-  // Check if post graduation document is required
-  // const isPostGraduationRequired = () => {
-  //   return education.postGraduation.hasPostGraduation;
-  // };
-
-  // Check if diploma document is required
-  // const isDiplomaRequired = () => {
-  //   return education.diploma.hasDiploma;
-  // };
-
-  // Check if experience document is required
-  // const isExperienceRequired = () => {
-  //   return education.experience.hasExperience;
-  // };
-
-  // Check if contractual service document is required
-  // const isContractualServiceRequired = () => {
-  //   return education.contractualService.hasContractualService;
-  // };
+  
 
   if (loading || !initialDataLoaded) {
     return (
@@ -2190,8 +2414,6 @@ const removeFile = (field: keyof Documents) => {
   }
 
  
-  
-
   const renderStep = () => {
     switch (currentStep) {
       case 0:
@@ -2314,6 +2536,8 @@ const removeFile = (field: keyof Documents) => {
               <input
                 type="date"
                 value={personalInfo.dob}
+                min="1900-01-01"
+                max="9999-12-31"
                 onChange={handleDateOfBirthChange}
                  className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
           errors.dob ? 'border-red-500' : 'border-slate-300'
@@ -2971,401 +3195,18 @@ const removeFile = (field: keyof Documents) => {
   );
 };
 
-  // const renderReservationCategory = () => {
-  //   const categoryOptions = getCategoryOptions();
-  //   const stSubCategories = getStSubCategories();
 
-  //   return (
-  //     <div className="space-y-6">
-  //       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-  //         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-  //           Category Details
-  //         </h3>
-  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-  //           <div>
-  //             <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //               Reservation Category <span className="text-red-600">*</span>
-  //             </label>
-  //             <select
-  //               value={reservationCategory.mainCategory}
-  //               onChange={(e) => {
-  //                 const selected = categoryOptions.find(cat => cat.value === e.target.value);
-  //                 setReservationCategory({
-  //                   ...reservationCategory,
-  //                   mainCategory: e.target.value,
-  //                   mainCategoryId: selected?.id,
-  //                   subCategory: "",
-  //                   subCategoryId: undefined,
-  //                 });
-  //                 const fee = e.target.value === "sc" || e.target.value === "st" ? "50" : "100";
-  //                 setFeePayment({ ...feePayment, applicationFee: fee });
-  //               }}
-  //               className="w-full h-12 border border-slate-300 rounded-lg px-4"
-  //             >
-  //               <option value="">Select Category</option>
-  //               {categoryOptions.map((cat) => (
-  //                 <option key={cat.value} value={cat.value}>
-  //                   {cat.label}
-  //                 </option>
-  //               ))}
-  //             </select>
-  //           </div>
-  //           {(reservationCategory.mainCategory === "st" || reservationCategory.mainCategory === "scheduled_tribe_(st)") && (
-  //             <div>
-  //               <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                 Sub-Category (Primitive Tribe)
-  //               </label>
-  //               <select
-  //                 value={reservationCategory.subCategory}
-  //                 onChange={(e) => {
-  //                   const selected = stSubCategories.find(sub => sub.value === e.target.value);
-  //                   setReservationCategory({
-  //                     ...reservationCategory,
-  //                     subCategory: e.target.value,
-  //                     subCategoryId: selected?.id,
-  //                   });
-  //                 }}
-  //                 className="w-full h-12 border border-slate-300 rounded-lg px-4"
-  //               >
-  //                 <option value="">Select Sub-Category</option>
-  //                 {stSubCategories.map((sub) => (
-  //                   <option key={sub.value} value={sub.value}>
-  //                     {sub.label}
-  //                   </option>
-  //                 ))}
-  //               </select>
-  //             </div>
-  //           )}
-  //           <div>
-  //             <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //               Jharkhand Domicile Claim <span className="text-red-600">*</span>
-  //             </label>
-  //              <div className="flex gap-6 mt-2">
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="domicile"
-  //                   value="yes"
-  //                   checked={reservationCategory.isJharkhandDomicile === "yes"}
-  //                   onChange={(e) => {
-  //                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-  //                     // setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-  //                   }}
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 Yes
-  //               </label>
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="domicile"
-  //                   value="no"
-  //                   checked={reservationCategory.isJharkhandDomicile === "no"}
-  //                   onChange={(e) => {
-  //                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-  //                     // setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-  //                   }}
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 No
-  //               </label>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
 
-  //       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-  //         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-  //           Physical Handicap (PwD) Details
-  //         </h3>
-  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-  //           <div>
-  //             <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //               Physically Handicapped? 
-  //             </label>
-  //             <div className="flex gap-6">
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="pwd"
-  //                   value="yes"
-  //                   checked={reservationCategory.isPwd === "yes"}
-  //                   onChange={(e) => {
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isPwd: e.target.value,
-  //                     });
-  //                     if (e.target.value === "yes") {
-  //                       setFeePayment({ ...feePayment, applicationFee: "0" });
-  //                     } else {
-  //                       const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
-  //                       setFeePayment({ ...feePayment, applicationFee: fee });
-  //                     }
-  //                   }}
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 Yes
-  //               </label>
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="pwd"
-  //                   value="no"
-  //                   checked={reservationCategory.isPwd === "no"}
-  //                   onChange={(e) => {
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isPwd: e.target.value,
-  //                     });
-  //                     const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
-  //                     setFeePayment({ ...feePayment, applicationFee: fee });
-  //                   }}
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 No
-  //               </label>
-  //             </div>
-  //           </div>
-  //           {reservationCategory.isPwd === "yes" && (
-  //             <>
-  //               <div>
-  //                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                   Type of Disability 
-  //                 </label>
-  //                 <select
-  //                   value={reservationCategory.pwdType}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       pwdType: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-full h-12 border border-slate-300 rounded-lg px-4"
-  //                 >
-  //                   <option value="">Select Type</option>
-  //                   <option value="visual">Visual Impairment (VI)</option>
-  //                   <option value="deaf">Deaf/Dumb (DD)</option>
-  //                   <option value="physical">
-  //                     Physical Challenges/Locomotive Disability (PCEP)
-  //                   </option>
-  //                   <option value="autism">Autism/Int.,Learn.,Mental Disability(AILMD) </option>
-                   
-                   
-  //                 </select>
-  //               </div>
-  //               <div>
-  //                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                   Disability Percentage (%) 
-  //                 </label>
-  //                 <input
-  //                   type="text"
-  //                   value={reservationCategory.pwdPercentage}
-  //                   onChange={(e) => {
-  //                     const value = e.target.value.replace(/\D/g, '');
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       pwdPercentage: value,
-  //                     });
-  //                   }}
-  //                   onKeyDown={validateNumberInput}
-  //                   maxLength={2}
-  //                   placeholder="Should be ≥ 40% to claim benefit"
-  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-  //                 />
-  //               </div>
-  //             </>
-  //           )}
-  //         </div>
-  //       </div>
 
-  //       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-  //         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-  //           Ex-Serviceman Details
-  //         </h3>
-  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-  //           <div>
-  //             <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //               Ex-Serviceman? 
-  //             </label>
-  //             <div className="flex gap-6">
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="exService"
-  //                   value="yes"
-  //                   checked={reservationCategory.isExServiceman === "yes"}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isExServiceman: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 Yes
-  //               </label>
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="exService"
-  //                   value="no"
-  //                   checked={reservationCategory.isExServiceman === "no"}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isExServiceman: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 No
-  //               </label>
-  //             </div>
-  //           </div>
-  //           {reservationCategory.isExServiceman === "yes" && (
-  //             <div>
-  //               <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                 Years of Service
-  //               </label>
-  //               <input
-  //                 type="number"
-  //                 min={0}
-  //                 max={30}
-  //                 value={reservationCategory.exServicemanYears}
-  //                 onChange={(e) => {
-  //                   // clearFieldError("exServicemanYears");
-  //                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
-  //                   setReservationCategory({
-  //                     ...reservationCategory,
-  //                     exServicemanYears: value,
-  //                   });
-  //                 }}
-  //                 placeholder="0-30"
-  //                 className= "w-full px-4 py-2 border rounded-lg"
-  //               />
-  //             </div>
-  //           )}
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-  //         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-  //           Sports Quota Details
-  //         </h3>
-  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-  //           <div>
-  //             <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //               Claim Sports Quota? *
-  //             </label>
-  //             <div className="flex gap-6">
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="sports"
-  //                   value="yes"
-  //                   checked={reservationCategory.isSportsQuota === "yes"}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isSportsQuota: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 Yes
-  //               </label>
-  //               <label className="flex items-center gap-2">
-  //                 <input
-  //                   type="radio"
-  //                   name="sports"
-  //                   value="no"
-  //                   checked={reservationCategory.isSportsQuota === "no"}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       isSportsQuota: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-4 h-4 text-primary"
-  //                 />
-  //                 No
-  //               </label>
-  //             </div>
-  //           </div>
-  //           {reservationCategory.isSportsQuota === "yes" && (
-  //             <>
-  //               <div>
-  //                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                   Sports Level *
-  //                 </label>
-  //                 <select
-  //                   value={reservationCategory.sportsLevel}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       sportsLevel: e.target.value,
-  //                     })
-  //                   }
-  //                   className="w-full h-12 border border-slate-300 rounded-lg px-4"
-  //                 >
-  //                   <option value="">Select Level</option>
-  //                   <option value="international">International</option>
-  //                   <option value="national">National</option>
-  //                   <option value="state">State</option>
-  //                 </select>
-  //               </div>
-  //               <div>
-  //                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-  //                   Achievement Details
-  //                 </label>
-  //                 <textarea
-  //                   value={reservationCategory.sportsAchievement}
-  //                   onChange={(e) =>
-  //                     setReservationCategory({
-  //                       ...reservationCategory,
-  //                       sportsAchievement: e.target.value,
-  //                     })
-  //                   }
-  //                   rows={2}
-  //                   placeholder="Describe your achievements..."
-  //                   className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-  //                 ></textarea>
-  //               </div>
-  //             </>
-  //           )}
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-  //         <label className="flex items-start gap-4 cursor-pointer">
-  //           <input
-  //             type="checkbox"
-  //             checked={reservationCategory.declaration}
-  //             onChange={(e) =>
-  //               setReservationCategory({
-  //                 ...reservationCategory,
-  //                 declaration: e.target.checked,
-  //               })
-  //             }
-  //             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
-  //           />
-  //           <span className="text-sm font-medium text-slate-700 leading-6">
-  //             I hereby declare that I am a local resident/permanent resident of
-  //             the State of Jharkhand. I understand that failure to produce a valid
-  //             Jharkhand Domicile Certificate during document verification will
-  //             lead to the cancellation of my reservation benefits.{" "}
-  //             <span className="text-red-500 font-bold">*</span>
-  //           </span>
-  //         </label>
-  //       </div>
-  //     </div>
-  //   );
-  // };
-
-  const renderReservationCategory = () => {
-  const categoryOptions = getCategoryOptions();
-  const stSubCategories = getStSubCategories();
+const renderReservationCategory = () => {
   const errors = stepErrors[1] || {};
+  
+  // Get main categories from API (parent categories)
+  const mainCategories = categoriesList.filter(cat => cat.catParentId === null);
+  
+  // Get ST subcategories when ST is selected
+  const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
+  const stSubCategories = stCategory?.subCategories || [];
 
   return (
     <div className="space-y-6">
@@ -3379,55 +3220,62 @@ const removeFile = (field: keyof Documents) => {
               Reservation Category <span className="text-red-600">*</span>
             </label>
             <select
-              value={reservationCategory.mainCategory}
+              value={reservationCategory.mainCategoryId || ""}
               onChange={(e) => {
-                const selected = categoryOptions.find(cat => cat.value === e.target.value);
-                setReservationCategory({
-                  ...reservationCategory,
-                  mainCategory: e.target.value,
-                  mainCategoryId: selected?.id,
-                  subCategory: "",
-                  subCategoryId: undefined,
-                });
-                const fee = e.target.value === "sc" || e.target.value === "st" ? "50" : "100";
-                setFeePayment({ ...feePayment, applicationFee: fee });
-                if (e.target.value) {
-                  setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+                const selectedId = Number(e.target.value);
+                const selected = mainCategories.find(cat => cat.catId === selectedId);
+                if (selected) {
+                  setReservationCategory({
+                    ...reservationCategory,
+                    mainCategory: selected.catName,
+                    mainCategoryId: selected.catId,
+                    subCategory: "",
+                    subCategoryId: undefined,
+                  });
+                  const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+                  setFeePayment({ ...feePayment, applicationFee: fee });
+                  if (selectedId) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+                  }
                 }
               }}
               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
             >
               <option value="">Select Category</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              {mainCategories.map((cat) => (
+                <option key={cat.catId} value={cat.catId}>
+                  {cat.catName}
                 </option>
               ))}
             </select>
             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
           </div>
           
-          {(reservationCategory.mainCategory === "st" || reservationCategory.mainCategory === "scheduled_tribe_(st)") && (
+          {/* ST Sub Category - Only show when ST is selected */}
+          {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Sub-Category (Primitive Tribe)
               </label>
               <select
-                value={reservationCategory.subCategory}
+                value={reservationCategory.subCategoryId || ""}
                 onChange={(e) => {
-                  const selected = stSubCategories.find(sub => sub.value === e.target.value);
-                  setReservationCategory({
-                    ...reservationCategory,
-                    subCategory: e.target.value,
-                    subCategoryId: selected?.id,
-                  });
+                  const selectedId = Number(e.target.value);
+                  const selected = stSubCategories.find(sub => sub.catId === selectedId);
+                  if (selected) {
+                    setReservationCategory({
+                      ...reservationCategory,
+                      subCategory: selected.catName,
+                      subCategoryId: selected.catId,
+                    });
+                  }
                 }}
                 className="w-full h-12 border border-slate-300 rounded-lg px-4"
               >
                 <option value="">Select Sub-Category</option>
                 {stSubCategories.map((sub) => (
-                  <option key={sub.value} value={sub.value}>
-                    {sub.label}
+                  <option key={sub.catId} value={sub.catId}>
+                    {sub.catName}
                   </option>
                 ))}
               </select>
@@ -3471,6 +3319,90 @@ const removeFile = (field: keyof Documents) => {
             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
           </div>
         </div>
+        
+        {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
+        {reservationCategory.mainCategoryId && ![1, 8].includes(reservationCategory.mainCategoryId) && (
+          <>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Category Certificate Number <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={reservationCategory.categoryCertificateNumber}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
+                  }
+                }}
+                placeholder="Enter Category Certificate Number"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Issuing Authority <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={reservationCategory.categoryCertificateAuthority}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
+                  }
+                }}
+                placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
+            </div>
+          </>
+        )}
+        
+        {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
+        {reservationCategory.isJharkhandDomicile === "yes" && (
+          <>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Domicile Certificate Number <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={reservationCategory.domicileCertificateNumber}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
+                  }
+                }}
+                placeholder="Enter Domicile Certificate Number"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Issuing Authority <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={reservationCategory.domicileCertificateAuthority}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
+                  }
+                }}
+                placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.domicileCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateAuthority}</p>}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -3497,7 +3429,7 @@ const removeFile = (field: keyof Documents) => {
                     if (e.target.value === "yes") {
                       setFeePayment({ ...feePayment, applicationFee: "0" });
                     } else {
-                      const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
+                      const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
                       setFeePayment({ ...feePayment, applicationFee: fee });
                     }
                   }}
@@ -3516,7 +3448,7 @@ const removeFile = (field: keyof Documents) => {
                       ...reservationCategory,
                       isPwd: e.target.value,
                     });
-                    const fee = reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st" ? "50" : "100";
+                    const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
                     setFeePayment({ ...feePayment, applicationFee: fee });
                   }}
                   className="w-4 h-4 text-primary"
@@ -3533,20 +3465,29 @@ const removeFile = (field: keyof Documents) => {
                   Type of Disability <span className="text-red-600">*</span>
                 </label>
                 <select
-                  value={reservationCategory.pwdType}
+                  value={reservationCategory.pwdTypeId || ""}
                   onChange={(e) => {
-                    setReservationCategory({ ...reservationCategory, pwdType: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
+                    const selectedId = Number(e.target.value);
+                    const selected = disabilitiesList.find(d => d.id === selectedId);
+                    if (selected) {
+                      setReservationCategory({ 
+                        ...reservationCategory, 
+                        pwdTypeId: selectedId,
+                        pwdType: selected.name
+                      });
+                      if (selectedId) {
+                        setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
+                      }
                     }
                   }}
                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
                 >
                   <option value="">Select Type</option>
-                  <option value="visual">Visual Impairment (VI)</option>
-                  <option value="deaf">Deaf/Dumb (DD)</option>
-                  <option value="physical">Physical Challenges/Locomotive Disability (PCEP)</option>
-                  <option value="autism">Autism/Int.,Learn.,Mental Disability(AILMD)</option>
+                  {disabilitiesList.map((disability) => (
+                    <option key={disability.id} value={disability.id}>
+                      {disability.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.pwdType && <p className="text-red-500 text-xs mt-1">{errors.pwdType}</p>}
               </div>
@@ -3571,6 +3512,44 @@ const removeFile = (field: keyof Documents) => {
                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdPercentage ? 'border-red-500' : 'border-slate-300'}`}
                 />
                 {errors.pwdPercentage && <p className="text-red-500 text-xs mt-1">{errors.pwdPercentage}</p>}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  PwD Certificate Number <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reservationCategory.pwdCertificateNumber}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
+                    }
+                  }}
+                  placeholder="Enter PwD Certificate Number"
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Issuing Authority <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reservationCategory.pwdCertificateAuthority}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
+                    }
+                  }}
+                  placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.pwdCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateAuthority}</p>}
               </div>
             </>
           )}
@@ -3725,6 +3704,44 @@ const removeFile = (field: keyof Documents) => {
                 />
                 {errors.sportsAchievement && <p className="text-red-500 text-xs mt-1">{errors.sportsAchievement}</p>}
               </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Sports Certificate Number <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reservationCategory.sportsCertificateNumber}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
+                    }
+                  }}
+                  placeholder="Enter Sports Certificate Number"
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Issuing Authority <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={reservationCategory.sportsCertificateAuthority}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
+                    }
+                  }}
+                  placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.sportsCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateAuthority}</p>}
+              </div>
             </>
           )}
         </div>
@@ -3744,10 +3761,7 @@ const removeFile = (field: keyof Documents) => {
             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
           />
           <span className="text-sm font-medium text-slate-700 leading-6">
-            I hereby declare that I am a local resident/permanent resident of
-            the State of Jharkhand. I understand that failure to produce a valid
-            Jharkhand Domicile Certificate during document verification will
-            lead to the cancellation of my reservation benefits.{" "}
+            I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that providing false information may lead to cancellation of my application.{" "}
             <span className="text-red-500 font-bold">*</span>
           </span>
         </label>
@@ -3757,33 +3771,19 @@ const removeFile = (field: keyof Documents) => {
   );
 };
 
-//   const renderEducationDetails = () => (
+
+// const renderEducationDetails = () => {
+//   const errors = stepErrors[2] || {};
+  
+//   return (
 //     <div className="space-y-8">
+      
+      
+      
+//       {/* 10th Education */}
 //       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
 //         <div className="absolute -top-4 left-5 bg-white px-3">
 //           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <GraduationCap className="w-5 h-5 text-primary" />
-//             Highest Qualification
-//           </h3>
-//         </div>
-//         <div className="mt-1">
-//           <label className="block text-slate-700 text-sm font-medium mb-2">
-//             Select your highest educational qualification <span className="text-red-600">*</span>
-//           </label>
-//           <SearchableDropdown
-//             options={["Graduation", "PostGraduation", "Diploma", "PhD", "others"]}
-//             value={highestQualification}
-//             onChange={setHighestQualification}
-//             placeholder="Select Qualification"
-//             required
-//             className="w-full md:w-1/2"
-//           />
-//         </div>
-//       </div>
-      
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex-items-center gap-2">
 //             <Award className="w-5 h-5 text-primary" />
 //             10th / SSC Education
 //           </h3>
@@ -3796,32 +3796,19 @@ const removeFile = (field: keyof Documents) => {
 //             <SearchableDropdown
 //               options={boards}
 //               value={education.tenth.board}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, board: value },
-//                 })
-//               }
+//               onChange={(value) => {
+//                 setEducation({ ...education, tenth: { ...education.tenth, board: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthBoard: "" } }));
+//               }}
 //               placeholder="Select Board"
 //               required
 //             />
+//             {errors.tenthBoard && <p className="text-red-500 text-xs mt-1">{errors.tenthBoard}</p>}
 //           </div>
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Roll Number <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.rollNumber}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, rollNumber: e.target.value },
-//                 })
-//               }
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
+          
+        
+        
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Total Marks <span className="text-red-600">*</span>
@@ -3831,16 +3818,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.tenth.totalMarks}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, totalMarks: value },
-//                 });
+//                 setEducation({ ...education, tenth: { ...education.tenth, totalMarks: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 500"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Marks Obtained 
@@ -3850,16 +3835,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.tenth.marksObtained}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, marksObtained: value },
-//                 });
+//                 setEducation({ ...education, tenth: { ...education.tenth, marksObtained: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 450"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Percentage (%) / CGPA <span className="text-red-600">*</span>
@@ -3869,32 +3852,18 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.tenth.percentage}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, percentage: value },
-//                 });
+//                 setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "" } }));
 //               }}
 //               placeholder="e.g., 82.5"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarks ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
 //           </div>
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Year <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={passingYears}
-//               value={education.tenth.yearOfPassing}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, yearOfPassing: value },
-//                 })
-//               }
-//               placeholder="Select Year"
-//               required
-//             />
-//           </div>
+          
+         
+         
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Passing Certificate No. <span className="text-red-600">*</span>
@@ -3902,18 +3871,18 @@ const removeFile = (field: keyof Documents) => {
 //             <input
 //               type="text"
 //               value={education.tenth.passingCertificateNo}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   tenth: { ...education.tenth, passingCertificateNo: e.target.value },
-//                 })
-//               }
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               onChange={(e) => {
+//                 setEducation({ ...education, tenth: { ...education.tenth, passingCertificateNo: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthCertificate: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthCertificate ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.tenthCertificate && <p className="text-red-500 text-xs mt-1">{errors.tenthCertificate}</p>}
 //           </div>
 //         </div>
 //       </div>
 
+//       {/* 12th Education */}
 //       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
 //         <div className="absolute -top-4 left-5 bg-white px-3">
 //           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
@@ -3924,36 +3893,23 @@ const removeFile = (field: keyof Documents) => {
 //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Board Name
+//               Board Name <span className="text-red-600">*</span>
 //             </label>
 //             <SearchableDropdown
 //               options={boards}
 //               value={education.twelfth.board}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, board: value },
-//                 })
-//               }
+//               onChange={(value) => {
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, board: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthBoard: "" } }));
+//               }}
 //               placeholder="Select Board"
 //             />
+//             {errors.twelfthBoard && <p className="text-red-500 text-xs mt-1">{errors.twelfthBoard}</p>}
 //           </div>
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Roll Number
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.rollNumber}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, rollNumber: e.target.value },
-//                 })
-//               }
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
+          
+        
+        
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Total Marks
@@ -3963,16 +3919,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.twelfth.totalMarks}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, totalMarks: value },
-//                 });
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, totalMarks: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 500"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Marks Obtained
@@ -3982,49 +3936,34 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.twelfth.marksObtained}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, marksObtained: value },
-//                 });
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, marksObtained: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 450"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage (%)
+//               Percentage (%) <span className="text-red-600">*</span>
 //             </label>
 //             <input
 //               type="text"
 //               value={education.twelfth.percentage}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, percentage: value },
-//                 });
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "" } }));
 //               }}
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarks ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
 //           </div>
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Year
-//             </label>
-//             <SearchableDropdown
-//               options={passingYears}
-//               value={education.twelfth.yearOfPassing}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, yearOfPassing: value },
-//                 })
-//               }
-//               placeholder="Select Year"
-//             />
-//           </div>
+          
+        
+        
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Passing Certificate No.
@@ -4032,18 +3971,14 @@ const removeFile = (field: keyof Documents) => {
 //             <input
 //               type="text"
 //               value={education.twelfth.passingCertificateNo}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   twelfth: { ...education.twelfth, passingCertificateNo: e.target.value },
-//                 })
-//               }
+//               onChange={(e) => setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } })}
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
 //         </div>
 //       </div>
 
+//       {/* Graduation Education */}
 //       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
 //         <div className="absolute -top-4 left-5 bg-white px-3">
 //           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
@@ -4059,16 +3994,16 @@ const removeFile = (field: keyof Documents) => {
 //             <SearchableDropdown
 //               options={graduationCourseNames}
 //               value={education.graduation.graduationCourse}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, graduationCourse: value },
-//                 })
-//               }
+//               onChange={(value) => {
+//                 setEducation({ ...education, graduation: { ...education.graduation, graduationCourse: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
+//               }}
 //               placeholder="Select Course"
 //               required
 //             />
+//             {errors.graduationCourse && <p className="text-red-500 text-xs mt-1">{errors.graduationCourse}</p>}
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               University Name <span className="text-red-600">*</span>
@@ -4076,32 +4011,18 @@ const removeFile = (field: keyof Documents) => {
 //             <input
 //               type="text"
 //               value={education.graduation.university}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, university: e.target.value },
-//                 })
-//               }
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               onChange={(e) => {
+//                 setEducation({ ...education, graduation: { ...education.graduation, university: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationUniversity: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.graduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.graduationUniversity}</p>}
 //           </div>
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passout Year <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={passingYears}
-//               value={education.graduation.passoutYear}
-//               onChange={(value) =>
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, passoutYear: value },
-//                 })
-//               }
-//               placeholder="Select Year"
-//               required
-//             />
-//           </div>
+          
+          
+          
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Total Marks <span className="text-red-600">*</span>
@@ -4111,16 +4032,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.graduation.totalMarks}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, totalMarks: value },
-//                 });
+//                 setEducation({ ...education, graduation: { ...education.graduation, totalMarks: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 3000"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Marks Obtained <span className="text-red-600">*</span>
@@ -4130,16 +4049,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.graduation.marksObtained}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, marksObtained: value },
-//                 });
+//                 setEducation({ ...education, graduation: { ...education.graduation, marksObtained: value } });
 //               }}
 //               onKeyDown={validateNumberInput}
 //               placeholder="e.g., 2400"
 //               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //             />
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Percentage/CGPA <span className="text-red-600">*</span>
@@ -4149,14 +4066,14 @@ const removeFile = (field: keyof Documents) => {
 //               value={education.graduation.percentage}
 //               onChange={(e) => {
 //                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, percentage: value },
-//                 });
+//                 setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationMarks: "" } }));
 //               }}
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarks ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Specialization/Subject <span className="text-red-600">*</span>
@@ -4165,14 +4082,14 @@ const removeFile = (field: keyof Documents) => {
 //               options={subjectsList.length > 0 ? subjectsList : subjects}
 //               values={education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : []}
 //               onChange={(values) => {
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, specialization: values.join(", ") },
-//                 });
+//                 setEducation({ ...education, graduation: { ...education.graduation, specialization: values.join(", ") } });
+//                 if (values.length > 0) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationSpecialization: "" } }));
 //               }}
 //               placeholder="Select Subject(s)"
 //             />
+//             {errors.graduationSpecialization && <p className="text-red-500 text-xs mt-1">{errors.graduationSpecialization}</p>}
 //           </div>
+          
 //           <div>
 //             <label className="block text-slate-700 text-sm font-medium mb-2">
 //               Passing Certificate No. <span className="text-red-600">*</span>
@@ -4180,18 +4097,18 @@ const removeFile = (field: keyof Documents) => {
 //             <input
 //               type="text"
 //               value={education.graduation.passingCertificateNo}
-//               onChange={(e) =>
-//                 setEducation({
-//                   ...education,
-//                   graduation: { ...education.graduation, passingCertificateNo: e.target.value },
-//                 })
-//               }
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               onChange={(e) => {
+//                 setEducation({ ...education, graduation: { ...education.graduation, passingCertificateNo: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCertificate: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationCertificate ? 'border-red-500' : 'border-slate-300'}`}
 //             />
+//             {errors.graduationCertificate && <p className="text-red-500 text-xs mt-1">{errors.graduationCertificate}</p>}
 //           </div>
 //         </div>
 //       </div>
 
+//       {/* Post-Graduation Qualification */}
 //       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
 //         <label className="flex items-center gap-3 cursor-pointer mb-4">
 //           <input
@@ -4226,21 +4143,21 @@ const removeFile = (field: keyof Documents) => {
 //               />
 //             </div>
 //             <div>
-//   <label className="block text-sm font-medium text-slate-700 mb-2">
-//     Subject
-//   </label>
-//   <MultiSelectDropdown
-//     options={subjectsList.length > 0 ? subjectsList : subjects}
-//     values={education.postGraduation.subject}
-//     onChange={(values) =>
-//       setEducation({
-//         ...education,
-//         postGraduation: { ...education.postGraduation, subject: values },
-//       })
-//     }
-//     placeholder="Select Subject(s)"
-//   />
-// </div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 Subject
+//               </label>
+//               <MultiSelectDropdown
+//                 options={subjectsList.length > 0 ? subjectsList : subjects}
+//                 values={education.postGraduation.subject}
+//                 onChange={(values) =>
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, subject: values },
+//                   })
+//                 }
+//                 placeholder="Select Subject(s)"
+//               />
+//             </div>
 //             <div>
 //               <label className="block text-sm font-medium text-slate-700 mb-2">
 //                 Total Marks
@@ -4279,22 +4196,8 @@ const removeFile = (field: keyof Documents) => {
 //                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
 //               />
 //             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Passout Year
-//               </label>
-//               <SearchableDropdown
-//                 options={passingYears}
-//                 value={education.postGraduation.passoutYear}
-//                 onChange={(value) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, passoutYear: value },
-//                   })
-//                 }
-//                 placeholder="Select Year"
-//               />
-//             </div>
+          
+          
 //             <div>
 //               <label className="block text-sm font-medium text-slate-700 mb-2">
 //                 Percentage
@@ -4332,131 +4235,10 @@ const removeFile = (field: keyof Documents) => {
 //         )}
 //       </div>
 
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <label className="flex items-center gap-3 cursor-pointer mb-4">
-//           <input
-//             type="checkbox"
-//             checked={education.diploma.hasDiploma}
-//             onChange={(e) =>
-//               setEducation({
-//                 ...education,
-//                 diploma: { ...education.diploma, hasDiploma: e.target.checked },
-//               })
-//             }
-//             className="w-4 h-4 text-primary rounded"
-//           />
-//           <span className="font-semibold text-slate-800">Diploma / Additional Qualification</span>
-//         </label>
-//         {education.diploma.hasDiploma && (
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Institute Name
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.diploma.instituteName}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, instituteName: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//                 placeholder="e.g., Govt Polytechnic, Ranchi"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Qualification Type
-//               </label>
-//               <SearchableDropdown
-//                 options={["Diploma", "Advanced Diploma", "Post Graduate Diploma", "Certificate Course", "Vocational Course", "PG Diploma"]}
-//                 value={education.diploma.qualificationType}
-//                 onChange={(value) =>
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, qualificationType: value },
-//                   })
-//                 }
-//                 placeholder="Select Qualification Type"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Total Marks
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.diploma.totalMarks}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, totalMarks: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 1000"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Marks Obtained
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.diploma.marksObtained}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, marksObtained: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 850"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Year of Completion
-//               </label>
-//               <SearchableDropdown
-//                 options={passingYears}
-//                 value={education.diploma.year}
-//                 onChange={(value) =>
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, year: value },
-//                   })
-//                 }
-//                 placeholder="Select Year"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Certificate No.
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.diploma.certificateNo}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     diploma: { ...education.diploma, certificateNo: e.target.value },
-//                   })
-//                 }
-//                 placeholder="Certificate/Diploma Number"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//           </div>
-//         )}
-//       </div>
+    
+    
 
+//       {/* Post-Qualification Experience */}
 //       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
 //         <label className="flex items-center gap-3 cursor-pointer mb-4">
 //           <input
@@ -4594,120 +4376,20 @@ const removeFile = (field: keyof Documents) => {
 //         )}
 //       </div>
 
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <label className="flex items-center gap-3 cursor-pointer mb-4">
-//           <input
-//             type="checkbox"
-//             checked={education.contractualService.hasContractualService}
-//             onChange={(e) =>
-//               setEducation({
-//                 ...education,
-//                 contractualService: { ...education.contractualService, hasContractualService: e.target.checked },
-//               })
-//             }
-//             className="w-4 h-4 text-primary rounded"
-//           />
-//           <span className="font-semibold text-slate-800">Contractual Service at SDTL Namkum</span>
-//         </label>
-//         {education.contractualService.hasContractualService && (
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Organization
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.contractualService.organization}
-//                 disabled
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Contract ID
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.contractualService.contractId}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     contractualService: { ...education.contractualService, contractId: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <div className="grid grid-cols-2 gap-2">
-//                 <div>
-//                   <label className="block text-sm font-medium text-slate-700 mb-2">
-//                     Years
-//                   </label>
-//                   <SearchableDropdown
-//                     options={yearsRange}
-//                     value={education.contractualService.durationYears}
-//                     onChange={(value) =>
-//                       setEducation({
-//                         ...education,
-//                         contractualService: { ...education.contractualService, durationYears: value },
-//                       })
-//                     }
-//                     placeholder="Select Years"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-slate-700 mb-2">
-//                     Months
-//                   </label>
-//                   <SearchableDropdown
-//                     options={months}
-//                     value={education.contractualService.durationMonths}
-//                     onChange={(value) =>
-//                       setEducation({
-//                         ...education,
-//                         contractualService: { ...education.contractualService, durationMonths: value },
-//                       })
-//                     }
-//                     placeholder="Select Months"
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
+     
+     
 //     </div>
 //   );
+// };
 
-  
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
   
+  // Get degree options for dropdown
+  const degreeOptions = degreesList.map(degree => degree.degreeName);
+  
   return (
     <div className="space-y-8">
-      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-        <div className="absolute -top-4 left-5 bg-white px-3">
-          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
-            Highest Qualification
-          </h3>
-        </div>
-        <div className="mt-1">
-          <label className="block text-slate-700 text-sm font-medium mb-2">
-            Select your highest educational qualification <span className="text-red-600">*</span>
-          </label>
-          <SearchableDropdown
-            options={["Graduation", "PostGraduation", "Diploma", "PhD", "others"]}
-            value={highestQualification}
-            onChange={setHighestQualification}
-            placeholder="Select Qualification"
-            required
-            className="w-full md:w-1/2"
-          />
-        </div>
-      </div>
-      
       {/* 10th Education */}
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
@@ -4732,22 +4414,6 @@ const renderEducationDetails = () => {
               required
             />
             {errors.tenthBoard && <p className="text-red-500 text-xs mt-1">{errors.tenthBoard}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Roll Number <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={education.tenth.rollNumber}
-              onChange={(e) => {
-                setEducation({ ...education, tenth: { ...education.tenth, rollNumber: e.target.value } });
-                if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthRollNumber: "" } }));
-              }}
-              className={`w-full px-4 py-2 border rounded-lg ${errors.tenthRollNumber ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.tenthRollNumber && <p className="text-red-500 text-xs mt-1">{errors.tenthRollNumber}</p>}
           </div>
           
           <div>
@@ -4804,25 +4470,6 @@ const renderEducationDetails = () => {
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passing Year <span className="text-red-600">*</span>
-            </label>
-            <SearchableDropdown
-              options={passingYears}
-              value={education.tenth.yearOfPassing}
-              onChange={(value) => {
-                setEducation({ ...education, tenth: { ...education.tenth, yearOfPassing: value } });
-                if (value && parseInt(value) <= 2022) {
-                  setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthYear: "" } }));
-                }
-              }}
-              placeholder="Select Year"
-              required
-            />
-            {errors.tenthYear && <p className="text-red-500 text-xs mt-1">{errors.tenthYear}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
               Passing Certificate No. <span className="text-red-600">*</span>
             </label>
             <input
@@ -4862,22 +4509,6 @@ const renderEducationDetails = () => {
               placeholder="Select Board"
             />
             {errors.twelfthBoard && <p className="text-red-500 text-xs mt-1">{errors.twelfthBoard}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Roll Number <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.rollNumber}
-              onChange={(e) => {
-                setEducation({ ...education, twelfth: { ...education.twelfth, rollNumber: e.target.value } });
-                if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthRollNumber: "" } }));
-              }}
-              className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthRollNumber ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.twelfthRollNumber && <p className="text-red-500 text-xs mt-1">{errors.twelfthRollNumber}</p>}
           </div>
           
           <div>
@@ -4933,24 +4564,6 @@ const renderEducationDetails = () => {
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passing Year <span className="text-red-600">*</span>
-            </label>
-            <SearchableDropdown
-              options={passingYears}
-              value={education.twelfth.yearOfPassing}
-              onChange={(value) => {
-                setEducation({ ...education, twelfth: { ...education.twelfth, yearOfPassing: value } });
-                if (value && parseInt(value) <= 2024) {
-                  setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthYear: "" } }));
-                }
-              }}
-              placeholder="Select Year"
-            />
-            {errors.twelfthYear && <p className="text-red-500 text-xs mt-1">{errors.twelfthYear}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
               Passing Certificate No.
             </label>
             <input
@@ -4977,10 +4590,21 @@ const renderEducationDetails = () => {
               Course Name <span className="text-red-600">*</span>
             </label>
             <SearchableDropdown
-              options={graduationCourseNames}
-              value={education.graduation.graduationCourse}
+              options={degreeOptions}
+              value={(() => {
+                const foundDegree = degreesList.find(d => d.degreeId === education.graduation.graduationCourseId);
+                return foundDegree ? foundDegree.degreeName : education.graduation.graduationCourse;
+              })()}
               onChange={(value) => {
-                setEducation({ ...education, graduation: { ...education.graduation, graduationCourse: value } });
+                const selectedDegree = degreesList.find(d => d.degreeName === value);
+                setEducation({ 
+                  ...education, 
+                  graduation: { 
+                    ...education.graduation, 
+                    graduationCourse: value,
+                    graduationCourseId: selectedDegree?.degreeId 
+                  } 
+                });
                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
               }}
               placeholder="Select Course"
@@ -5003,23 +4627,6 @@ const renderEducationDetails = () => {
               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.graduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.graduationUniversity}</p>}
-          </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Passout Year <span className="text-red-600">*</span>
-            </label>
-            <SearchableDropdown
-              options={passingYears}
-              value={education.graduation.passoutYear}
-              onChange={(value) => {
-                setEducation({ ...education, graduation: { ...education.graduation, passoutYear: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationYear: "" } }));
-              }}
-              placeholder="Select Year"
-              required
-            />
-            {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
           </div>
           
           <div>
@@ -5078,10 +4685,27 @@ const renderEducationDetails = () => {
               Specialization/Subject <span className="text-red-600">*</span>
             </label>
             <MultiSelectDropdown
-              options={subjectsList.length > 0 ? subjectsList : subjects}
-              values={education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : []}
+              options={subjectsApiList.map(s => s.subjectName)}
+              values={(() => {
+                if (education.graduation.specializationIds && education.graduation.specializationIds.length > 0) {
+                  return education.graduation.specializationIds
+                    .map(id => subjectsApiList.find(s => s.subjectId === id)?.subjectName)
+                    .filter(Boolean) as string[];
+                }
+                return education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : [];
+              })()}
               onChange={(values) => {
-                setEducation({ ...education, graduation: { ...education.graduation, specialization: values.join(", ") } });
+                const selectedIds = values
+                  .map(name => subjectsApiList.find(s => s.subjectName === name)?.subjectId)
+                  .filter(id => id !== undefined) as number[];
+                setEducation({ 
+                  ...education, 
+                  graduation: { 
+                    ...education.graduation, 
+                    specialization: values.join(", "),
+                    specializationIds: selectedIds
+                  } 
+                });
                 if (values.length > 0) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationSpecialization: "" } }));
               }}
               placeholder="Select Subject(s)"
@@ -5146,14 +4770,24 @@ const renderEducationDetails = () => {
                 Subject
               </label>
               <MultiSelectDropdown
-                options={subjectsList.length > 0 ? subjectsList : subjects}
-                values={education.postGraduation.subject}
-                onChange={(values) =>
+                options={subjectsApiList.map(s => s.subjectName)}
+                values={(() => {
+                  if (education.postGraduation.subjectIds && education.postGraduation.subjectIds.length > 0) {
+                    return education.postGraduation.subjectIds
+                      .map(id => subjectsApiList.find(s => s.subjectId === id)?.subjectName)
+                      .filter(Boolean) as string[];
+                  }
+                  return education.postGraduation.subject;
+                })()}
+                onChange={(values) => {
+                  const selectedIds = values
+                    .map(name => subjectsApiList.find(s => s.subjectName === name)?.subjectId)
+                    .filter(id => id !== undefined) as number[];
                   setEducation({
                     ...education,
-                    postGraduation: { ...education.postGraduation, subject: values },
-                  })
-                }
+                    postGraduation: { ...education.postGraduation, subject: values, subjectIds: selectedIds },
+                  });
+                }}
                 placeholder="Select Subject(s)"
               />
             </div>
@@ -5197,22 +4831,6 @@ const renderEducationDetails = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Passout Year
-              </label>
-              <SearchableDropdown
-                options={passingYears}
-                value={education.postGraduation.passoutYear}
-                onChange={(value) =>
-                  setEducation({
-                    ...education,
-                    postGraduation: { ...education.postGraduation, passoutYear: value },
-                  })
-                }
-                placeholder="Select Year"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Percentage
               </label>
               <input
@@ -5241,132 +4859,6 @@ const renderEducationDetails = () => {
                     postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
                   })
                 }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Diploma / Additional Qualification */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.diploma.hasDiploma}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                diploma: { ...education.diploma, hasDiploma: e.target.checked },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">Diploma / Additional Qualification</span>
-        </label>
-        {education.diploma.hasDiploma && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Institute Name
-              </label>
-              <input
-                type="text"
-                value={education.diploma.instituteName}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, instituteName: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-                placeholder="e.g., Govt Polytechnic, Ranchi"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Qualification Type
-              </label>
-              <SearchableDropdown
-                options={["Diploma", "Advanced Diploma", "Post Graduate Diploma", "Certificate Course", "Vocational Course", "PG Diploma"]}
-                value={education.diploma.qualificationType}
-                onChange={(value) =>
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, qualificationType: value },
-                  })
-                }
-                placeholder="Select Qualification Type"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Total Marks
-              </label>
-              <input
-                type="text"
-                value={education.diploma.totalMarks}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, totalMarks: value },
-                  });
-                }}
-                onKeyDown={validateNumberInput}
-                placeholder="e.g., 1000"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Marks Obtained
-              </label>
-              <input
-                type="text"
-                value={education.diploma.marksObtained}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, marksObtained: value },
-                  });
-                }}
-                onKeyDown={validateNumberInput}
-                placeholder="e.g., 850"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Year of Completion
-              </label>
-              <SearchableDropdown
-                options={passingYears}
-                value={education.diploma.year}
-                onChange={(value) =>
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, year: value },
-                  })
-                }
-                placeholder="Select Year"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Certificate No.
-              </label>
-              <input
-                type="text"
-                value={education.diploma.certificateNo}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    diploma: { ...education.diploma, certificateNo: e.target.value },
-                  })
-                }
-                placeholder="Certificate/Diploma Number"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
@@ -5511,324 +5003,9 @@ const renderEducationDetails = () => {
           </div>
         )}
       </div>
-
-      {/* Contractual Service at SDTL Namkum */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.contractualService.hasContractualService}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                contractualService: { ...education.contractualService, hasContractualService: e.target.checked },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">Contractual Service at SDTL Namkum</span>
-        </label>
-        {education.contractualService.hasContractualService && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Organization
-              </label>
-              <input
-                type="text"
-                value={education.contractualService.organization}
-                disabled
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Contract ID
-              </label>
-              <input
-                type="text"
-                value={education.contractualService.contractId}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    contractualService: { ...education.contractualService, contractId: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Years
-                  </label>
-                  <SearchableDropdown
-                    options={yearsRange}
-                    value={education.contractualService.durationYears}
-                    onChange={(value) =>
-                      setEducation({
-                        ...education,
-                        contractualService: { ...education.contractualService, durationYears: value },
-                      })
-                    }
-                    placeholder="Select Years"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Months
-                  </label>
-                  <SearchableDropdown
-                    options={months}
-                    value={education.contractualService.durationMonths}
-                    onChange={(value) =>
-                      setEducation({
-                        ...education,
-                        contractualService: { ...education.contractualService, durationMonths: value },
-                      })
-                    }
-                    placeholder="Select Months"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
-
-
-//   const renderPostPreference = () => {
-//   // Helper function - OK to be here (not a Hook)
-//   const getAvailablePriorities = (currentPostId: number) => {
-//     const usedPriorities = Object.entries(postPreference.postRankings)
-//       .filter(([id, priority]) => Number(id) !== currentPostId && priority !== 0)
-//       .map(([, priority]) => priority);
-    
-//     const totalPosts = postsToShow.length;
-//     const allPriorities = Array.from({ length: totalPosts }, (_, i) => i + 1);
-//     return allPriorities.filter(p => !usedPriorities.includes(p));
-//   };
-
-//   // Event handler - OK to be here (not a Hook)
-//   const handlePriorityChange = (postId: number, priority: number) => {
-//     const isPriorityUsed = Object.entries(postPreference.postRankings)
-//       .some(([id, p]) => Number(id) !== postId && p === priority);
-    
-//     if (isPriorityUsed && priority !== 0) {
-//       toast.error(`Priority ${priority} is already selected for another post. Please choose a different priority.`);
-//       return;
-//     }
-    
-//     setPostPreference({
-//       ...postPreference,
-//       postRankings: { ...postPreference.postRankings, [postId]: priority },
-//     });
-//   };
-
-//   const postsToShow = dynamicPosts.length > 0 ? dynamicPosts : [];
-//   const postsAvailable = postsToShow.length;
-
-//   // Return JSX - OK (no Hooks)
-//   return (
-//     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//       <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <div className="mb-6">
-//           <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
-//             Post Preference Selection
-//           </h3>
-//           <p className="text-sm text-slate-500 mt-1">
-//             Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
-//           </p>
-//         </div>
-
-//         <section className="mb-8">
-//           <div className="flex items-center gap-3 mb-4">
-//             <div className="h-6 w-1 bg-primary rounded-full"></div>
-//             <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-//               1. Vacancy Stream Selection
-//             </h4>
-//           </div>
-
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-//               <div className="flex justify-between items-start">
-//                 <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="regular"
-//                   checked={postPreference.vacancyStream === "regular"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
-//             </label>
-
-//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-//               <div className="flex justify-between items-start">
-//                 <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="backlog"
-//                   checked={postPreference.vacancyStream === "backlog"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
-//             </label>
-
-//             <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
-//               <div className="flex justify-between items-start">
-//                 <div>
-//                   <h3 className="font-bold text-primary">Both (Recommended)</h3>
-//                 </div>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="both"
-//                   checked={postPreference.vacancyStream === "both"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
-//             </label>
-//           </div>
-//         </section>
-
-//         <section>
-//           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-//             <div className="flex items-center gap-3">
-//               <div className="h-6 w-1 bg-primary rounded-full"></div>
-//               <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-//                 2. Ranking Eligible Posts
-//               </h4>
-//             </div>
-//             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-//               {postsAvailable} Posts Available
-//             </span>
-//           </div>
-
-//           <p className="text-xs text-slate-500 mb-4 italic">
-//             Select priority number from dropdown (1 = highest priority). Each priority number can be used only once.
-//             {postsAvailable > 0 && ` You have ${postsAvailable} posts to rank from 1 to ${postsAvailable}.`}
-//           </p>
-
-//           {postsAvailable === 0 ? (
-//             <div className="text-center py-8 bg-slate-50 rounded-lg">
-//               <p className="text-slate-500">No posts available based on your qualifications.</p>
-//               <p className="text-xs text-slate-400 mt-2">Please complete your education details first.</p>
-//             </div>
-//           ) : (
-//             <div className="space-y-3">
-//               {postsToShow.map((post, index) => {
-//                 const currentPriority = postPreference.postRankings[post.postId] || 0;
-//                 const availablePriorities = getAvailablePriorities(post.postId);
-                
-//                 return (
-//                   <div
-//                     key={post.postId}
-//                     className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
-//                   >
-//                     <div className="flex items-center gap-3 shrink-0">
-//                       <span className="text-sm font-bold text-slate-400 w-6">{index + 1}.</span>
-//                     </div>
-
-//                     <div className="flex-1 min-w-0">
-//                       <h4 className="text-sm font-bold text-slate-800 truncate">{post.postTitle}</h4>
-//                       <p className="text-xs text-slate-500 truncate mt-0.5">{post.postContent}</p>
-//                     </div>
-
-//                     <div className="shrink-0 ml-2">
-//                       <select
-//                         value={currentPriority}
-//                         onChange={(e) => handlePriorityChange(post.postId, parseInt(e.target.value))}
-//                         className="w-32 h-12 border border-slate-300 rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2"
-//                       >
-//                         <option value={0}>Select Priority</option>
-//                         {availablePriorities.map((priority) => (
-//                           <option key={priority} value={priority}>
-//                             Priority {priority}
-//                           </option>
-//                         ))}
-//                         {currentPriority !== 0 && !availablePriorities.includes(currentPriority) && (
-//                           <option value={currentPriority} disabled>
-//                             Priority {currentPriority} (Already selected for another post)
-//                           </option>
-//                         )}
-//                       </select>
-//                     </div>
-//                   </div>
-//                 );
-//               })}
-//             </div>
-//           )}
-          
-//           {postsAvailable > 0 && Object.values(postPreference.postRankings).some(p => p === 0) && (
-//             <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-//               <p className="text-xs text-amber-800 flex items-center gap-2">
-//                 <AlertCircle size={14} />
-//                 Please assign priorities to all {postsAvailable} posts before proceeding. Each post must have a unique priority from 1 to {postsAvailable}.
-//               </p>
-//             </div>
-//           )}
-          
-//           {postsAvailable > 0 && Object.values(postPreference.postRankings).every(p => p !== 0) && (
-//             <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-//               <p className="text-xs text-green-800 flex items-center gap-2">
-//                 <CheckCircle size={14} />
-//                 All priorities have been assigned! You can proceed to the next step.
-//               </p>
-//             </div>
-//           )}
-//         </section>
-//       </div>
-
-//       <aside className="space-y-6">
-//         <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
-//           <div className="flex items-center gap-2 mb-5">
-//             <Info size={20} className="text-emerald-300" />
-//             <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
-//           </div>
-//           <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
-//             <li>Preferences once locked cannot be changed after the final submission of the form.</li>
-//             <li>Ranking must be unique for each post (e.g., you cannot have two posts with same priority).</li>
-//             <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
-//             <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
-//           </ul>
-//         </div>
-
-//         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
-//           <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-//             <HelpCircle size={24} />
-//           </div>
-//           <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
-//           <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
-//             Contact the recruitment helpdesk for clarification on post duties and eligibility.
-//           </p>
-//           <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
-//             <FileText size={16} />
-//             Read Full Advertisement
-//           </button>
-//         </div>
-//       </aside>
-//     </div>
-//   );
-// };
-
 
 const renderPostPreference = () => {
   const errors = stepErrors[3] || {};
@@ -6533,15 +5710,13 @@ const renderDocuments = () => {
     if (education.postGraduation.hasPostGraduation) {
       baseFields.push({ key: "postGraduationCertificate", label: "Post-Graduation Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
-    if (education.diploma.hasDiploma) {
-      baseFields.push({ key: "diplomaCertificate", label: "Diploma Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
-    }
+   
+    
     if (education.experience.hasExperience) {
       baseFields.push({ key: "experienceCertificate", label: "Experience Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
-    if (education.contractualService.hasContractualService) {
-      baseFields.push({ key: "contractualServiceCertificate", label: "Contractual Service Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
-    }
+    
+    
     if (reservationCategory.isPwd === "yes") {
       baseFields.push({ key: "pwdCertificate", label: "Disability Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
@@ -7520,8 +6695,8 @@ const renderApplicationReview = () => {
             </div>
           )}
           <div>
-            <h4 className="font-semibold text-slate-700">Highest Qualification</h4>
-            <p className="text-sm capitalize">{educationData?.highestQualification || "N/A"}</p>
+            
+              
           </div>
         </div>
       </div>
