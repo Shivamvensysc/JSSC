@@ -122,55 +122,6 @@ interface PersonalInfo {
   sameAsPermanent: boolean;
 }
 
-// interface Education {
-//   tenth: {
-//     board: string;
-//     percentage: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//     passingCertificateNo: string;
-//   };
-//   twelfth: {
-//     board: string;
-//     percentage: string;
-//     passingCertificateNo: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//   };
-//   graduation: {
-//     graduationCourse: string;
-//     university: string;
-//     percentage: string;
-//     specialization: string;
-//     passingCertificateNo: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//   };
-//   postGraduation: {
-//     hasPostGraduation: boolean;
-//     university: string;
-//     percentage: string;
-//     subject: string[];
-//     totalMarks: string;
-//     marksObtained: string;
-//     passingCertificateNo: string;
-//   };
-
-  
-//   experience: {
-//     hasExperience: boolean;
-//     durationMonths: string;
-//     durationYears: string;
-//     organization: string;
-//     designation: string;
-//     dateOfJoining: string;
-//     relievingDate: string;
-//     experienceLetterNo: string;
-//   };
-  
-  
-// }
-
 interface Education {
   tenth: {
     board: string;
@@ -376,7 +327,11 @@ interface ReviewData {
 import { toast } from "react-toastify";
 
 const MyApplications: React.FC = () => {
-  
+  // Add this state near other API Data States
+const [postsList, setPostsList] = useState<any[]>([]);
+const [eligiblePosts, setEligiblePosts] = useState<any[]>([]);
+
+
 const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
 // Add this with other API Data States
 const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
@@ -419,7 +374,40 @@ const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
     "Open School Board", "State Open School",
   ];
 
-  
+  // Add this function to fetch posts
+const fetchPosts = async () => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/posts`,
+      { applicationId: applicationId },
+      getAuthHeaders()
+    );
+    if (response.data.success) {
+      setPostsList(response.data.data.posts || []);
+      setEligiblePosts(response.data.data.eligiblePosts || []);
+      
+      // Initialize post rankings for all posts
+      const initialRankings: { [key: number]: number } = {};
+      response.data.data.posts.forEach((post: any) => {
+        initialRankings[post.postCode] = 0;
+      });
+      setPostPreference(prev => ({
+        ...prev,
+        postRankings: initialRankings,
+      }));
+    }
+  } catch (error: any) {
+    console.error("Error fetching posts:", error);
+    toast.error(error.response?.data?.message || "Failed to load posts");
+  }
+};
+
+// Call fetchPosts when entering step 3
+useEffect(() => {
+  if (currentStep === 3 && applicationId && postsList.length === 0) {
+    fetchPosts();
+  }
+}, [currentStep, applicationId]);
 
   const graduationCourseNames = [
   "Bachelor of Science (B.Sc)",
@@ -432,13 +420,6 @@ const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
   "Bachelor of Arts (B.A)",
   "Bachelor of Commerce (B.Com)",
 ];
-
-  const subjects = [
-    "Entomology", "Zoology", "Botany", "Mathematics", "Physics", "Chemistry",
-    "Statistics", "Geology", "Economics", "Commerce", "Dairy Technology",
-    "Dairy Science", "Fisheries Science", "Pharmacy", "Pharmaceutical Chemistry",
-    "Ayurveda", "Pharmaceutics"
-  ];
 
   
 // Validation for Step 0 - Personal Info
@@ -626,10 +607,6 @@ const validateStep4 = (): boolean => {
   setStepErrors(prev => ({ ...prev, [4]: errors }));
   return Object.keys(errors).length === 0;
 };
-
-
-
-
 
 
 // Combined validation for current step
@@ -929,26 +906,6 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   });
   
 
-  // const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
-  //   mainCategory: "",
-  //   mainCategoryId: undefined,
-  //   subCategory: "",
-  //   subCategoryId: undefined,
-  //   isPwd: "no",
-  //   pwdType: "",
-  //   pwdPercentage: "",
-  //   pwdCertificate: null,
-  //   isExServiceman: "no",
-  //   exServicemanYears: "",
-  //   exServicemanDischargeBook: null,
-  //   isSportsQuota: "no",
-  //   sportsLevel: "",
-  //   sportsAchievement: "",
-  //   sportsCertificate: null,
-  //   isJharkhandDomicile: "yes",
-  //   domicileCertificate: null,
-  //   declaration: false,
-  // });
 
  const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
   mainCategory: "",
@@ -1197,8 +1154,6 @@ const fetchAndAutoFillData = async () => {
         const edu = data.steps.education;
         // Convert highestQualification to lowercase for dropdown matching
         
-        
-        
         const qualifications = edu.qualifications || [];
         
         const tenthQual = qualifications.find((q: any) => q.level === "matriculation");
@@ -1298,23 +1253,6 @@ const fetchAndAutoFillData = async () => {
           }));
         }
         
-        // const dipQual = qualifications.find((q: any) => q.level === "diploma");
-        // if (dipQual) {
-        //   setEducation(prev => ({
-        //     ...prev,
-        //     diploma: {
-        //       ...prev.diploma,
-        //       hasDiploma: true,
-        //       instituteName: dipQual.institutionName || "",
-        //       qualificationType: dipQual.degree || "",
-        //       year: dipQual.yearOfPassing?.toString() || "",
-        //       totalMarks: dipQual.totalMarks?.toString() || "",
-        //       marksObtained: dipQual.marksObtained?.toString() || "",
-        //       certificateNo: dipQual.grade || "",
-        //     }
-        //   }));
-        // }
-        
         if (edu.experience?.hasExperience) {
           setEducation(prev => ({
             ...prev,
@@ -1331,19 +1269,6 @@ const fetchAndAutoFillData = async () => {
             }
           }));
         }
-        
-        // if (edu.contractualService?.hasContractualService) {
-        //   setEducation(prev => ({
-        //     ...prev,
-        //     contractualService: {
-        //       ...prev.contractualService,
-        //       hasContractualService: true,
-        //       durationYears: edu.contractualService.durationYears?.toString() || "",
-        //       durationMonths: edu.contractualService.durationMonths?.toString() || "",
-        //       contractId: edu.contractualService.contractId || "",
-        //     }
-        //   }));
-        // }
       }
       
       // Auto-fill post preferences - FIXED: Properly map post rankings
@@ -1823,10 +1748,8 @@ const removeFile = (field: keyof Documents) => {
     }
   };
 
-  // const verifyEmailOtp = () => {
-  //   setEmailOtpVerified(true);
-  //   toast.success("Email verified successfully!");
-  // };
+
+  
 
   const calculateTotalFee = () => {
     let fee = 100;
@@ -1910,55 +1833,6 @@ const removeFile = (field: keyof Documents) => {
   };
 
   // Save Step 2 API call
-  // const saveStep2 = async () => {
-  //   setSavingStep(true);
-    
-  //   const selectedCategory = categoriesList.find(
-  //     cat => cat.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.mainCategory ||
-  //            cat.catName.toLowerCase() === reservationCategory.mainCategory
-  //   );
-    
-  //   let subCategoryId = 0;
-  //   if (reservationCategory.subCategory && selectedCategory?.subCategories) {
-  //     const selectedSubCategory = selectedCategory.subCategories.find(
-  //       sub => sub.catName.toLowerCase().replace(/\s+/g, '_') === reservationCategory.subCategory
-  //     );
-  //     if (selectedSubCategory) {
-  //       subCategoryId = selectedSubCategory.catId;
-  //     }
-  //   }
-
-  //   const payload = {
-  //     reservationCategory: {
-  //       mainCategory: selectedCategory?.catId || 0,
-  //       subCategory: subCategoryId,
-  //       isPwd: reservationCategory.isPwd === "yes",
-  //       pwdType: reservationCategory.pwdType,
-  //       pwdPercentage: reservationCategory.pwdPercentage,
-  //       isExServiceman: reservationCategory.isExServiceman === "yes",
-  //       exServicemanYears: reservationCategory.exServicemanYears,
-  //       isSportsQuota: reservationCategory.isSportsQuota === "yes",
-  //       sportsLevel: reservationCategory.sportsLevel,
-  //       sportsAchievement: reservationCategory.sportsAchievement,
-  //       isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
-  //       declaration: reservationCategory.declaration,
-  //     },
-  //   };
-
-  //   try {
-  //     const response = await apiService.saveStep2(payload);
-  //     if (response.data.success) {
-  //       toast.success(response.data.message);
-  //       setCurrentStep(currentStep + 1);
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Error saving step 2:", error);
-  //     toast.error(error.response?.data?.message || "Failed to save reservation details");
-  //   } finally {
-  //     setSavingStep(false);
-  //   }
-  // };
-
 const saveStep2 = async () => {
   setSavingStep(true);
   
@@ -2000,86 +1874,6 @@ const saveStep2 = async () => {
     setSavingStep(false);
   }
 };
-
-  // Save Step 3 API call
-  // const saveStep3 = async () => {
-  //   setSavingStep(true);
-    
-  //   const payload = {
-  //     highestQualification: highestQualification,
-  //     tenth: {
-  //       board: education.tenth.board,
-  //       percentage: education.tenth.percentage,
-  //       totalMarks: education.tenth.totalMarks,
-  //       marksObtained: education.tenth.marksObtained,
-  //       passingCertificateNo: education.tenth.passingCertificateNo,
-  //     },
-  //     twelfth: {
-  //       board: education.twelfth.board,
-  //       percentage: education.twelfth.percentage,
-  //       totalMarks: education.twelfth.totalMarks,
-  //       marksObtained: education.twelfth.marksObtained,
-  //       passingCertificateNo: education.twelfth.passingCertificateNo,
-  //     },
-  //     graduation: {
-  //       graduationCourse: education.graduation.graduationCourse,
-  //       university: education.graduation.university,
-  //       percentage: education.graduation.percentage,
-  //       specialization: education.graduation.specialization,
-  //       totalMarks: education.graduation.totalMarks,
-  //       marksObtained: education.graduation.marksObtained,
-  //       passingCertificateNo: education.graduation.passingCertificateNo,
-  //     },
-  //     postGraduation: {
-  //       hasPostGraduation: education.postGraduation.hasPostGraduation,
-  //       university: education.postGraduation.university,
-  //       percentage: education.postGraduation.percentage,
-  //       // subject: education.postGraduation.subject,
-  //       subject: education.postGraduation.subject.join(', '),
-  //       totalMarks: education.postGraduation.totalMarks,
-  //       marksObtained: education.postGraduation.marksObtained,
-  //       passingCertificateNo: education.postGraduation.passingCertificateNo,
-  //     },
-     
-      
-  //     experience: {
-  //       hasExperience: education.experience.hasExperience,
-  //       durationMonths: education.experience.durationMonths,
-  //       durationYears: education.experience.durationYears,
-  //       organization: education.experience.organization,
-  //       designation: education.experience.designation,
-  //       dateOfJoining: education.experience.dateOfJoining,
-  //       relievingDate: education.experience.relievingDate,
-  //       experienceLetterNo: education.experience.experienceLetterNo,
-  //     },
-      
-      
-  //   };
-
-  //   try {
-  //     const response = await apiService.saveStep3(payload);
-  //     if (response.data.success) {
-  //       toast.success(response.data.message);
-  //       if (response.data.posts && response.data.posts.length > 0) {
-  //         setDynamicPosts(response.data.posts);
-  //         const initialRankings: { [key: number]: number } = {};
-  //         response.data.posts.forEach((post: Post) => {
-  //           initialRankings[post.postId] = 0;
-  //         });
-  //         setPostPreference(prev => ({
-  //           ...prev,
-  //           postRankings: initialRankings,
-  //         }));
-  //       }
-  //       setCurrentStep(currentStep + 1);
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Error saving step 3:", error);
-  //     toast.error(error.response?.data?.message || "Failed to save education details");
-  //   } finally {
-  //     setSavingStep(false);
-  //   }
-  // };
 
   // Save Step 3 API call
 const saveStep3 = async () => {
@@ -2276,42 +2070,80 @@ useEffect(() => {
 }, []);
 
   // Save Step 6 API call (Post Preferences)
-  const saveStep6 = async () => {
-    setSavingStep(true);
+  // const saveStep6 = async () => {
+  //   setSavingStep(true);
 
-    const postRankingsArray = Object.entries(postPreference.postRankings)
-      .filter(([_, priority]) => priority !== 0)
-      .map(([postId, priority]) => ({
-        postId: Number(postId),
-        priority: priority,
-      }))
-      .sort((a, b) => a.priority - b.priority);
+  //   const postRankingsArray = Object.entries(postPreference.postRankings)
+  //     .filter(([_, priority]) => priority !== 0)
+  //     .map(([postId, priority]) => ({
+  //       postId: Number(postId),
+  //       priority: priority,
+  //     }))
+  //     .sort((a, b) => a.priority - b.priority);
 
-    const isRegular = postPreference.vacancyStream === "regular" || postPreference.vacancyStream === "both";
-    const isBacklog = postPreference.vacancyStream === "backlog" || postPreference.vacancyStream === "both";
+  //   const isRegular = postPreference.vacancyStream === "regular" || postPreference.vacancyStream === "both";
+  //   const isBacklog = postPreference.vacancyStream === "backlog" || postPreference.vacancyStream === "both";
 
-    const payload = {
-      postPreferences: {
-        vacancyStream: postPreference.vacancyStream,
-        isRegular: isRegular,
-        isBacklog: isBacklog,
-        postRankings: postRankingsArray,
-      },
-    };
+  //   const payload = {
+  //     postPreferences: {
+  //       vacancyStream: postPreference.vacancyStream,
+  //       isRegular: isRegular,
+  //       isBacklog: isBacklog,
+  //       postRankings: postRankingsArray,
+  //     },
+  //   };
 
-    try {
-      const response = await apiService.saveStep6(payload);
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setCurrentStep(currentStep + 1);
-      }
-    } catch (error: any) {
-      console.error("Error saving step 6:", error);
-      toast.error(error.response?.data?.message || "Failed to save post preferences");
-    } finally {
-      setSavingStep(false);
-    }
+  //   try {
+  //     const response = await apiService.saveStep6(payload);
+  //     if (response.data.success) {
+  //       toast.success(response.data.message);
+  //       setCurrentStep(currentStep + 1);
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error saving step 6:", error);
+  //     toast.error(error.response?.data?.message || "Failed to save post preferences");
+  //   } finally {
+  //     setSavingStep(false);
+  //   }
+  // };
+
+  // Updated saveStep6 function
+const saveStep6 = async () => {
+  setSavingStep(true);
+
+  const postRankingsArray = Object.entries(postPreference.postRankings)
+    .filter(([_, priority]) => priority !== 0)
+    .map(([postCode, priority]) => ({
+      postCode: postCode,
+      priority: priority,
+    }))
+    .sort((a, b) => a.priority - b.priority);
+
+  const isRegular = postPreference.vacancyStream === "regular" || postPreference.vacancyStream === "both";
+  const isBacklog = postPreference.vacancyStream === "backlog" || postPreference.vacancyStream === "both";
+
+  const payload = {
+    postPreferences: {
+      vacancyStream: postPreference.vacancyStream,
+      isRegular: isRegular,
+      isBacklog: isBacklog,
+      postRankings: postRankingsArray,
+    },
   };
+
+  try {
+    const response = await apiService.saveStep6(payload);
+    if (response.data.success) {
+      toast.success(response.data.message);
+      setCurrentStep(currentStep + 1);
+    }
+  } catch (error: any) {
+    console.error("Error saving step 6:", error);
+    toast.error(error.response?.data?.message || "Failed to save post preferences");
+  } finally {
+    setSavingStep(false);
+  }
+};
 
   const handleNext = () => {
 
@@ -2537,7 +2369,7 @@ useEffect(() => {
                 type="date"
                 value={personalInfo.dob}
                 min="1900-01-01"
-                max="9999-12-31"
+                max="2026-12-31"
                 onChange={handleDateOfBirthChange}
                  className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
           errors.dob ? 'border-red-500' : 'border-slate-300'
@@ -2568,9 +2400,6 @@ useEffect(() => {
             </label>
             <select
               value={personalInfo.gender}
-              // onChange={(e) =>
-              //   setPersonalInfo({ ...personalInfo, gender: e.target.value }) 
-              // }
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, gender: e.target.value });
                 if (e.target.value) {
@@ -2592,10 +2421,6 @@ useEffect(() => {
             </label>
             <select
               value={personalInfo.nationality}
-              // onChange={(e) =>
-              //   setPersonalInfo({ ...personalInfo, nationality: e.target.value })
-                
-              // }
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, nationality: e.target.value });
                 if (e.target.value) {
@@ -2633,13 +2458,6 @@ useEffect(() => {
             <input
               type="text"
               value={personalInfo.identificationMark1}
-              // onChange={(e) =>
-              //   setPersonalInfo({
-              //     ...personalInfo,
-              //     identificationMark1: e.target.value,
-              //   })
-                
-              // }
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, identificationMark1: e.target.value });
                 if (e.target.value.trim()) {
@@ -2766,9 +2584,6 @@ useEffect(() => {
               <input
                 type="email"
                 value={personalInfo.emailId}
-                // onChange={(e) =>
-                //   setPersonalInfo({ ...personalInfo, emailId: e.target.value })
-                // }
                  onChange={(e) => {
                   setPersonalInfo({ ...personalInfo, emailId: e.target.value });
                   if (e.target.value && e.target.value.includes('@')) {
@@ -2812,15 +2627,6 @@ useEffect(() => {
             <input
               type="text"
               value={personalInfo.permanentAddress.street}
-              // onChange={(e) =>
-              //   setPersonalInfo({
-              //     ...personalInfo,
-              //     permanentAddress: {
-              //       ...personalInfo.permanentAddress,
-              //       street: e.target.value,
-              //     },
-              //   })
-              // }
               onChange={(e) => {
                 setPersonalInfo({
                   ...personalInfo,
@@ -2842,15 +2648,6 @@ useEffect(() => {
             <input
               type="text"
               value={personalInfo.permanentAddress.cityOrVillage}
-              // onChange={(e) =>
-              //   setPersonalInfo({
-              //     ...personalInfo,
-              //     permanentAddress: {
-              //       ...personalInfo.permanentAddress,
-              //       cityOrVillage: e.target.value,
-              //     },
-              //   })
-              // }
               onChange={(e) => {
                 setPersonalInfo({
                   ...personalInfo,
@@ -2871,15 +2668,6 @@ useEffect(() => {
             <input
               type="text"
               value={personalInfo.permanentAddress.post}
-              // onChange={(e) =>
-              //   setPersonalInfo({
-              //     ...personalInfo,
-              //     permanentAddress: {
-              //       ...personalInfo.permanentAddress,
-              //       post: e.target.value,
-              //     },
-              //   })
-              // }
               onChange={(e) => {
                 setPersonalInfo({
                   ...personalInfo,
@@ -2899,12 +2687,6 @@ useEffect(() => {
             </label>
             <select
               value={personalInfo.permanentAddress.stateId || ""}
-              // onChange={(e) => {
-              //   const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
-              //   if (selectedState) {
-              //     handlePermanentStateChange(selectedState.stateId, selectedState.stateName);
-              //   }
-              // }}
               onChange={(e) => {
                 const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
                 if (selectedState) {
@@ -2929,12 +2711,6 @@ useEffect(() => {
             </label>
             <select
               value={personalInfo.permanentAddress.districtId || ""}
-              // onChange={(e) => {
-              //   const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
-              //   if (selectedDistrict) {
-              //     handlePermanentDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
-              //   }
-              // }}
               onChange={(e) => {
                 const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
                 if (selectedDistrict) {
@@ -2962,16 +2738,6 @@ useEffect(() => {
               type="text"
               maxLength={6}
               value={personalInfo.permanentAddress.pincode}
-              // onChange={(e) => {
-              //   const value = e.target.value.replace(/\D/g, '');
-              //   setPersonalInfo({
-              //     ...personalInfo,
-              //     permanentAddress: {
-              //       ...personalInfo.permanentAddress,
-              //       pincode: value,
-              //     },
-              //   });
-              // }}
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setPersonalInfo({
@@ -3772,616 +3538,6 @@ const renderReservationCategory = () => {
 };
 
 
-// const renderEducationDetails = () => {
-//   const errors = stepErrors[2] || {};
-  
-//   return (
-//     <div className="space-y-8">
-      
-      
-      
-//       {/* 10th Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <Award className="w-5 h-5 text-primary" />
-//             10th / SSC Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Board Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={boards}
-//               value={education.tenth.board}
-//               onChange={(value) => {
-//                 setEducation({ ...education, tenth: { ...education.tenth, board: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthBoard: "" } }));
-//               }}
-//               placeholder="Select Board"
-//               required
-//             />
-//             {errors.tenthBoard && <p className="text-red-500 text-xs mt-1">{errors.tenthBoard}</p>}
-//           </div>
-          
-        
-        
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 500"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained 
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 450"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage (%) / CGPA <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "" } }));
-//               }}
-//               placeholder="e.g., 82.5"
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
-//           </div>
-          
-         
-         
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No. <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.passingCertificateNo}
-//               onChange={(e) => {
-//                 setEducation({ ...education, tenth: { ...education.tenth, passingCertificateNo: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthCertificate: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthCertificate ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.tenthCertificate && <p className="text-red-500 text-xs mt-1">{errors.tenthCertificate}</p>}
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* 12th Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <BookOpen className="w-5 h-5 text-primary" />
-//             12th / HSC Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Board Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={boards}
-//               value={education.twelfth.board}
-//               onChange={(value) => {
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, board: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthBoard: "" } }));
-//               }}
-//               placeholder="Select Board"
-//             />
-//             {errors.twelfthBoard && <p className="text-red-500 text-xs mt-1">{errors.twelfthBoard}</p>}
-//           </div>
-          
-        
-        
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 500"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 450"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage (%) <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
-//           </div>
-          
-        
-        
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No.
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.passingCertificateNo}
-//               onChange={(e) => setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } })}
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Graduation Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <GraduationCap className="w-5 h-5 text-primary" />
-//             Graduation Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Course Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={graduationCourseNames}
-//               value={education.graduation.graduationCourse}
-//               onChange={(value) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, graduationCourse: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
-//               }}
-//               placeholder="Select Course"
-//               required
-//             />
-//             {errors.graduationCourse && <p className="text-red-500 text-xs mt-1">{errors.graduationCourse}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               University Name <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.university}
-//               onChange={(e) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, university: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationUniversity: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.graduationUniversity}</p>}
-//           </div>
-          
-          
-          
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 3000"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 2400"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage/CGPA <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationMarks: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Specialization/Subject <span className="text-red-600">*</span>
-//             </label>
-//             <MultiSelectDropdown
-//               options={subjectsList.length > 0 ? subjectsList : subjects}
-//               values={education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : []}
-//               onChange={(values) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, specialization: values.join(", ") } });
-//                 if (values.length > 0) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationSpecialization: "" } }));
-//               }}
-//               placeholder="Select Subject(s)"
-//             />
-//             {errors.graduationSpecialization && <p className="text-red-500 text-xs mt-1">{errors.graduationSpecialization}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No. <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.passingCertificateNo}
-//               onChange={(e) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, passingCertificateNo: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCertificate: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationCertificate ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationCertificate && <p className="text-red-500 text-xs mt-1">{errors.graduationCertificate}</p>}
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Post-Graduation Qualification */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-//         <label className="flex items-center gap-3 cursor-pointer mb-4">
-//           <input
-//             type="checkbox"
-//             checked={education.postGraduation.hasPostGraduation}
-//             onChange={(e) =>
-//               setEducation({
-//                 ...education,
-//                 postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
-//               })
-//             }
-//             className="w-4 h-4 text-primary rounded"
-//           />
-//           <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
-//         </label>
-//         {education.postGraduation.hasPostGraduation && (
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 University/College Name
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.university}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, university: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Subject
-//               </label>
-//               <MultiSelectDropdown
-//                 options={subjectsList.length > 0 ? subjectsList : subjects}
-//                 values={education.postGraduation.subject}
-//                 onChange={(values) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, subject: values },
-//                   })
-//                 }
-//                 placeholder="Select Subject(s)"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Total Marks
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.totalMarks}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, totalMarks: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 2000"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Marks Obtained
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.marksObtained}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, marksObtained: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 1600"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-          
-          
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Percentage
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.percentage}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/[^0-9.]/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, percentage: value },
-//                   });
-//                 }}
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Passing Certificate No.
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.passingCertificateNo}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//           </div>
-//         )}
-//       </div>
-
-    
-    
-
-//       {/* Post-Qualification Experience */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <label className="flex items-center gap-3 cursor-pointer mb-4">
-//           <input
-//             type="checkbox"
-//             checked={education.experience.hasExperience}
-//             onChange={(e) =>
-//               setEducation({
-//                 ...education,
-//                 experience: { ...education.experience, hasExperience: e.target.checked },
-//               })
-//             }
-//             className="w-4 h-4 text-primary rounded"
-//           />
-//           <span className="font-semibold text-slate-800">Post-Qualification Experience</span>
-//         </label>
-//         {education.experience.hasExperience && (
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Organization Name
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.experience.organization}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     experience: { ...education.experience, organization: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Designation
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.experience.designation}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     experience: { ...education.experience, designation: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Date of Joining
-//               </label>
-//               <input
-//                 type="date"
-//                 value={education.experience.dateOfJoining}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     experience: { ...education.experience, dateOfJoining: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Relieving Date
-//               </label>
-//               <input
-//                 type="date"
-//                 value={education.experience.relievingDate}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     experience: { ...education.experience, relievingDate: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <div className="grid grid-cols-2 gap-2">
-//                 <div>
-//                   <label className="block text-sm font-medium text-slate-700 mb-2">
-//                     Years
-//                   </label>
-//                   <SearchableDropdown
-//                     options={yearsRange}
-//                     value={education.experience.durationYears}
-//                     onChange={(value) =>
-//                       setEducation({
-//                         ...education,
-//                         experience: { ...education.experience, durationYears: value },
-//                       })
-//                     }
-//                     placeholder="Select Years"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-slate-700 mb-2">
-//                     Months
-//                   </label>
-//                   <SearchableDropdown
-//                     options={months}
-//                     value={education.experience.durationMonths}
-//                     onChange={(value) =>
-//                       setEducation({
-//                         ...education,
-//                         experience: { ...education.experience, durationMonths: value },
-//                       })
-//                     }
-//                     placeholder="Select Months"
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Experience Letter No.
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.experience.experienceLetterNo}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     experience: { ...education.experience, experienceLetterNo: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//           </div>
-//         )}
-//       </div>
-
-     
-     
-//     </div>
-//   );
-// };
-
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
   
@@ -5007,13 +4163,264 @@ const renderEducationDetails = () => {
   );
 };
 
+// const renderPostPreference = () => {
+//   const errors = stepErrors[3] || {};
+  
+//   // Helper function - OK to be here (not a Hook)
+//   const getAvailablePriorities = (currentPostId: number) => {
+//     const usedPriorities = Object.entries(postPreference.postRankings)
+//       .filter(([id, priority]) => Number(id) !== currentPostId && priority !== 0)
+//       .map(([, priority]) => priority);
+    
+//     const totalPosts = postsToShow.length;
+//     const allPriorities = Array.from({ length: totalPosts }, (_, i) => i + 1);
+//     return allPriorities.filter(p => !usedPriorities.includes(p));
+//   };
+
+//   // Event handler - OK to be here (not a Hook)
+//   const handlePriorityChange = (postId: number, priority: number) => {
+//     const isPriorityUsed = Object.entries(postPreference.postRankings)
+//       .some(([id, p]) => Number(id) !== postId && p === priority);
+    
+//     if (isPriorityUsed && priority !== 0) {
+//       toast.error(`Priority ${priority} is already selected for another post. Please choose a different priority.`);
+//       return;
+//     }
+    
+//     setPostPreference({
+//       ...postPreference,
+//       postRankings: { ...postPreference.postRankings, [postId]: priority },
+//     });
+    
+//     // Clear error when user starts assigning priorities
+//     if (priority !== 0 && Object.values(postPreference.postRankings).filter(p => p !== 0).length + 1 === postsToShow.length) {
+//       setStepErrors(prev => ({ ...prev, [3]: {} }));
+//     } else if (priority === 0) {
+//       setStepErrors(prev => ({ ...prev, [3]: { ...prev[3], postRankings: "Please assign priorities to all posts" } }));
+//     }
+//   };
+
+//   const postsToShow = dynamicPosts.length > 0 ? dynamicPosts : [];
+//   const postsAvailable = postsToShow.length;
+//   const allPrioritiesAssigned = postsAvailable > 0 && Object.values(postPreference.postRankings).every(p => p !== 0);
+
+//   // Return JSX - OK (no Hooks)
+//   return (
+//     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+//       <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <div className="mb-6">
+//           <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
+//             Post Preference Selection
+//           </h3>
+//           <p className="text-sm text-slate-500 mt-1">
+//             Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
+//           </p>
+//         </div>
+
+//         <section className="mb-8">
+//           <div className="flex items-center gap-3 mb-4">
+//             <div className="h-6 w-1 bg-primary rounded-full"></div>
+//             <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+//               1. Vacancy Stream Selection
+//             </h4>
+//           </div>
+
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+//               <div className="flex justify-between items-start">
+//                 <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
+//                 <input
+//                   type="radio"
+//                   name="vacancy_stream"
+//                   value="regular"
+//                   checked={postPreference.vacancyStream === "regular"}
+//                   onChange={(e) =>
+//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                   }
+//                   className="w-4 h-4 accent-primary"
+//                 />
+//               </div>
+//               <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
+//             </label>
+
+//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
+//               <div className="flex justify-between items-start">
+//                 <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
+//                 <input
+//                   type="radio"
+//                   name="vacancy_stream"
+//                   value="backlog"
+//                   checked={postPreference.vacancyStream === "backlog"}
+//                   onChange={(e) =>
+//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                   }
+//                   className="w-4 h-4 accent-primary"
+//                 />
+//               </div>
+//               <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
+//             </label>
+
+//             <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
+//               <div className="flex justify-between items-start">
+//                 <div>
+//                   <h3 className="font-bold text-primary">Both (Recommended)</h3>
+//                 </div>
+//                 <input
+//                   type="radio"
+//                   name="vacancy_stream"
+//                   value="both"
+//                   checked={postPreference.vacancyStream === "both"}
+//                   onChange={(e) =>
+//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
+//                   }
+//                   className="w-4 h-4 accent-primary"
+//                 />
+//               </div>
+//               <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
+//             </label>
+//           </div>
+//         </section>
+
+//         <section>
+//           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+//             <div className="flex items-center gap-3">
+//               <div className="h-6 w-1 bg-primary rounded-full"></div>
+//               <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
+//                 2. Ranking Eligible Posts
+//               </h4>
+//             </div>
+//             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+//               {postsAvailable} Posts Available
+//             </span>
+//           </div>
+
+//           <p className="text-xs text-slate-500 mb-4 italic">
+//             Select priority number from dropdown (1 = highest priority). Each priority number can be used only once.
+//             {postsAvailable > 0 && ` You have ${postsAvailable} posts to rank from 1 to ${postsAvailable}.`}
+//           </p>
+
+//           {/* Error message for post rankings */}
+//           {errors.postRankings && postsAvailable > 0 && (
+//             <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
+//               <p className="text-xs text-red-700 flex items-center gap-2">
+//                 <AlertCircle size={14} />
+//                 {errors.postRankings}
+//               </p>
+//             </div>
+//           )}
+
+//           {postsAvailable === 0 ? (
+//             <div className="text-center py-8 bg-slate-50 rounded-lg">
+//               <p className="text-slate-500">No posts available based on your qualifications.</p>
+//               <p className="text-xs text-slate-400 mt-2">Please complete your education details first.</p>
+//             </div>
+//           ) : (
+//             <div className={`space-y-3 ${errors.postRankings ? 'border-2 border-red-500 rounded-xl p-3' : ''}`}>
+//               {postsToShow.map((post, index) => {
+//                 const currentPriority = postPreference.postRankings[post.postId] || 0;
+//                 const availablePriorities = getAvailablePriorities(post.postId);
+                
+//                 return (
+//                   <div
+//                     key={post.postId}
+//                     className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
+//                   >
+//                     <div className="flex items-center gap-3 shrink-0">
+//                       <span className="text-sm font-bold text-slate-400 w-6">{index + 1}.</span>
+//                     </div>
+
+//                     <div className="flex-1 min-w-0">
+//                       <h4 className="text-sm font-bold text-slate-800 truncate">{post.postTitle}</h4>
+//                       <p className="text-xs text-slate-500 truncate mt-0.5">{post.postContent}</p>
+//                     </div>
+
+//                     <div className="shrink-0 ml-2">
+//                       <select
+//                         value={currentPriority}
+//                         onChange={(e) => handlePriorityChange(post.postId, parseInt(e.target.value))}
+//                         className={`w-32 h-12 border rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2 ${
+//                           currentPriority === 0 ? 'border-red-300 bg-red-50' : 'border-slate-300'
+//                         }`}
+//                       >
+//                         <option value={0}>Select Priority</option>
+//                         {availablePriorities.map((priority) => (
+//                           <option key={priority} value={priority}>
+//                             Priority {priority}
+//                           </option>
+//                         ))}
+//                         {currentPriority !== 0 && !availablePriorities.includes(currentPriority) && (
+//                           <option value={currentPriority} disabled>
+//                             Priority {currentPriority} (Already selected)
+//                           </option>
+//                         )}
+//                       </select>
+//                     </div>
+//                   </div>
+//                 );
+//               })}
+//             </div>
+//           )}
+          
+//           {postsAvailable > 0 && !allPrioritiesAssigned && (
+//             <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+//               <p className="text-xs text-amber-800 flex items-center gap-2">
+//                 <AlertCircle size={14} />
+//                 Please assign priorities to all {postsAvailable} posts before proceeding. Each post must have a unique priority from 1 to {postsAvailable}.
+//               </p>
+//             </div>
+//           )}
+          
+//           {postsAvailable > 0 && allPrioritiesAssigned && (
+//             <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+//               <p className="text-xs text-green-800 flex items-center gap-2">
+//                 <CheckCircle size={14} />
+//                 All priorities have been assigned! You can proceed to the next step.
+//               </p>
+//             </div>
+//           )}
+//         </section>
+//       </div>
+
+//       <aside className="space-y-6">
+//         <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
+//           <div className="flex items-center gap-2 mb-5">
+//             <Info size={20} className="text-emerald-300" />
+//             <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
+//           </div>
+//           <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
+//             <li>Preferences once locked cannot be changed after the final submission of the form.</li>
+//             <li>Ranking must be unique for each post (e.g., you cannot have two posts with same priority).</li>
+//             <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
+//             <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
+//           </ul>
+//         </div>
+
+//         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
+//           <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+//             <HelpCircle size={24} />
+//           </div>
+//           <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
+//           <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
+//             Contact the recruitment helpdesk for clarification on post duties and eligibility.
+//           </p>
+//           <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
+//             <FileText size={16} />
+//             Read Full Advertisement
+//           </button>
+//         </div>
+//       </aside>
+//     </div>
+//   );
+// };
+
+// Updated renderPostPreference function
 const renderPostPreference = () => {
   const errors = stepErrors[3] || {};
   
   // Helper function - OK to be here (not a Hook)
-  const getAvailablePriorities = (currentPostId: number) => {
+  const getAvailablePriorities = (currentPostCode: string) => {
     const usedPriorities = Object.entries(postPreference.postRankings)
-      .filter(([id, priority]) => Number(id) !== currentPostId && priority !== 0)
+      .filter(([code, priority]) => code !== currentPostCode && priority !== 0)
       .map(([, priority]) => priority);
     
     const totalPosts = postsToShow.length;
@@ -5022,9 +4429,9 @@ const renderPostPreference = () => {
   };
 
   // Event handler - OK to be here (not a Hook)
-  const handlePriorityChange = (postId: number, priority: number) => {
+  const handlePriorityChange = (postCode: string, priority: number) => {
     const isPriorityUsed = Object.entries(postPreference.postRankings)
-      .some(([id, p]) => Number(id) !== postId && p === priority);
+      .some(([code, p]) => code !== postCode && p === priority);
     
     if (isPriorityUsed && priority !== 0) {
       toast.error(`Priority ${priority} is already selected for another post. Please choose a different priority.`);
@@ -5033,7 +4440,7 @@ const renderPostPreference = () => {
     
     setPostPreference({
       ...postPreference,
-      postRankings: { ...postPreference.postRankings, [postId]: priority },
+      postRankings: { ...postPreference.postRankings, [postCode]: priority },
     });
     
     // Clear error when user starts assigning priorities
@@ -5044,11 +4451,11 @@ const renderPostPreference = () => {
     }
   };
 
-  const postsToShow = dynamicPosts.length > 0 ? dynamicPosts : [];
+  // Use postsList from API
+  const postsToShow = postsList.length > 0 ? postsList : [];
   const postsAvailable = postsToShow.length;
   const allPrioritiesAssigned = postsAvailable > 0 && Object.values(postPreference.postRankings).every(p => p !== 0);
 
-  // Return JSX - OK (no Hooks)
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -5057,7 +4464,12 @@ const renderPostPreference = () => {
             Post Preference Selection
           </h3>
           <p className="text-sm text-slate-500 mt-1">
-            Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
+            Please rank the following posts in order of your preference. 
+            {eligiblePosts.length > 0 && (
+              <span className="block mt-1 text-amber-600">
+                Note: You are eligible for {eligiblePosts.length} specific post(s) based on your qualifications.
+              </span>
+            )}
           </p>
         </div>
 
@@ -5130,7 +4542,7 @@ const renderPostPreference = () => {
             <div className="flex items-center gap-3">
               <div className="h-6 w-1 bg-primary rounded-full"></div>
               <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-                2. Ranking Eligible Posts
+                2. Ranking Posts
               </h4>
             </div>
             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
@@ -5155,33 +4567,45 @@ const renderPostPreference = () => {
 
           {postsAvailable === 0 ? (
             <div className="text-center py-8 bg-slate-50 rounded-lg">
-              <p className="text-slate-500">No posts available based on your qualifications.</p>
-              <p className="text-xs text-slate-400 mt-2">Please complete your education details first.</p>
+              <p className="text-slate-500">No posts available at the moment.</p>
+              <p className="text-xs text-slate-400 mt-2">Please check back later or contact support.</p>
             </div>
           ) : (
             <div className={`space-y-3 ${errors.postRankings ? 'border-2 border-red-500 rounded-xl p-3' : ''}`}>
               {postsToShow.map((post, index) => {
-                const currentPriority = postPreference.postRankings[post.postId] || 0;
-                const availablePriorities = getAvailablePriorities(post.postId);
+                const currentPriority = postPreference.postRankings[post.postCode] || 0;
+                const availablePriorities = getAvailablePriorities(post.postCode);
+                const isEligible = eligiblePosts.some((ep: any) => ep.postCode === post.postCode);
                 
                 return (
                   <div
-                    key={post.postId}
-                    className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
+                    key={post.postCode}
+                    className={`flex items-center gap-4 bg-white border rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow ${
+                      isEligible ? 'border-green-300 bg-green-50/30' : 'border-slate-200'
+                    }`}
                   >
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-bold text-slate-400 w-6">{index + 1}.</span>
+                      <span className="text-sm font-bold text-slate-400 w-8">{index + 1}.</span>
+                      {isEligible && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          Eligible
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-slate-800 truncate">{post.postTitle}</h4>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">{post.postContent}</p>
+                      <h4 className="text-sm font-bold text-slate-800 truncate">
+                        {post.postName}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Post Code: {post.postCode}
+                      </p>
                     </div>
 
                     <div className="shrink-0 ml-2">
                       <select
                         value={currentPriority}
-                        onChange={(e) => handlePriorityChange(post.postId, parseInt(e.target.value))}
+                        onChange={(e) => handlePriorityChange(post.postCode, parseInt(e.target.value))}
                         className={`w-32 h-12 border rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2 ${
                           currentPriority === 0 ? 'border-red-300 bg-red-50' : 'border-slate-300'
                         }`}
@@ -5236,6 +4660,7 @@ const renderPostPreference = () => {
             <li>Ranking must be unique for each post (e.g., you cannot have two posts with same priority).</li>
             <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
             <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
+            <li>Eligible posts are marked with "Eligible" badge based on your qualifications.</li>
           </ul>
         </div>
 
@@ -5257,114 +4682,6 @@ const renderPostPreference = () => {
   );
 };
 
-  // const renderLanguageSelection = () => {
-  //   const paperOneOptions = ["Hindi", "English"];
-  //   const paperTwoOptions = [
-  //     "Hindi Language & Literature",
-  //     "English Language & Literature",
-  //     "Sanskrit Language & Literature",
-  //     "Urdu Language & Literature",
-  //     "Bengali Language & Literature",
-  //     "Santhali Language & Literature",
-  //   ];
-  //   const paperThreeOptions = [
-  //     "General Studies",
-  //     "General Science",
-  //     "Mathematics",
-  //     "Physics",
-  //     "Chemistry",
-  //     "Zoology",
-  //     "Botany",
-  //     "Statistics",
-  //     "Economics",
-  //     "Commerce",
-  //     "Geology",
-  //     "Dairy Technology",
-  //     "Fisheries Science",
-  //     "Pharmacy",
-  //     "Pharmaceutical Chemistry",
-  //     "Ayurveda",
-  //   ];
-
-  //   return (
-  //     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-  //       <div className="absolute -top-4 left-5 bg-white px-3">
-  //         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-  //           <Languages className="w-5 h-5 text-primary" />
-  //           Language Selection for Examination
-  //         </h3>
-  //       </div>
-  //       <div className="space-y-6 mt-4">
-  //         <div>
-  //           <label className="block text-slate-700 text-sm font-medium mb-2">
-  //             Paper-I Language <span className="text-red-600">*</span>
-  //           </label>
-  //           <select
-  //             value={languageSelection.paperOneLanguage}
-  //             onChange={(e) =>
-  //               setLanguageSelection({
-  //                 ...languageSelection,
-  //                 paperOneLanguage: e.target.value,
-  //               })
-  //             }
-  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-  //           >
-  //             <option value="">Select Language</option>
-  //             {paperOneOptions.map((lang) => (
-  //               <option key={lang} value={lang}>
-  //                 {lang}
-  //               </option>
-  //             ))}
-  //           </select>
-  //         </div>
-  //         <div>
-  //           <label className="block text-slate-700 text-sm font-medium mb-2">
-  //             Paper-II Language/Subject <span className="text-red-600">*</span>
-  //           </label>
-  //           <select
-  //             value={languageSelection.paperTwoLanguage}
-  //             onChange={(e) =>
-  //               setLanguageSelection({
-  //                 ...languageSelection,
-  //                 paperTwoLanguage: e.target.value,
-  //               })
-  //             }
-  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-  //           >
-  //             <option value="">Select Language</option>
-  //             {paperTwoOptions.map((lang) => (
-  //               <option key={lang} value={lang}>
-  //                 {lang}
-  //               </option>
-  //             ))}
-  //           </select>
-  //         </div>
-  //         <div>
-  //           <label className="block text-slate-700 text-sm font-medium mb-2">
-  //             Paper-III Subject Selection <span className="text-red-600">*</span>
-  //           </label>
-  //           <select
-  //             value={languageSelection.paperThreeLanguage}
-  //             onChange={(e) =>
-  //               setLanguageSelection({
-  //                 ...languageSelection,
-  //                 paperThreeLanguage: e.target.value,
-  //               })
-  //             }
-  //             className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-  //           >
-  //             <option value="">Select Subject</option>
-  //             {paperThreeOptions.map((subject) => (
-  //               <option key={subject} value={subject}>
-  //                 {subject}
-  //               </option>
-  //             ))}
-  //           </select>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
 
 const renderLanguageSelection = () => {
   const errors = stepErrors[4] || {};
@@ -5857,565 +5174,7 @@ const renderDocuments = () => {
   );
 };
 
-//   const renderApplicationReview = () => {
-//     if (loadingReview) {
-//       return (
-//         <div className="flex justify-center items-center min-h-[400px]">
-//           <div className="text-center">
-//             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-//             <p className="text-slate-600">Loading review data...</p>
-//           </div>
-//         </div>
-//       );
-//     }
 
-//     if (!reviewData) {
-//       return (
-//         <div className="text-center py-10">
-//           <p className="text-slate-600">No review data available.</p>
-//         </div>
-//       );
-//     }
-
-//     const { steps } = reviewData;
-//     const personalInfoData = steps.personalInfo;
-//     const reservationData = steps.reservationCategory;
-//     const educationData = steps.education;
-//     const postPreferenceData = steps.postPreference;
-//     const languageData = steps.languageSelection;
-
-//     // Find qualification by level
-//     const findQualification = (level: string) => {
-//       return educationData?.qualifications?.find((q: any) => q.level === level);
-//     };
-
-//     const tenthQual = findQualification("matriculation");
-//     const twelfthQual = findQualification("intermediate");
-//     const graduationQual = findQualification("graduation");
-
-//     // Get post titles from rankings
-//     const getPostTitle = (postId: number) => {
-//       const post = dynamicPosts.find(p => p.postId === postId);
-//       return post ? post.postTitle : `Post ID: ${postId}`;
-//     };
-
-//     return (
-//       <div className="space-y-6">
-//         <div className="bg-amber-50 border-l-4 border-primary p-4 rounded-lg flex items-start gap-3">
-//           <AlertCircle size={18} className="text-primary shrink-0" />
-//           <p className="text-sm font-medium text-slate-700">
-//             Please review your application details carefully. Once submitted,
-//             certain information cannot be modified.
-//           </p>
-//         </div>
-
-//         {/* Personal Details Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <User size={18} />
-//               <h3>Personal Details</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(0)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="grid grid-cols-2 gap-y-3 text-sm">
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Full Name</span>
-//               <span className="font-semibold">
-//                 {personalInfoData?.firstName} {personalInfoData?.lastName || ""}
-//               </span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Father's Name</span>
-//               <span className="font-semibold">{personalInfoData?.fatherName}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Mother's Name</span>
-//               <span className="font-semibold">{personalInfoData?.motherName}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Date of Birth</span>
-//               <span className="font-semibold">{personalInfoData?.dateOfBirth?.split('T')[0]}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Age</span>
-//               <span className="font-semibold">{personalInfoData?.age} years</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Gender</span>
-//               <span className="font-semibold capitalize">{personalInfoData?.gender}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Mobile Number</span>
-//               <span className="font-semibold">{personalInfoData?.mobileNumber}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Alternate Mobile</span>
-//               <span className="font-semibold">{personalInfoData?.alternateNumber || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Email ID</span>
-//               <span className="font-semibold">{personalInfoData?.emailId}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Aadhar Number</span>
-//               <span className="font-semibold">{personalInfoData?.identityNumber || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Identification Mark 1</span>
-//               <span className="font-semibold">{personalInfoData?.identificationMark1 || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Identification Mark 2</span>
-//               <span className="font-semibold">{personalInfoData?.identificationMark2 || "N/A"}</span>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Address Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <MapPin size={18} />
-//               <h3>Address Details</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(0)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//             <div>
-//               <h4 className="font-semibold text-slate-700 mb-2">Permanent Address</h4>
-//               <p className="text-sm text-slate-600">
-//                 {personalInfoData?.address?.permanent?.line1}<br />
-//                 {personalInfoData?.address?.permanent?.city}, {personalInfoData?.address?.permanent?.state}<br />
-//                 {personalInfoData?.address?.permanent?.country} - {personalInfoData?.address?.permanent?.pincode}
-//               </p>
-//             </div>
-//             <div>
-//               <h4 className="font-semibold text-slate-700 mb-2">Correspondence Address</h4>
-//               <p className="text-sm text-slate-600">
-//                 {personalInfoData?.address?.correspondence?.sameAsPermanent ? (
-//                   <span className="text-green-600">Same as Permanent Address</span>
-//                 ) : (
-//                   <>
-//                     {personalInfoData?.address?.correspondence?.line1}<br />
-//                     {personalInfoData?.address?.correspondence?.city}, {personalInfoData?.address?.correspondence?.state}<br />
-//                     {personalInfoData?.address?.correspondence?.country} - {personalInfoData?.address?.correspondence?.pincode}
-//                   </>
-//                 )}
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Category & Quota Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <Globe size={18} />
-//               <h3>Category & Quota</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(1)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="grid grid-cols-2 gap-y-3 text-sm">
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Category</span>
-//               <span className="font-semibold">{reservationData?.mainCategory || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Jharkhand Domicile</span>
-//               <span className="font-semibold">{reservationData?.isJharkhandDomicile ? "Yes" : "No"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">PwD Status</span>
-//               <span className="font-semibold">{reservationData?.isPwd ? "Yes" : "No"}</span>
-//             </div>
-//             {reservationData?.isPwd && (
-//               <>
-//                 <div className="flex flex-col">
-//                   <span className="text-slate-500 text-xs">PwD Type</span>
-//                   <span className="font-semibold">{reservationData?.pwdType || "N/A"}</span>
-//                 </div>
-//                 <div className="flex flex-col">
-//                   <span className="text-slate-500 text-xs">PwD Percentage</span>
-//                   <span className="font-semibold">{reservationData?.pwdPercentage || "N/A"}%</span>
-//                 </div>
-//               </>
-//             )}
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Ex-Serviceman</span>
-//               <span className="font-semibold">{reservationData?.isExServiceman ? "Yes" : "No"}</span>
-//             </div>
-//             {reservationData?.isExServiceman && (
-//               <div className="flex flex-col">
-//                 <span className="text-slate-500 text-xs">Years of Service</span>
-//                 <span className="font-semibold">{reservationData?.exServicemanYears || "N/A"}</span>
-//               </div>
-//             )}
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Sports Quota</span>
-//               <span className="font-semibold">{reservationData?.isSportsQuota ? "Yes" : "No"}</span>
-//             </div>
-//             {reservationData?.isSportsQuota && (
-//               <>
-//                 <div className="flex flex-col">
-//                   <span className="text-slate-500 text-xs">Sports Level</span>
-//                   <span className="font-semibold capitalize">{reservationData?.sportsLevel || "N/A"}</span>
-//                 </div>
-//                 <div className="flex flex-col col-span-2">
-//                   <span className="text-slate-500 text-xs">Achievement</span>
-//                   <span className="font-semibold">{reservationData?.sportsAchievement || "N/A"}</span>
-//                 </div>
-//               </>
-//             )}
-//           </div>
-//         </div>
-
-//         {/* Educational Qualifications Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <GraduationCap size={18} />
-//               <h3>Educational Qualifications</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(2)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="space-y-4">
-//             {tenthQual && (
-//               <div>
-//                 <h4 className="font-semibold text-slate-700">10th / SSC</h4>
-//                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-1">
-//                   <div><span className="text-slate-500">Board:</span> {tenthQual.boardUniversity}</div>
-//                   <div><span className="text-slate-500">Roll Number:</span> {tenthQual.rollNumber}</div>
-//                   <div><span className="text-slate-500">Percentage:</span> {tenthQual.percentage}%</div>
-//                   <div><span className="text-slate-500">Year:</span> {tenthQual.yearOfPassing}</div>
-//                 </div>
-//               </div>
-//             )}
-//             {twelfthQual && (
-//               <div>
-//                 <h4 className="font-semibold text-slate-700">12th / HSC</h4>
-//                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-1">
-//                   <div><span className="text-slate-500">Board:</span> {twelfthQual.boardUniversity}</div>
-//                   <div><span className="text-slate-500">Roll Number:</span> {twelfthQual.rollNumber}</div>
-//                   <div><span className="text-slate-500">Percentage:</span> {twelfthQual.percentage}%</div>
-//                   <div><span className="text-slate-500">Year:</span> {twelfthQual.yearOfPassing}</div>
-//                 </div>
-//               </div>
-//             )}
-//             {graduationQual && (
-//               <div>
-//                 <h4 className="font-semibold text-slate-700">Graduation</h4>
-//                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-1">
-//                   <div><span className="text-slate-500">Course:</span> {graduationQual.degree}</div>
-//                   <div><span className="text-slate-500">University:</span> {graduationQual.boardUniversity}</div>
-//                   <div><span className="text-slate-500">Percentage:</span> {graduationQual.percentage}%</div>
-//                   <div><span className="text-slate-500">Year:</span> {graduationQual.yearOfPassing}</div>
-//                   <div><span className="text-slate-500">Specialization:</span> {graduationQual.specialization}</div>
-//                 </div>
-//               </div>
-//             )}
-//             <div>
-//               <h4 className="font-semibold text-slate-700">Highest Qualification</h4>
-//               <p className="text-sm capitalize">{educationData?.highestQualification || "N/A"}</p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Post Preferences Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <Sliders size={18} />
-//               <h3>Post Preferences</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(3)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="space-y-3">
-//             <div className="flex gap-2">
-//               <span className="text-slate-500 text-sm">Vacancy Stream:</span>
-//               <span className="font-semibold text-sm capitalize">{postPreferenceData?.vacancyStream || "N/A"}</span>
-//             </div>
-//             {postPreferenceData?.postRankings && postPreferenceData.postRankings.length > 0 && (
-//               <div>
-//                 <h4 className="font-semibold text-slate-700 mb-2">Selected Posts with Priority</h4>
-//                 <div className="space-y-2">
-//                   {postPreferenceData.postRankings
-//                     .sort((a: any, b: any) => a.priority - b.priority)
-//                     .map((ranking: any, idx: number) => (
-//                       <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
-//                         <span className="text-sm font-medium">Priority {ranking.priority}</span>
-//                         <span className="text-sm text-slate-700">{getPostTitle(ranking.postId)}</span>
-//                       </div>
-//                     ))}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-
-//         {/* Language Selection Section */}
-//         <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//           <div className="flex justify-between border-b pb-3 mb-4">
-//             <div className="flex items-center gap-2 font-bold text-primary">
-//               <Languages size={18} />
-//               <h3>Language Selection</h3>
-//             </div>
-//             <button
-//               onClick={() => setCurrentStep(4)}
-//               className="text-xs font-bold text-primary hover:underline"
-//             >
-//               <Edit3 size={14} /> Edit
-//             </button>
-//           </div>
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Paper-I Language</span>
-//               <span className="font-semibold">{languageData?.paperOneLanguage || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Paper-II Language</span>
-//               <span className="font-semibold">{languageData?.paperTwoLanguage || "N/A"}</span>
-//             </div>
-//             <div className="flex flex-col">
-//               <span className="text-slate-500 text-xs">Paper-III Subject</span>
-//               <span className="font-semibold">{languageData?.paperThreeLanguage || "N/A"}</span>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* // Add this section in renderApplicationReview after Language Selection and before Declaration: */}
-
-// {/* Documents Section */}
-// {/* <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//   <div className="flex justify-between border-b pb-3 mb-4">
-//     <div className="flex items-center gap-2 font-bold text-primary">
-//       <FileCheck size={18} />
-//       <h3>Uploaded Documents</h3>
-//     </div>
-//     <button
-//       onClick={() => setCurrentStep(5)}
-//       className="text-xs font-bold text-primary hover:underline"
-//     >
-//       <Edit3 size={14} /> Edit
-//     </button>
-//   </div>
-//   <div className="grid grid-cols-2 gap-3 text-sm">
-//     {steps?.documents?.photo && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Photo</span>
-//         <a href={steps.documents.photo} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.signature && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Signature</span>
-//         <a href={steps.documents.signature} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.tenthMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">10th Marksheet</span>
-//         <a href={steps.documents.tenthMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.twelfthMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">12th Marksheet</span>
-//         <a href={steps.documents.twelfthMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.graduationMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Graduation Marksheet</span>
-//         <a href={steps.documents.graduationMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.domicileCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Domicile Certificate</span>
-//         <a href={steps.documents.domicileCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.postGraduationCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Post Graduation Certificate</span>
-//         <a href={steps.documents.postGraduationCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">View Document</a>
-//       </div>
-//     )}
-//   </div>
-// </div> */}
-
-// {/* Documents Section */}
-// <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//   <div className="flex justify-between border-b pb-3 mb-4">
-//     <div className="flex items-center gap-2 font-bold text-primary">
-//       <FileCheck size={18} />
-//       <h3>Uploaded Documents</h3>
-//     </div>
-//     <button
-//       onClick={() => setCurrentStep(5)}
-//       className="text-xs font-bold text-primary hover:underline"
-//     >
-//       <Edit3 size={14} /> Edit
-//     </button>
-//   </div>
-//   <div className="grid grid-cols-2 gap-3 text-sm">
-//     {steps?.documents?.photo && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Photo</span>
-//         <a href={steps.documents.photo} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.signature && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Signature</span>
-//         <a href={steps.documents.signature} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.tenthMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">10th Marksheet</span>
-//         <a href={steps.documents.tenthMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.twelfthMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">12th Marksheet</span>
-//         <a href={steps.documents.twelfthMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.graduationMarksheet && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Graduation Marksheet</span>
-//         <a href={steps.documents.graduationMarksheet} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.domicileCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Domicile Certificate</span>
-//         <a href={steps.documents.domicileCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.aadharCard && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Aadhar Card</span>
-//         <a href={steps.documents.aadharCard} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.postGraduationCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Post Graduation Certificate</span>
-//         <a href={steps.documents.postGraduationCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.diplomaCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Diploma Certificate</span>
-//         <a href={steps.documents.diplomaCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.experienceCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Experience Certificate</span>
-//         <a href={steps.documents.experienceCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.contractualServiceCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Contractual Service Certificate</span>
-//         <a href={steps.documents.contractualServiceCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.ewsCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">EWS Certificate</span>
-//         <a href={steps.documents.ewsCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.castCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Caste Certificate</span>
-//         <a href={steps.documents.castCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.pwdCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Disability Certificate</span>
-//         <a href={steps.documents.pwdCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//     {steps?.documents?.sportsCertificate && (
-//       <div className="flex flex-col">
-//         <span className="text-slate-500 text-xs">Sports Certificate</span>
-//         <a href={steps.documents.sportsCertificate} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs truncate max-w-[150px]">View Document</a>
-//       </div>
-//     )}
-//   </div>
-//   {!steps?.documents?.photo && 
-//    !steps?.documents?.signature && 
-//    !steps?.documents?.tenthMarksheet && 
-//    !steps?.documents?.twelfthMarksheet && 
-//    !steps?.documents?.graduationMarksheet && 
-//    !steps?.documents?.domicileCertificate && (
-//     <div className="text-center py-4 text-slate-500 text-sm">
-//       No documents uploaded yet
-//     </div>
-//   )}
-// </div>
-
-//         {/* Declaration */}
-//         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-//           <div className="flex items-center gap-2 text-primary font-bold mb-3">
-//             <CheckSquare size={18} />
-//             <h3>Declaration</h3>
-//           </div>
-//           <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-600 max-h-32 overflow-y-auto">
-//             <p>
-//               I hereby declare that all the information provided in this
-//               application form is true, complete, and correct to the best of my
-//               knowledge and belief.
-//             </p>
-//           </div>
-//           <label className="flex items-center gap-3 mt-4">
-//             <input
-//               type="checkbox"
-//               className="w-4 h-4 border-slate-300 rounded text-primary"
-//             />
-//             <span className="text-sm font-medium text-slate-700">
-//               I confirm that I have reviewed all the information and I agree to
-//               the declaration stated above.{" "}
-//               <span className="text-red-500">*</span>
-//             </span>
-//           </label>
-//         </div>
-//       </div>
-//     );
-//   };
 
 const renderApplicationReview = () => {
   if (loadingReview) {

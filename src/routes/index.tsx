@@ -27,6 +27,7 @@ import ApplicationControlPanel from "../components/admin/ApplicationControlPanel
 import AdmitCardManagement from "../components/admin/AdmitCardManagement";
 import SystemDataExport from "../components/admin/SystemDataExport";
 import CommunicationsAdminPortal from "../components/admin/CommunicationsAdminPortal";
+import CandidateDetailPage from "../components/admin/CandidateDetailPage";
 import ScrollToTop from "../components/common/ScrollToTop";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -68,6 +69,7 @@ const Index = () => {
         <Route path="admit-card-issue" element={<AdmitCardManagement />} />
         <Route path="new-broadcast" element={<CommunicationsAdminPortal />} />
         <Route path="data-export-hub" element={<SystemDataExport />} />
+        <Route path="candidates/:id" element={<CandidateDetailPage />} />
       </Route>
     </Routes>
 

@@ -1,151 +1,415 @@
-import { MoreHorizontal, AlertCircle, TrendingUp, Calendar,FileDown , FileSpreadsheet} from "lucide-react";
+import { MoreHorizontal, AlertCircle, TrendingUp, Calendar, FileDown, FileSpreadsheet, Users, CheckCircle, Clock, XCircle, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Get authentication headers for admin
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("adminAccessToken");
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  };
+};
 
 export default function DashboardPage() {
-  const transactions = [
-    { id: "TXN-998240", time: "Nov 24, 09:12 AM", name: "Rohan Sharma", method: "Online Card", amount: "₹650.00", status: "SUCCESS", statusColor: "bg-[#E6F4EA] text-[#137333]" },
-    { id: "TXN-998239", time: "Nov 24, 08:45 AM", name: "Anita Devi", method: "Challan", amount: "₹1,200.00", status: "PENDING", statusColor: "bg-[#FEF7E0] text-[#B06000]" },
-    { id: "TXN-998231", time: "Nov 24, 08:21 AM", name: "Vikram Singh", method: "UPI", amount: "₹650.00", status: "SUCCESS", statusColor: "bg-[#E6F4EA] text-[#137333]" },
-    { id: "TXN-998221", time: "Nov 24, 07:56 AM", name: "Priya Kumari", method: "Online Card", amount: "₹650.00", status: "FAILED", statusColor: "bg-[#FCE8E6] text-[#C5221F]" },
+  const navigate = useNavigate();
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1
+  });
+  const [dateRange, setDateRange] = useState("24-11-2023");
+
+  // Fetch candidates data
+  useEffect(() => {
+    fetchCandidates();
+    // Check if admin is logged in
+    const token = localStorage.getItem("adminAccessToken");
+    if (!token) {
+      toast.error("Please login to access dashboard");
+      navigate("/admin/login");
+    }
+  }, [navigate]);
+
+  const fetchCandidates = async (page = 1) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_BASE_URL}/admin/candidates?page=${page}&limit=${pagination.limit}`,
+        getAuthHeaders()
+      );
+
+      if (response.data.success) {
+        setCandidates(response.data.data);
+        setPagination(response.data.pagination);
+      } else {
+        toast.error(response.data.message || "Failed to fetch candidates");
+      }
+    } catch (error: any) {
+      console.error("Error fetching candidates:", error);
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please login again.");
+        localStorage.removeItem("adminAccessToken");
+        localStorage.removeItem("adminIdToken");
+        localStorage.removeItem("adminRefreshToken");
+        navigate("/admin/login");
+      } else {
+        toast.error(error.response?.data?.message || "Failed to fetch candidates");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate statistics based on candidates data
+  const totalApplications = candidates.length;
+  const completedApplications = candidates.filter(c => 
+    c.application?.status === "submitted" || 
+    c.application?.isSubmitted === true ||
+    c.application?.status === "completed"
+  ).length;
+  
+  const verifiedApplications = candidates.filter(c => 
+    c.mobileVerified === true && c.emailVerified === true
+  ).length;
+  
+  const pendingApplications = candidates.filter(c => 
+    (!c.application || c.application?.status === "draft" || c.application?.isSubmitted === false)
+  ).length;
+
+  const statCards = [
+    {
+      title: "Total Applications",
+      value: pagination.total || totalApplications,
+      icon: Users,
+      color: "bg-blue-50",
+      textColor: "text-blue-600",
+      borderColor: "border-blue-200",
+      iconColor: "text-blue-500",
+      bgGradient: "from-blue-50 to-white"
+    },
+    {
+      title: "Completed Applications",
+      value: completedApplications,
+      icon: CheckCircle,
+      color: "bg-green-50",
+      textColor: "text-green-600",
+      borderColor: "border-green-200",
+      iconColor: "text-green-500",
+      bgGradient: "from-green-50 to-white"
+    },
+    {
+      title: "Verified Applications",
+      value: verifiedApplications,
+      icon: TrendingUp,
+      color: "bg-purple-50",
+      textColor: "text-purple-600",
+      borderColor: "border-purple-200",
+      iconColor: "text-purple-500",
+      bgGradient: "from-purple-50 to-white"
+    },
+    {
+      title: "Pending Applications",
+      value: pendingApplications,
+      icon: Clock,
+      color: "bg-yellow-50",
+      textColor: "text-yellow-600",
+      borderColor: "border-yellow-200",
+      iconColor: "text-yellow-500",
+      bgGradient: "from-yellow-50 to-white"
+    }
   ];
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
+  // Get status badge color
+  const getStatusBadge = (application) => {
+    if (!application) {
+      return { text: "NOT STARTED", color: "bg-gray-100 text-gray-600" };
+    }
+    
+    if (application.isSubmitted === true || application.status === "submitted") {
+      return { text: "COMPLETED", color: "bg-[#E6F4EA] text-[#137333]" };
+    } else if (application.status === "draft" && application.currentStep > 0) {
+      return { text: "IN PROGRESS", color: "bg-[#FEF7E0] text-[#B06000]" };
+    } else {
+      return { text: "PENDING", color: "bg-[#FCE8E6] text-[#C5221F]" };
+    }
+  };
+
+  // Get verification badge
+  const getVerificationBadge = (candidate) => {
+    const mobileVerified = candidate.mobileVerified;
+    const emailVerified = candidate.emailVerified;
+    
+    if (mobileVerified && emailVerified) {
+      return { text: "VERIFIED", color: "bg-[#E6F4EA] text-[#137333]" };
+    } else if (mobileVerified || emailVerified) {
+      return { text: "PARTIAL", color: "bg-[#FEF7E0] text-[#B06000]" };
+    } else {
+      return { text: "UNVERIFIED", color: "bg-[#FCE8E6] text-[#C5221F]" };
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchCandidates(newPage);
+    }
+  };
+
+  const handleExport = async (format) => {
+    try {
+      toast.info(`Exporting ${format}...`);
+      // Implement export logic here
+      const response = await axios.get(
+        `${API_BASE_URL}/v1/admin/candidates/export?format=${format}`,
+        {
+          ...getAuthHeaders(),
+          responseType: 'blob'
+        }
+      );
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `candidates_${Date.now()}.${format.toLowerCase()}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`${format} exported successfully`);
+    } catch (error) {
+      console.error(`Error exporting ${format}:`, error);
+      toast.error(`Failed to export ${format}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         {/* Title Area */}
         <div className="flex items-start gap-4">
-         
-         
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-[26px] font-bold text-[#111827] tracking-tight">Fee Reconciliation Report</h2>
-              <span className="bg-[#E6F4EA] text-[#137333] text-[11px] font-black px-2 py-0.5 rounded uppercase">Live</span>
+              <h2 className="text-[26px] font-bold text-[#111827] tracking-tight">
+                Candidate Management Dashboard
+              </h2>
             </div>
-            <p className="text-[14px] text-[#5F6368] mt-1">Review and audit daily financial collections across all payment channels.</p>
+            <p className="text-[14px] text-[#5F6368] mt-1">
+              Track and manage all candidate applications in one place
+            </p>
           </div>
         </div>
 
-        {/* Action Controls & User Profile */}
+        {/* Action Controls */}
         <div className="flex items-center gap-4">
-          {/* Date Picker Mock */}
-          <div className="flex items-center gap-3 bg-white border border-[#B9C2BD] px-4 py-2.5 rounded-[4px] text-[14px] font-bold text-[#374151]">
-            <Calendar size={18} />
-            24-11-2023
-          </div>
-
+      
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 bg-[#003A2B] text-white px-4 py-2.5 rounded-[4px] text-[13px] font-bold hover:bg-[#002B20]">
-              <FileDown size={18} /> Export PDF
-            </button>
-            <button className="flex items-center gap-2 border border-[#B9C2BD] text-[#374151] px-4 py-2.5 rounded-[4px] text-[13px] font-bold hover:bg-gray-50">
-              <FileSpreadsheet size={18} /> CSV
+            <button 
+              onClick={() => handleExport('PDF')}
+              className="flex items-center gap-2 bg-[#003A2B] text-white px-4 py-2.5 rounded-[4px] text-[13px] font-bold hover:bg-[#002B20] transition-colors"
+            >
+              <FileDown size={18} /> Export Excel
             </button>
           </div>
-
-         
-         
         </div>
       </div>
 
-      {/* TOP METRICS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Online Payment Card */}
-        <div className="bg-white border border-[#E1E5E3] rounded-xl p-6 shadow-sm">
-          <div className="flex justify-between items-start mb-6">
-            <span className="text-[12px] font-black text-[#5F6368] uppercase tracking-widest">Online Payments</span>
-            <MoreHorizontal size={20} className="text-gray-400" />
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <h3 className="text-[40px] font-black text-[#003A2B] leading-none">₹1,42,850.00</h3>
-              <p className="text-[14px] text-[#5F6368] mt-3">Total via UPI, Cards, NetBanking</p>
-            </div>
-            <div className="bg-[#E6F4EA] text-[#137333] px-3 py-2 rounded-lg flex items-center gap-1.5 font-bold text-[13px]">
-              <TrendingUp size={16} /> +12.4% vs avg
-            </div>
-          </div>
-          <div className="mt-8 pt-6 border-t border-gray-100 flex gap-12">
-            <div>
-              <p className="text-[20px] font-bold text-[#111827]">248 Transactions</p>
-              <p className="text-[12px] text-[#5F6368]">Successful completions</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Challan Summary Card */}
-        <div className="bg-white border border-[#E1E5E3] rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-8">
-          <div className="flex-1">
-            <span className="text-[12px] font-black text-[#5F6368] uppercase tracking-widest block mb-6">Challan Summary</span>
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-[24px] font-bold text-[#111827]">112 Confirmed</p>
-                  <p className="text-[14px] text-[#5F6368]">₹84,200.00</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[14px] font-bold text-[#111827]">88.6% Reconciliation Rate</p>
-                  <div className="w-32 h-2 bg-gray-100 rounded-full mt-2">
-                    <div className="h-full bg-[#137333] rounded-full w-[88%]"></div>
-                  </div>
-                </div>
+      {/* STATISTICS CARDS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((card, index) => (
+          <div
+            key={index}
+            className={`bg-white border ${card.borderColor} rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] cursor-pointer`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`${card.color} p-3 rounded-lg`}>
+                <card.icon size={24} className={card.iconColor} />
               </div>
+              <MoreHorizontal size={20} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#5F6368] uppercase tracking-wider mb-1">
+                {card.title}
+              </p>
+              <h3 className="text-[32px] font-black text-[#111827] leading-none">
+                {loading ? "..." : card.value}
+              </h3>
             </div>
           </div>
-
-          {/* Pending Audit Sidebar inside card */}
-          <div className="bg-[#FCE8E6] rounded-xl p-5 w-full md:w-[200px] flex flex-col justify-between">
-            <div className="flex justify-between">
-              <span className="text-[13px] font-bold text-[#C5221F]">Pending Audit</span>
-              <AlertCircle size={18} className="text-[#C5221F]" />
-            </div>
-            <div className="mt-4">
-              <p className="text-[28px] font-black text-[#C5221F]">14</p>
-              <p className="text-[13px] font-bold text-[#C5221F]">₹12,450.00</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* TRANSACTION TABLE */}
+      {/* CANDIDATES HISTORY TABLE */}
       <div className="bg-white border border-[#E1E5E3] rounded-xl overflow-hidden shadow-sm">
-        <div className="px-6 py-5 border-b border-[#E1E5E3] bg-[#FAFBFB]">
-          <h4 className="text-[16px] font-bold text-[#111827]">Transaction Logs (24 Nov 2023)</h4>
+        <div className="px-6 py-5 border-b border-[#E1E5E3] bg-[#FAFBFB] flex justify-between items-center flex-wrap gap-4">
+          <h4 className="text-[16px] font-bold text-[#111827]">Candidates History</h4>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => fetchCandidates(1)}
+              className="text-[#003A2B] text-[13px] font-bold hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
+        
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-[#F1F3F4] text-[#5F6368] text-[12px] font-black uppercase tracking-widest">
-                <th className="px-6 py-4">Transaction ID</th>
-                <th className="px-6 py-4">Date & Time</th>
-                <th className="px-6 py-4">Candidate Name</th>
-                <th className="px-6 py-4">Method</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E1E5E3]">
-              {transactions.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 text-[14px]">
-                  <td className="px-6 py-4 font-bold text-[#111827]">{row.id}</td>
-                  <td className="px-6 py-4 text-[#5F6368]">{row.time}</td>
-                  <td className="px-6 py-4 font-semibold text-[#111827]">{row.name}</td>
-                  <td className="px-6 py-4 text-[#5F6368]">{row.method}</td>
-                  <td className="px-6 py-4 font-bold text-[#111827]">{row.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-[4px] text-[11px] font-black tracking-wider ${row.statusColor}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="text-[#003A2B] font-bold text-[12px] hover:underline uppercase">Details</button>
-                  </td>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#003A2B]"></div>
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-[#F1F3F4] text-[#5F6368] text-[12px] font-black uppercase tracking-widest">
+                  <th className="px-6 py-4">S.No</th>
+                  <th className="px-6 py-4">Registration No.</th>
+                  <th className="px-6 py-4">Name</th>
+                  <th className="px-6 py-4">Email</th>
+                  <th className="px-6 py-4">Mobile</th>
+                  <th className="px-6 py-4">Date of Birth</th>
+                  <th className="px-6 py-4">Registration Date</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Verification</th>
+                  <th className="px-6 py-4 text-center">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E1E5E3]">
+                {candidates.map((candidate, idx) => {
+                  const statusBadge = getStatusBadge(candidate.application);
+                  const verificationBadge = getVerificationBadge(candidate);
+                  
+                  return (
+                    <tr key={candidate.id} className="hover:bg-gray-50 text-[14px] transition-colors">
+                      <td className="px-6 py-4 text-[#5F6368] font-medium">
+                        {(pagination.page - 1) * pagination.limit + idx + 1}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-[#111827]">
+                        {candidate.registrationNumber || "N/A"}
+                       </td>
+                      <td className="px-6 py-4 font-semibold text-[#111827]">
+                        {candidate.user?.firstName || "N/A"} {candidate.user?.lastName || ""}
+                      </td>
+                      <td className="px-6 py-4 text-[#5F6368]">
+                        {candidate.user?.email || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-[#5F6368]">
+                        {candidate.mobileNumber || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-[#5F6368]">
+                        {candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-[#5F6368]">
+                        {formatDate(candidate.createdAt)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-[4px] text-[11px] font-black tracking-wider ${statusBadge.color}`}>
+                          {statusBadge.text}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-[4px] text-[11px] font-black tracking-wider ${verificationBadge.color}`}>
+                          {verificationBadge.text}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button 
+  onClick={() => navigate(`/admin/candidates/${candidate.id}`)}
+  className="inline-flex items-center gap-1 text-[#003A2B] font-bold text-[12px] hover:underline uppercase"
+>
+  <Eye size={14} /> View
+</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {candidates.length === 0 && (
+                  <tr>
+                    <td colSpan="10" className="px-6 py-12 text-center text-[#5F6368]">
+                      No candidates found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
+        
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-[#E1E5E3] bg-[#FAFBFB] flex justify-between items-center flex-wrap gap-4">
+            <p className="text-[13px] text-[#5F6368]">
+              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} candidates
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="px-3 py-1 border border-[#B9C2BD] rounded text-[13px] font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                let pageNum;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 rounded text-[13px] font-bold transition-colors ${
+                      pagination.page === pageNum
+                        ? "bg-[#003A2B] text-white"
+                        : "border border-[#B9C2BD] hover:bg-gray-50"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+                className="px-3 py-1 border border-[#B9C2BD] rounded text-[13px] font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
