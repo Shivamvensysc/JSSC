@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+// import { usePayment } from '../../hooks/usePayment';
 
 // API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -185,6 +186,10 @@ interface ReservationCategory {
   mainCategory: string;
   categoryCertificateNumber: string;
   categoryCertificateAuthority: string; // Add this
+   categoryCertificateIssueDate: string; // Add this 
+   pwdCertificateIssueDate: string; // Add this
+   sportsCertificateIssueDate: string; // Add this 
+   domicileCertificateIssueDate: string; // Add this
   mainCategoryId?: number;
   subCategory: string;
   subCategoryId?: number;
@@ -355,6 +360,7 @@ const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
 
   // API Data States
   const [subjectsList, setSubjectsList] = useState<string[]>([]);
+  console.log(subjectsList)
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [countriesList, setCountriesList] = useState<Country[]>([]);
   const [statesList, setStatesList] = useState<State[]>([]);
@@ -805,6 +811,8 @@ const validateCurrentStep = (): boolean => {
   );
 };
 
+
+
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const yearsRange = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
 
@@ -914,9 +922,13 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   subCategoryId: undefined,
   categoryCertificateNumber: "",
   categoryCertificateAuthority: "", // Add this
+   pwdCertificateIssueDate: "", // Add this
+   sportsCertificateIssueDate: "", // Add this
+    domicileCertificateIssueDate: "", // Add this
   isPwd: "no",
   pwdType: "",
   pwdTypeId: undefined,
+  categoryCertificateIssueDate: "", 
   pwdPercentage: "",
   pwdCertificateNumber: "",
   pwdCertificateAuthority: "", // Add this
@@ -1657,6 +1669,9 @@ const validateFileSize = (file: File, maxSizeMB: number = 2): boolean => {
   }
   return true;
 };
+
+
+
 
 const validateFileType = (file: File, acceptedTypes: string[]): boolean => {
   const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -3107,6 +3122,26 @@ const renderReservationCategory = () => {
               />
               {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
             </div>
+            
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Issue Date <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="date"
+                value={reservationCategory.categoryCertificateIssueDate}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
+                  }
+                }}
+                max={new Date().toISOString().split('T')[0]}
+                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
+            </div>
+            
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Issuing Authority <span className="text-red-600">*</span>
@@ -3149,6 +3184,26 @@ const renderReservationCategory = () => {
               />
               {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
             </div>
+            
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Issue Date <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="date"
+                value={reservationCategory.domicileCertificateIssueDate}
+                onChange={(e) => {
+                  setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
+                  if (e.target.value) {
+                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
+                  }
+                }}
+                max={new Date().toISOString().split('T')[0]}
+                className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {errors.domicileCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateIssueDate}</p>}
+            </div>
+            
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Issuing Authority <span className="text-red-600">*</span>
@@ -3297,6 +3352,25 @@ const renderReservationCategory = () => {
                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
                 />
                 {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Issue Date <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reservationCategory.pwdCertificateIssueDate}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
+                    }
+                  }}
+                  max={new Date().toISOString().split('T')[0]}
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.pwdCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateIssueDate}</p>}
               </div>
               
               <div className="md:col-span-2">
@@ -3488,6 +3562,25 @@ const renderReservationCategory = () => {
                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
                 />
                 {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-800 mb-2">
+                  Issue Date <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reservationCategory.sportsCertificateIssueDate}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
+                    if (e.target.value) {
+                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
+                    }
+                  }}
+                  max={new Date().toISOString().split('T')[0]}
+                  className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+                />
+                {errors.sportsCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateIssueDate}</p>}
               </div>
               
               <div className="md:col-span-2">
@@ -5002,6 +5095,211 @@ const renderLanguageSelection = () => {
     </div>
   );
 };
+
+// const renderFeePayment = () => {
+//   let applicableFeeText = "";
+  
+//   if (isExServicemanSelected) {
+//     applicableFeeText = "Ex-Serviceman (Fee: ₹0)";
+//   } else if (isPwdSelected) {
+//     applicableFeeText = "PwD Candidates (Fee: ₹0)";
+//   } else if (isSCST) {
+//     applicableFeeText = "SC / ST (Fee: ₹50)";
+//   } else {
+//     applicableFeeText = "UR / EWS / OBC-II / EBC-I (Fee: ₹100)";
+//   }
+
+//   return (
+//     <div className="space-y-6">
+//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+//         <div className="lg:col-span-2 space-y-6">
+//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//             <div className="flex justify-between">
+//               <div>
+//                 <h3 className="text-xl font-bold text-slate-800">
+//                   Calculated Examination Fee
+//                 </h3>
+//                 <p className="text-sm text-slate-500">
+//                   Based on your selected category and disability status.
+//                 </p>
+//               </div>
+//               <span className={`px-3 py-1 text-white text-xs font-bold rounded-full ${
+//                 paymentHook.paymentStatus === "completed" ? "bg-green-600" : "bg-primary"
+//               }`}>
+//                 {paymentHook.paymentStatus === "completed" ? "PAID" : "PENDING"}
+//               </span>
+//             </div>
+//             <div className="my-6">
+//               <span className="text-4xl font-extrabold text-primary">
+//                 ₹{finalFee}.00
+//               </span>
+//               <span className="text-sm text-slate-500 ml-2">
+//                 (Rupees {finalFee} Only)
+//               </span>
+//             </div>
+//             <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
+//               <div>
+//                 <span className="block text-xs font-bold text-slate-500">
+//                   Candidate Category
+//                 </span>
+//                 <span className="font-bold text-slate-800">
+//                   {reservationCategory.mainCategory || "Not Selected"}
+//                 </span>
+//               </div>
+//               <div>
+//                 <span className="block text-xs font-bold text-slate-500">
+//                   PwD Status
+//                 </span>
+//                 <span className="font-bold text-slate-800">
+//                   {isPwdSelected ? "Yes" : "No"}
+//                 </span>
+//               </div>
+//               <div>
+//                 <span className="block text-xs font-bold text-slate-500">
+//                   Ex-Serviceman Status
+//                 </span>
+//                 <span className="font-bold text-slate-800">
+//                   {isExServicemanSelected ? "Yes" : "No"}
+//                 </span>
+//               </div>
+//             </div>
+//             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+//               <p className="text-sm font-medium text-blue-800">
+//                 Applicable Fee: <strong>{applicableFeeText}</strong>
+//               </p>
+//               <div className="mt-2 text-xs text-blue-700">
+//                 <p>Fee Structure:</p>
+//                 <ul className="list-disc pl-5 mt-1">
+//                   <li>UR / EWS / OBC-II / EBC-I: ₹100</li>
+//                   <li>SC / ST: ₹50</li>
+//                   <li>PwD Candidates: ₹0</li>
+//                   <li>Ex-Serviceman: ₹0</li>
+//                 </ul>
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//             <h4 className="text-xs font-bold text-primary uppercase mb-5">
+//               Choose Payment Method
+//             </h4>
+//             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//               <label
+//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center transition-all ${
+//                   paymentHook.isProcessing ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-primary"
+//                 } ${
+//                   feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"
+//                 }`}
+//               >
+//                 <input
+//                   type="radio"
+//                   name="payment_method"
+//                   value="online"
+//                   checked={feePayment.paymentMode === "online"}
+//                   onChange={(e) =>
+//                     setFeePayment({
+//                       ...feePayment,
+//                       paymentMode: e.target.value,
+//                     })
+//                   }
+//                   className="sr-only"
+//                   disabled={paymentHook.isProcessing || paymentHook.paymentStatus === "completed"}
+//                 />
+//                 <CreditCard size={28} className="text-primary mb-3" />
+//                 <span className="text-sm font-bold text-primary">
+//                   Pay Online
+//                 </span>
+//                 <span className="text-xs text-slate-500">
+//                   Net Banking, Card, UPI
+//                 </span>
+//               </label>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="space-y-6">
+//           <div className="bg-white border border-slate-200 rounded-2xl p-5">
+//             <h4 className="text-xs font-bold text-slate-800 mb-3">
+//               Supported Gateways
+//             </h4>
+//             <div className="grid grid-cols-3 gap-2">
+//               {["Razorpay", "SBI", "HDFC", "ICICI", "PAYTM", "UPI"].map((g, i) => (
+//                 <div
+//                   key={i}
+//                   className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
+//                 >
+//                   {g}
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="bg-slate-800 rounded-2xl p-5 text-white">
+//             <div className="flex items-center gap-2 mb-4">
+//               <Info size={18} className="text-emerald-300" />
+//               <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
+//                 Important Instructions
+//               </h4>
+//             </div>
+//             <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
+//               <li>Payment is mandatory to complete your application.</li>
+//               <li>Do not refresh the page during transaction.</li>
+//               <li>Keep Transaction ID for future correspondence.</li>
+//               <li>After successful payment, your application will be submitted automatically.</li>
+//             </ul>
+//           </div>
+
+//           <div className="bg-sky-50 rounded-2xl p-4 flex justify-between items-center">
+//             <div className="flex gap-3">
+//               <div className="p-2 bg-primary text-white rounded-lg">
+//                 <HelpCircle size={18} />
+//               </div>
+//               <div>
+//                 <h5 className="text-sm font-bold text-primary">
+//                   Payment Issues?
+//                 </h5>
+//                 <p className="text-xs text-primary/70">
+//                   Support 10 AM - 6 PM
+//                 </p>
+//               </div>
+//             </div>
+//             <button className="h-10 px-4 bg-white border border-sky-200 text-primary text-xs font-bold rounded-lg">
+//               Call Help Desk
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+
+//       <div className="flex justify-end">
+//         {paymentHook.paymentStatus !== "completed" ? (
+//           <button
+//             onClick={paymentHook.handlePayment}
+//             disabled={paymentHook.isProcessing || !feePayment.paymentMode || paymentHook.paymentStatus === "completed"}
+//             className="h-14 px-12 bg-primary hover:bg-primary/80 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+//           >
+//             {paymentHook.isProcessing ? (
+//               <>
+//                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+//                 Processing...
+//               </>
+//             ) : finalFee === 0 ? (
+//               "Submit Application"
+//             ) : (
+//               <>
+//                 Proceed to Payment <ExternalLink size={16} />
+//               </>
+//             )}
+//           </button>
+//         ) : (
+//           <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-3 rounded-xl">
+//             <CheckCircle size={20} />
+//             <span className="font-semibold">Payment Completed! Application Submitted.</span>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
 
   
 const renderDocuments = () => {

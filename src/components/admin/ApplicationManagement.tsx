@@ -1,35 +1,14 @@
 import { 
-  Search, 
   Printer, 
   Pencil, 
   CheckCircle2, 
   Clock3, 
   FileText, 
   GraduationCap, 
-  Mail, 
-  Phone 
 } from "lucide-react";
 
-const candidates = [
-  {
-    id: "REG-2024-0831",
-    name: "Arjun Singh Malhotra",
-    status: "ACTIVE",
-    active: true,
-  },
-  {
-    id: "REG-2024-7219",
-    name: "Priya Deshmukh",
-    status: "PENDING",
-    active: false,
-  },
-  {
-    id: "REG-2024-5502",
-    name: "Vikram Rathore",
-    status: "INCOMPLETE",
-    active: false,
-  },
-];
+
+
 
 const auditLogs = [
   {
