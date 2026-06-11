@@ -73,6 +73,7 @@ const apiService = {
   getApplicationSteps: () => axios.get(`${API_BASE_URL}/application/steps/all`, getAuthHeaders()),
   submitApplication: (applicationId: string) => axios.post(`${API_BASE_URL}/application/${applicationId}/submit`, {}, getAuthHeaders()),
   submitApplicationFinal: (applicationId: string) => axios.post(`${API_BASE_URL}/application/${applicationId}/submit-final`, {}, getAuthHeaders()),
+  getDegreesByType: (degreeType: string) => axios.get(`${API_BASE_URL}/degrees?degreeType=${degreeType}`, getAuthHeaders()),
 };
 
 interface SearchableDropdownProps {
@@ -90,6 +91,7 @@ interface PersonalInfo {
   lastName: string;
   fathersName: string;
   motherName: string;
+   maritalStatus: string;
   dob: string;
   gender: string;
   age: number;
@@ -123,6 +125,45 @@ interface PersonalInfo {
   sameAsPermanent: boolean;
 }
 
+// interface Education {
+//   tenth: {
+//     board: string;
+//     percentage: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//     passingCertificateNo: string;
+//   };
+//   twelfth: {
+//     board: string;
+//     percentage: string;
+//     passingCertificateNo: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//   };
+//   graduation: {
+//     graduationCourse: string;
+//     graduationCourseId?: number;
+//     university: string;
+//     percentage: string;
+//     specialization: string;
+//     specializationIds?: number[];
+//     passingCertificateNo: string;
+//     totalMarks: string;
+//     marksObtained: string;
+//   };
+//   postGraduation: {
+//     hasPostGraduation: boolean;
+//     university: string;
+//     percentage: string;
+//     subject: string[];
+//     subjectIds?: number[];
+//     totalMarks: string;
+//     marksObtained: string;
+//     passingCertificateNo: string;
+//   };
+
+// }
+
 interface Education {
   tenth: {
     board: string;
@@ -151,6 +192,8 @@ interface Education {
   };
   postGraduation: {
     hasPostGraduation: boolean;
+    degreeName: string;
+    degreeId?: number;
     university: string;
     percentage: string;
     subject: string[];
@@ -158,16 +201,7 @@ interface Education {
     totalMarks: string;
     marksObtained: string;
     passingCertificateNo: string;
-  };
-  experience: {
-    hasExperience: boolean;
-    durationMonths: string;
-    durationYears: string;
-    organization: string;
-    designation: string;
-    dateOfJoining: string;
-    relievingDate: string;
-    experienceLetterNo: string;
+    certificateFile: File | null;
   };
 }
 
@@ -214,6 +248,9 @@ interface ReservationCategory {
   domicileCertificateAuthority: string; // Add this
   domicileCertificate: File | null;
   declaration: boolean;
+   isLocallyResident: string;     // Add this
+  localDistrictId?: number;      // Add this
+  localDistrictName?: string;
 }
 
 interface FeePayment {
@@ -335,7 +372,77 @@ const MyApplications: React.FC = () => {
   // Add this state near other API Data States
 const [postsList, setPostsList] = useState<any[]>([]);
 const [eligiblePosts, setEligiblePosts] = useState<any[]>([]);
+// Add these with other state declarations
+const [bachelorDegrees, setBachelorDegrees] = useState<{ degreeId: number; degreeName: string }[]>([]);
+const [masterDegrees, setMasterDegrees] = useState<{ degreeId: number; degreeName: string }[]>([]);
+// Add this function to fetch degrees based on type
+const fetchDegreesByType = async (degreeType: string, setter: (data: any) => void) => {
+  try {
+    const response = await apiService.getDegreesByType(degreeType);
+    if (response.data.success) {
+      setter(response.data.data);
+    }
+  } catch (error) {
+    console.error(`Error fetching ${degreeType} degrees:`, error);
+    // Fallback empty array if API fails
+    setter([]);
+  }
+};
 
+// Update the useEffect that fetches API data
+useEffect(() => {
+  const fetchApiData = async () => {
+    setLoading(true);
+    try {
+      const subjectsResponse = await apiService.getSubjects();
+      if (subjectsResponse.data.success) {
+        const subjects = subjectsResponse.data.data.map((sub: Subject) => sub.subName);
+        setSubjectsList(subjects);
+        setSubjectsApiList(subjectsResponse.data.data);
+      }
+
+      const categoriesResponse = await apiService.getCategories();
+      if (categoriesResponse.data.success) {
+        setCategoriesList(categoriesResponse.data.data);
+      }
+
+      // Add disabilities API call here
+      const disabilitiesResponse = await axios.get(`${API_BASE_URL}/disabilities`, getAuthHeaders());
+      if (disabilitiesResponse.data.success) {
+        setDisabilitiesList(disabilitiesResponse.data.data);
+      }
+
+      const countriesResponse = await apiService.getCountries();
+      if (countriesResponse.data.success) {
+        setCountriesList(countriesResponse.data.data);
+        if (countriesResponse.data.data.length > 0) {
+          const countryId = countriesResponse.data.data[0].countryId;
+          const statesResponse = await apiService.getStatesByCountry(countryId);
+          if (statesResponse.data.success) {
+            setStatesList(statesResponse.data.data);
+          }
+        }
+      }
+      
+      // Fetch degrees for Bachelor and Master
+      await Promise.all([
+        fetchDegreesByType("Bachelor", setBachelorDegrees),
+        fetchDegreesByType("Master", setMasterDegrees)
+      ]);
+      
+      // Fetch and auto-fill application data after initial API data is loaded
+      await fetchAndAutoFillData();
+      setInitialDataLoaded(true);
+    } catch (error) {
+      console.error("Error fetching API data:", error);
+      toast.error("Failed to load form data. Please refresh the page.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchApiData();
+}, []);
 
 const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
 // Add this with other API Data States
@@ -415,18 +522,6 @@ useEffect(() => {
   }
 }, [currentStep, applicationId]);
 
-  const graduationCourseNames = [
-  "Bachelor of Science (B.Sc)",
-  "Bachelor of Science Honours (B.Sc Hons.)",
-  "Bachelor of Pharmacy (B.Pharm)",
-  "Bachelor of Ayurvedic Medicine and Surgery (B.A.M.S)",
-  "Bachelor of Fisheries Science (B.F.Sc)",
-  "Bachelor of Technology in Dairy Technology (B.Tech Dairy Technology)",
-  "Bachelor of Science in Dairy Science (B.Sc Dairy Science)",
-  "Bachelor of Arts (B.A)",
-  "Bachelor of Commerce (B.Com)",
-];
-
   
 // Validation for Step 0 - Personal Info
 const validateStep0 = (): boolean => {
@@ -489,42 +584,21 @@ const validateStep0 = (): boolean => {
   return Object.keys(errors).length === 0;
 };
 
-// Validation for Step 1 - Reservation Category
-// const validateStep1 = (): boolean => {
-//   const errors: { [field: string]: string } = {};
-  
-//   if (!reservationCategory.mainCategory) errors.mainCategory = "Please select a category";
-//   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
-  
-//   if (reservationCategory.isPwd === "yes") {
-//     if (!reservationCategory.pwdType) errors.pwdType = "Please select disability type";
-//     if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
-//     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
-//     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
-//   }
-  
-//   if (reservationCategory.isExServiceman === "yes") {
-//     if (!reservationCategory.exServicemanYears) errors.exServicemanYears = "Please enter years of service";
-//     const years = parseInt(reservationCategory.exServicemanYears);
-//     if (years < 0 || years > 30) errors.exServicemanYears = "Years of service must be between 0 and 30";
-//   }
-  
-//   if (reservationCategory.isSportsQuota === "yes") {
-//     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
-//     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
-//   }
-  
-//   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
-  
-//   setStepErrors(prev => ({ ...prev, [1]: errors }));
-//   return Object.keys(errors).length === 0;
-// };
 
-// Validation for Step 1 - Reservation Category
 const validateStep1 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  if (!reservationCategory.mainCategoryId) errors.mainCategory = "Please select a category";
+  // Only require main category if Jharkhand Domicile is Yes OR if user manually selected a category
+  if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.mainCategoryId) {
+    errors.mainCategory = "Please select a category";
+  } else if (reservationCategory.isJharkhandDomicile === "no" && !reservationCategory.mainCategoryId) {
+    // If domicile is No, category should be auto-set to Unreserved (UR)
+    // But still check if it's set
+    if (!reservationCategory.mainCategoryId) {
+      errors.mainCategory = "Please select a category";
+    }
+  }
+  
   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
   
   if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.domicileCertificateNumber.trim()) {
@@ -551,6 +625,7 @@ const validateStep1 = (): boolean => {
     if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
   }
   
+  // Declaration is now required - Next button will be disabled if not checked
   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
   
   setStepErrors(prev => ({ ...prev, [1]: errors }));
@@ -577,14 +652,14 @@ const validateStep2 = (): boolean => {
   if (!twelfthIsValid) errors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
   
   // Graduation validation
-  const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
-                      (education.graduation.totalMarks && education.graduation.marksObtained);
+  // const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
+  //                     (education.graduation.totalMarks && education.graduation.marksObtained);
   
-  if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
-  if (!education.graduation.university) errors.graduationUniversity = "University name is required";
-  if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  if (!education.graduation.specialization) errors.graduationSpecialization = "Specialization/Subject is required";
-  if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
+  // if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
+  // if (!education.graduation.university) errors.graduationUniversity = "University name is required";
+  // if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+  // if (!education.graduation.specialization) errors.graduationSpecialization = "Specialization/Subject is required";
+  // if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
   
   setStepErrors(prev => ({ ...prev, [2]: errors }));
   return Object.keys(errors).length === 0;
@@ -714,107 +789,6 @@ const validateCurrentStep = (): boolean => {
 
   
   
-  const MultiSelectDropdown: React.FC<{
-  options: string[];
-  values: string[];
-  onChange: (values: string[]) => void;
-  placeholder: string;
-  disabled?: boolean;
-  error?: string;
-}> = ({ options, values, onChange, placeholder, disabled = false, error }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  // Add safety check - ensure options is an array
-  const safeOptions = Array.isArray(options) ? options : [];
-  
-  const filteredOptions = safeOptions.filter((option) =>
-    option && option.toLowerCase().includes((searchTerm || "").toLowerCase())
-  );
-
-  const toggleOption = (option: string) => {
-    if (values.includes(option)) {
-      onChange(values.filter((item) => item !== option));
-    } else {
-      onChange([...values, option]);
-    }
-  };
-
-  return (
-    <div className="relative">
-      <div
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`min-h-[42px] w-full px-3 py-2 border rounded-lg cursor-pointer bg-white flex flex-wrap gap-2 items-center ${
-          disabled ? "bg-slate-100 cursor-not-allowed" : ""
-        } ${error ? "border-red-500" : "border-slate-300"}`}
-      >
-        {values.length > 0 ? (
-          values.map((item) => (
-            <span
-              key={item}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary"
-              onClick={(event) => event.stopPropagation()}
-            >
-              {item}
-              <button
-                type="button"
-                onClick={() => toggleOption(item)}
-                className="text-primary hover:text-red-600"
-              >
-                ×
-              </button>
-            </span>
-          ))
-        ) : (
-          <span className="text-slate-400">{placeholder}</span>
-        )}
-      </div>
-      {isOpen && !disabled && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
-            <div className="p-2 border-b border-slate-200">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            <div className="overflow-y-auto max-h-48">
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-slate-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={values.includes(option)}
-                      onChange={() => toggleOption(option)}
-                    />
-                    {option}
-                  </label>
-                ))
-              ) : (
-                <div className="px-4 py-2 text-sm text-slate-500 text-center">
-                  No options found
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-
-
-  const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-  const yearsRange = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
 
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     firstName: "",
@@ -831,6 +805,7 @@ const validateCurrentStep = (): boolean => {
     alternateNumber: "",
     emailId: "",
     aadharNumber: "",
+     maritalStatus: "", 
     permanentAddress: {
       street: "",
       post: "",
@@ -856,51 +831,82 @@ const validateCurrentStep = (): boolean => {
 
 
 const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
+  // const [education, setEducation] = useState<Education>({
+  //   tenth: {
+  //     board: "",
+  //     percentage: "",
+  //     totalMarks: "",
+  //     marksObtained: "",
+  //     passingCertificateNo: "",
+  //   },
+  //   twelfth: {
+  //     board: "",
+  //     percentage: "",
+  //     passingCertificateNo: "",
+  //     totalMarks: "",
+  //     marksObtained: "",
+  //   },
+  //   graduation: {
+  //     graduationCourse: "",
+  //     university: "",
+  //     percentage: "",
+  //     specialization: "",
+  //     passingCertificateNo: "",
+  //     totalMarks: "",
+  //     marksObtained: "",
+  //   },
+  //   postGraduation: {
+  //     hasPostGraduation: false,
+  //     university: "",
+  //     percentage: "",
+  //     subject: [],
+  //     totalMarks: "",
+  //     marksObtained: "",
+  //     passingCertificateNo: "",
+  //   },
+
+  // });
+
   const [education, setEducation] = useState<Education>({
-    tenth: {
-      board: "",
-      percentage: "",
-      totalMarks: "",
-      marksObtained: "",
-      passingCertificateNo: "",
-    },
-    twelfth: {
-      board: "",
-      percentage: "",
-      passingCertificateNo: "",
-      totalMarks: "",
-      marksObtained: "",
-    },
-    graduation: {
-      graduationCourse: "",
-      university: "",
-      percentage: "",
-      specialization: "",
-      passingCertificateNo: "",
-      totalMarks: "",
-      marksObtained: "",
-    },
-    postGraduation: {
-      hasPostGraduation: false,
-      university: "",
-      percentage: "",
-      subject: [],
-      totalMarks: "",
-      marksObtained: "",
-      passingCertificateNo: "",
-    },
-  
-    experience: {
-      hasExperience: false,
-      durationMonths: "",
-      durationYears: "",
-      organization: "",
-      designation: "",
-      dateOfJoining: "",
-      relievingDate: "",
-      experienceLetterNo: "",
-    },
-  });
+  tenth: {
+    board: "",
+    percentage: "",
+    totalMarks: "",
+    marksObtained: "",
+    passingCertificateNo: "",
+  },
+  twelfth: {
+    board: "",
+    percentage: "",
+    passingCertificateNo: "",
+    totalMarks: "",
+    marksObtained: "",
+  },
+  graduation: {
+    graduationCourse: "",
+    graduationCourseId: undefined,
+    university: "",
+    percentage: "",
+    specialization: "",
+    specializationIds: [],
+    passingCertificateNo: "",
+    totalMarks: "",
+    marksObtained: "",
+  },
+  postGraduation: {
+    hasPostGraduation: false,
+    degreeName: "",
+    degreeId: undefined,
+    university: "",
+    percentage: "",
+    subject: [],
+    subjectIds: [],
+    totalMarks: "",
+    marksObtained: "",
+    passingCertificateNo: "",
+    certificateFile: null,
+  },
+});
 
   const [postPreference, setPostPreference] = useState<PostPreference>({
     vacancyStream: "both",
@@ -913,9 +919,10 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     paperThreeLanguage: "",
   });
   
-
-
  const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
+  isLocallyResident: "no",        // Add this
+  localDistrictId: undefined,     // Add this
+  localDistrictName: "", 
   mainCategory: "",
   mainCategoryId: undefined,
   subCategory: "",
@@ -1214,32 +1221,7 @@ const fetchAndAutoFillData = async () => {
           }));
         }
         
-        const gradQual = qualifications.find((q: any) => q.level === "graduation");
-        if (gradQual) {
-          let courseValue = gradQual.degree || "";
-          if (courseValue) {
-            const foundCourse = graduationCourseNames.find(c => c.toLowerCase() === courseValue.toLowerCase());
-            if (foundCourse) courseValue = foundCourse;
-          }
-          
-          let specValue = gradQual.specialization || "";
-          // const availableSubjects = subjectsList.length > 0 ? subjectsList : subjects;
-          
-          setEducation(prev => ({
-            ...prev,
-            graduation: {
-              ...prev.graduation,
-              graduationCourse: courseValue,
-              university: gradQual.boardUniversity || "",
-              passoutYear: gradQual.yearOfPassing?.toString() || "",
-              percentage: gradQual.percentage?.toString() || "",
-              specialization: specValue,
-              totalMarks: gradQual.totalMarks?.toString() || "",
-              marksObtained: gradQual.marksObtained?.toString() || "",
-              passingCertificateNo: gradQual.grade || "",
-            }
-          }));
-        }
+       
         
         const pgQual = qualifications.find((q: any) => q.level === "post_graduation");
         if (pgQual) {
@@ -1265,22 +1247,8 @@ const fetchAndAutoFillData = async () => {
           }));
         }
         
-        if (edu.experience?.hasExperience) {
-          setEducation(prev => ({
-            ...prev,
-            experience: {
-              ...prev.experience,
-              hasExperience: true,
-              durationYears: edu.experience.durationYears?.toString() || "",
-              durationMonths: edu.experience.durationMonths?.toString() || "",
-              organization: edu.experience.organization || "",
-              designation: edu.experience.designation || "",
-              dateOfJoining: edu.experience.dateOfJoining || "",
-              relievingDate: edu.experience.relievingDate || "",
-              experienceLetterNo: edu.experience.experienceLetterNo || "",
-            }
-          }));
-        }
+        
+        
       }
       
       // Auto-fill post preferences - FIXED: Properly map post rankings
@@ -1891,6 +1859,80 @@ const saveStep2 = async () => {
 };
 
   // Save Step 3 API call
+// const saveStep3 = async () => {
+//   setSavingStep(true);
+  
+//   const payload = {
+//     tenth: {
+//       board: education.tenth.board,
+//       percentage: education.tenth.percentage,
+//       totalMarks: education.tenth.totalMarks,
+//       marksObtained: education.tenth.marksObtained,
+//       passingCertificateNo: education.tenth.passingCertificateNo,
+//     },
+//     twelfth: {
+//       board: education.twelfth.board,
+//       percentage: education.twelfth.percentage,
+//       totalMarks: education.twelfth.totalMarks,
+//       marksObtained: education.twelfth.marksObtained,
+//       passingCertificateNo: education.twelfth.passingCertificateNo,
+//     },
+//     graduation: {
+//       graduationCourse: education.graduation.graduationCourseId || 0,
+//       university: education.graduation.university,
+//       percentage: education.graduation.percentage,
+//       specialization: education.graduation.specializationIds?.join(',') || '',
+//       totalMarks: education.graduation.totalMarks,
+//       marksObtained: education.graduation.marksObtained,
+//       passingCertificateNo: education.graduation.passingCertificateNo,
+//     },
+//     postGraduation: {
+//       hasPostGraduation: education.postGraduation.hasPostGraduation,
+//       university: education.postGraduation.university,
+//       percentage: education.postGraduation.percentage,
+//       subject: education.postGraduation.subjectIds?.join(',') || '',
+//       totalMarks: education.postGraduation.totalMarks,
+//       marksObtained: education.postGraduation.marksObtained,
+//       passingCertificateNo: education.postGraduation.passingCertificateNo,
+//     },
+//     experience: {
+//       hasExperience: education.experience.hasExperience,
+//       durationMonths: education.experience.durationMonths,
+//       durationYears: education.experience.durationYears,
+//       organization: education.experience.organization,
+//       designation: education.experience.designation,
+//       dateOfJoining: education.experience.dateOfJoining,
+//       relievingDate: education.experience.relievingDate,
+//       experienceLetterNo: education.experience.experienceLetterNo,
+//     },
+//   };
+
+//   try {
+//     const response = await apiService.saveStep3(payload);
+//     if (response.data.success) {
+//       toast.success(response.data.message);
+//       if (response.data.posts && response.data.posts.length > 0) {
+//         setDynamicPosts(response.data.posts);
+//         const initialRankings: { [key: number]: number } = {};
+//         response.data.posts.forEach((post: Post) => {
+//           initialRankings[post.postId] = 0;
+//         });
+//         setPostPreference(prev => ({
+//           ...prev,
+//           postRankings: initialRankings,
+//         }));
+//       }
+//       setCurrentStep(currentStep + 1);
+//     }
+//   } catch (error: any) {
+//     console.error("Error saving step 3:", error);
+//     toast.error(error.response?.data?.message || "Failed to save education details");
+//   } finally {
+//     setSavingStep(false);
+//   }
+// };
+
+// Save Step 3 API call
 const saveStep3 = async () => {
   setSavingStep(true);
   
@@ -1920,6 +1962,7 @@ const saveStep3 = async () => {
     },
     postGraduation: {
       hasPostGraduation: education.postGraduation.hasPostGraduation,
+      degreeId: education.postGraduation.degreeId || 0,
       university: education.postGraduation.university,
       percentage: education.postGraduation.percentage,
       subject: education.postGraduation.subjectIds?.join(',') || '',
@@ -1927,20 +1970,20 @@ const saveStep3 = async () => {
       marksObtained: education.postGraduation.marksObtained,
       passingCertificateNo: education.postGraduation.passingCertificateNo,
     },
-    experience: {
-      hasExperience: education.experience.hasExperience,
-      durationMonths: education.experience.durationMonths,
-      durationYears: education.experience.durationYears,
-      organization: education.experience.organization,
-      designation: education.experience.designation,
-      dateOfJoining: education.experience.dateOfJoining,
-      relievingDate: education.experience.relievingDate,
-      experienceLetterNo: education.experience.experienceLetterNo,
-    },
   };
 
   try {
-    const response = await apiService.saveStep3(payload);
+    let response;
+    // If post-graduation is selected and has a certificate file, use FormData
+    if (education.postGraduation.hasPostGraduation && education.postGraduation.certificateFile) {
+      const formData = new FormData();
+      formData.append('postGraduationCertificate', education.postGraduation.certificateFile);
+      formData.append('data', JSON.stringify(payload));
+      response = await axios.post(`${API_BASE_URL}/auth/candidate/step-3`, formData, getMultipartHeaders());
+    } else {
+      response = await apiService.saveStep3(payload);
+    }
+    
     if (response.data.success) {
       toast.success(response.data.message);
       if (response.data.posts && response.data.posts.length > 0) {
@@ -2084,43 +2127,6 @@ useEffect(() => {
   fetchApiData();
 }, []);
 
-  // Save Step 6 API call (Post Preferences)
-  // const saveStep6 = async () => {
-  //   setSavingStep(true);
-
-  //   const postRankingsArray = Object.entries(postPreference.postRankings)
-  //     .filter(([_, priority]) => priority !== 0)
-  //     .map(([postId, priority]) => ({
-  //       postId: Number(postId),
-  //       priority: priority,
-  //     }))
-  //     .sort((a, b) => a.priority - b.priority);
-
-  //   const isRegular = postPreference.vacancyStream === "regular" || postPreference.vacancyStream === "both";
-  //   const isBacklog = postPreference.vacancyStream === "backlog" || postPreference.vacancyStream === "both";
-
-  //   const payload = {
-  //     postPreferences: {
-  //       vacancyStream: postPreference.vacancyStream,
-  //       isRegular: isRegular,
-  //       isBacklog: isBacklog,
-  //       postRankings: postRankingsArray,
-  //     },
-  //   };
-
-  //   try {
-  //     const response = await apiService.saveStep6(payload);
-  //     if (response.data.success) {
-  //       toast.success(response.data.message);
-  //       setCurrentStep(currentStep + 1);
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Error saving step 6:", error);
-  //     toast.error(error.response?.data?.message || "Failed to save post preferences");
-  //   } finally {
-  //     setSavingStep(false);
-  //   }
-  // };
 
   // Updated saveStep6 function
 const saveStep6 = async () => {
@@ -2455,6 +2461,29 @@ const saveStep6 = async () => {
             </select>
              {errors.nationality && <p className="text-red-500 text-xs mt-1">{errors.nationality}</p>}
           </div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Marital Status <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={personalInfo.maritalStatus}
+              onChange={(e) => {
+                setPersonalInfo({ ...personalInfo, maritalStatus: e.target.value });
+                if (e.target.value) {
+                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], maritalStatus: "" } }));
+                }
+              }}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Select Marital Status</option>
+              <option value="married">Married</option>
+              <option value="unmarried">Unmarried</option>
+              <option value="divorced">Divorced</option>
+              <option value="widowed">Widowed</option>
+            </select>
+            {/* {errors.maritalStatus && <p className="text-red-500 text-xs mt-1">{errors.maritalStatus}</p>} */}
+          </div>
+
         </div>
       </div>
 
@@ -2976,9 +3005,6 @@ const saveStep6 = async () => {
   );
 };
 
-
-
-
 const renderReservationCategory = () => {
   const errors = stepErrors[1] || {};
   
@@ -2989,6 +3015,58 @@ const renderReservationCategory = () => {
   const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
   const stSubCategories = stCategory?.subCategories || [];
 
+  // Handle Jharkhand Domicile change - auto set category to Unreserved (UR) when NO is selected
+  const handleDomicileChange = (value: string) => {
+    setReservationCategory({ 
+      ...reservationCategory, 
+      isJharkhandDomicile: value 
+    });
+    
+    // If "No" is selected, automatically set category to Unreserved (UR) if not already
+    if (value === "no") {
+      const unreservedCategory = mainCategories.find(cat => 
+        cat.catName === "Unreserved (UR)" || cat.catName === "Unreserved"
+      );
+      if (unreservedCategory) {
+        setReservationCategory(prev => ({
+          ...prev,
+          isJharkhandDomicile: value,
+          mainCategory: unreservedCategory.catName,
+          mainCategoryId: unreservedCategory.catId,
+          subCategory: "",
+          subCategoryId: undefined,
+        }));
+        // Update fee based on category
+        const fee = unreservedCategory.catName === "Scheduled Caste (SC)" || unreservedCategory.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+        setFeePayment({ ...feePayment, applicationFee: fee });
+      }
+    }
+    
+    // Clear error when user selects
+    if (value) {
+      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+    }
+  };
+
+  // Handle category change
+  const handleCategoryChange = (selectedId: number) => {
+    const selected = mainCategories.find(cat => cat.catId === selectedId);
+    if (selected) {
+      setReservationCategory({
+        ...reservationCategory,
+        mainCategory: selected.catName,
+        mainCategoryId: selected.catId,
+        subCategory: "",
+        subCategoryId: undefined,
+      });
+      const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+      setFeePayment({ ...feePayment, applicationFee: fee });
+      if (selectedId) {
+        setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -2996,30 +3074,34 @@ const renderReservationCategory = () => {
           Category Details
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          {/* Locally Resident of Jharkhand - Dropdown Field */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-800 mb-2">
+              Are you a Local Resident of Jharkhand? <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={reservationCategory.isLocallyResident || ""}
+              onChange={(e) => {
+                setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
+                setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
+              }}
+              className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
+            >
+              <option value="">Select Option</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+            {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
               Reservation Category <span className="text-red-600">*</span>
             </label>
             <select
               value={reservationCategory.mainCategoryId || ""}
-              onChange={(e) => {
-                const selectedId = Number(e.target.value);
-                const selected = mainCategories.find(cat => cat.catId === selectedId);
-                if (selected) {
-                  setReservationCategory({
-                    ...reservationCategory,
-                    mainCategory: selected.catName,
-                    mainCategoryId: selected.catId,
-                    subCategory: "",
-                    subCategoryId: undefined,
-                  });
-                  const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
-                  setFeePayment({ ...feePayment, applicationFee: fee });
-                  if (selectedId) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
-                  }
-                }
-              }}
+              onChange={(e) => handleCategoryChange(Number(e.target.value))}
               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
             >
               <option value="">Select Category</option>
@@ -3062,7 +3144,7 @@ const renderReservationCategory = () => {
               </select>
             </div>
           )}
-          
+
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
               Jharkhand Domicile Claim <span className="text-red-600">*</span>
@@ -3074,10 +3156,7 @@ const renderReservationCategory = () => {
                   name="domicile"
                   value="yes"
                   checked={reservationCategory.isJharkhandDomicile === "yes"}
-                  onChange={(e) => {
-                    setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-                  }}
+                  onChange={(e) => handleDomicileChange(e.target.value)}
                   className="w-4 h-4 text-primary"
                 />
                 Yes
@@ -3088,10 +3167,7 @@ const renderReservationCategory = () => {
                   name="domicile"
                   value="no"
                   checked={reservationCategory.isJharkhandDomicile === "no"}
-                  onChange={(e) => {
-                    setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-                  }}
+                  onChange={(e) => handleDomicileChange(e.target.value)}
                   className="w-4 h-4 text-primary"
                 />
                 No
@@ -3100,9 +3176,40 @@ const renderReservationCategory = () => {
             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
           </div>
         </div>
+
+        {/* District of Local Residence - Text Input Field (Shows when Locally Resident is Yes) */}
+        {reservationCategory.isLocallyResident === "yes" && (
+          <div className="mt-4">
+            <label className="block text-sm font-semibold text-slate-800 mb-2">
+             Your District of Local Residence <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={reservationCategory.localDistrictName || ""}
+              onChange={(e) => {
+                setReservationCategory({
+                  ...reservationCategory,
+                  localDistrictName: e.target.value,
+                });
+                if (e.target.value.trim()) {
+                  setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
+                }
+              }}
+              placeholder="Enter your district name (e.g., Ranchi, Dumka, Hazaribagh)"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
+            />
+            {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
+            <p className="text-xs text-slate-500 mt-1">
+              Please enter the name of your district in Jharkhand
+            </p>
+          </div>
+        )}
         
         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
-        {reservationCategory.mainCategoryId && ![1, 8].includes(reservationCategory.mainCategoryId) && (
+        {reservationCategory.mainCategoryId && 
+         reservationCategory.mainCategory !== "Unreserved (UR)" && 
+         reservationCategory.mainCategory !== "Unreserved" && 
+         reservationCategory.mainCategory !== "EWS" && (
           <>
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
@@ -3125,7 +3232,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Issue Date <span className="text-red-600">*</span>
+               Certificate Date Of issue <span className="text-red-600">*</span>
               </label>
               <input
                 type="date"
@@ -3144,7 +3251,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Issuing Authority <span className="text-red-600">*</span>
+               Certificate Issued Authority <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3168,7 +3275,7 @@ const renderReservationCategory = () => {
           <>
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Domicile Certificate Number <span className="text-red-600">*</span>
+              Resdential / Domicile Certificate Number <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3187,7 +3294,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Issue Date <span className="text-red-600">*</span>
+               Certificate Date Of issue <span className="text-red-600">*</span>
               </label>
               <input
                 type="date"
@@ -3206,7 +3313,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Issuing Authority <span className="text-red-600">*</span>
+               Certificate Issued Authority <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3356,7 +3463,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Issue Date <span className="text-red-600">*</span>
+                Certificate Date Of issue <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
@@ -3375,7 +3482,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Issuing Authority <span className="text-red-600">*</span>
+                 Certificate Issued Authority <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -3519,9 +3626,8 @@ const renderReservationCategory = () => {
                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
                 >
                   <option value="">Select Level</option>
-                  <option value="international">International</option>
-                  <option value="national">National</option>
-                  <option value="state">State</option>
+                  <option value="international">Medal or Participation in International Level Competition organized by IOC/International Paralympic Committee or its affiliated federations.</option>
+                  <option value="national">Medal or Participation in National Level Competition organized by IOA/Indian Paralympic Committee or its affiliated National Sports federations.</option>
                 </select>
                 {errors.sportsLevel && <p className="text-red-500 text-xs mt-1">{errors.sportsLevel}</p>}
               </div>
@@ -3566,7 +3672,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Issue Date <span className="text-red-600">*</span>
+                Certificate  Issue Date <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
@@ -3612,8 +3718,9 @@ const renderReservationCategory = () => {
             type="checkbox"
             checked={reservationCategory.declaration}
             onChange={(e) => {
-              setReservationCategory({ ...reservationCategory, declaration: e.target.checked });
-              if (e.target.checked) {
+              const isChecked = e.target.checked;
+              setReservationCategory({ ...reservationCategory, declaration: isChecked });
+              if (isChecked) {
                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
               }
             }}
@@ -3630,12 +3737,1144 @@ const renderReservationCategory = () => {
   );
 };
 
+// const renderReservationCategory = () => {
+//   const errors = stepErrors[1] || {};
+  
+//   // Get main categories from API (parent categories)
+//   const mainCategories = categoriesList.filter(cat => cat.catParentId === null);
+  
+//   // Get ST subcategories when ST is selected
+//   const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
+//   const stSubCategories = stCategory?.subCategories || [];
+
+//   return (
+//     <div className="space-y-6">
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Category Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+//            {/* Locally Resident of Jharkhand - Dropdown Field */}
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Are you a Local Resident of Jharkhand? <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={reservationCategory.isLocallyResident || ""}
+//               onChange={(e) => {
+//                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
+//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
+//               }}
+//               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
+//             >
+//               <option value="">Select Option</option>
+//               <option value="yes">Yes</option>
+//               <option value="no">No</option>
+//             </select>
+//             {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
+//           </div>
+
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Reservation Category <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={reservationCategory.mainCategoryId || ""}
+//               onChange={(e) => {
+//                 const selectedId = Number(e.target.value);
+//                 const selected = mainCategories.find(cat => cat.catId === selectedId);
+//                 if (selected) {
+//                   setReservationCategory({
+//                     ...reservationCategory,
+//                     mainCategory: selected.catName,
+//                     mainCategoryId: selected.catId,
+//                     subCategory: "",
+//                     subCategoryId: undefined,
+//                   });
+//                   const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+//                   setFeePayment({ ...feePayment, applicationFee: fee });
+//                   if (selectedId) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+//                   }
+//                 }
+//               }}
+//               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
+//             >
+//               <option value="">Select Category</option>
+//               {mainCategories.map((cat) => (
+//                 <option key={cat.catId} value={cat.catId}>
+//                   {cat.catName}
+//                 </option>
+//               ))}
+//             </select>
+//             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
+//           </div>
+          
+//           {/* ST Sub Category - Only show when ST is selected */}
+//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
+//             <div>
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Sub-Category (Primitive Tribe)
+//               </label>
+//               <select
+//                 value={reservationCategory.subCategoryId || ""}
+//                 onChange={(e) => {
+//                   const selectedId = Number(e.target.value);
+//                   const selected = stSubCategories.find(sub => sub.catId === selectedId);
+//                   if (selected) {
+//                     setReservationCategory({
+//                       ...reservationCategory,
+//                       subCategory: selected.catName,
+//                       subCategoryId: selected.catId,
+//                     });
+//                   }
+//                 }}
+//                 className="w-full h-12 border border-slate-300 rounded-lg px-4"
+//               >
+//                 <option value="">Select Sub-Category</option>
+//                 {stSubCategories.map((sub) => (
+//                   <option key={sub.catId} value={sub.catId}>
+//                     {sub.catName}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+//           )}
+          
+         
+         
+
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Jharkhand Domicile Claim <span className="text-red-600">*</span>
+//             </label>
+//             <div className="flex gap-6 mt-2">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="domicile"
+//                   value="yes"
+//                   checked={reservationCategory.isJharkhandDomicile === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="domicile"
+//                   value="no"
+//                   checked={reservationCategory.isJharkhandDomicile === "no"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
+//           </div>
+//         </div>
+
+//         {/* District of Local Residence - Text Input Field (Shows when Locally Resident is Yes) */}
+//         {reservationCategory.isLocallyResident === "yes" && (
+//           <div className="mt-4">
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//              Your District of Local Residence <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={reservationCategory.localDistrictName || ""}
+//               onChange={(e) => {
+//                 setReservationCategory({
+//                   ...reservationCategory,
+//                   localDistrictName: e.target.value,
+//                 });
+//                 if (e.target.value.trim()) {
+//                   setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
+//                 }
+//               }}
+//               placeholder="Enter your district name (e.g., Ranchi, Dumka, Hazaribagh)"
+//               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
+//             <p className="text-xs text-slate-500 mt-1">
+//               Please enter the name of your district in Jharkhand
+//             </p>
+//           </div>
+//         )}
+        
+//         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
+//         {reservationCategory.mainCategoryId && ![1, 8].includes(reservationCategory.mainCategoryId) && (
+//           <>
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Category Certificate Number <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.categoryCertificateNumber}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Category Certificate Number"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                Certificate Date Of issue <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="date"
+//                 value={reservationCategory.categoryCertificateIssueDate}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
+//                   }
+//                 }}
+//                 max={new Date().toISOString().split('T')[0]}
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                Certificate Issued Authority <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.categoryCertificateAuthority}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
+//             </div>
+//           </>
+//         )}
+        
+//         {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
+//         {reservationCategory.isJharkhandDomicile === "yes" && (
+//           <>
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Resdential / Domicile Certificate Number <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.domicileCertificateNumber}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Domicile Certificate Number"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                Certificate Date Of issue <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="date"
+//                 value={reservationCategory.domicileCertificateIssueDate}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
+//                   }
+//                 }}
+//                 max={new Date().toISOString().split('T')[0]}
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateIssueDate}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                Certificate Issued Authority <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.domicileCertificateAuthority}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateAuthority}</p>}
+//             </div>
+//           </>
+//         )}
+//       </div>
+
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Physical Handicap (PwD) Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Physically Handicapped?
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="pwd"
+//                   value="yes"
+//                   checked={reservationCategory.isPwd === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({
+//                       ...reservationCategory,
+//                       isPwd: e.target.value,
+//                     });
+//                     if (e.target.value === "yes") {
+//                       setFeePayment({ ...feePayment, applicationFee: "0" });
+//                     } else {
+//                       const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
+//                       setFeePayment({ ...feePayment, applicationFee: fee });
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="pwd"
+//                   value="no"
+//                   checked={reservationCategory.isPwd === "no"}
+//                   onChange={(e) => {
+//                     setReservationCategory({
+//                       ...reservationCategory,
+//                       isPwd: e.target.value,
+//                     });
+//                     const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
+//                     setFeePayment({ ...feePayment, applicationFee: fee });
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isPwd === "yes" && (
+//             <>
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Type of Disability <span className="text-red-600">*</span>
+//                 </label>
+//                 <select
+//                   value={reservationCategory.pwdTypeId || ""}
+//                   onChange={(e) => {
+//                     const selectedId = Number(e.target.value);
+//                     const selected = disabilitiesList.find(d => d.id === selectedId);
+//                     if (selected) {
+//                       setReservationCategory({ 
+//                         ...reservationCategory, 
+//                         pwdTypeId: selectedId,
+//                         pwdType: selected.name
+//                       });
+//                       if (selectedId) {
+//                         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
+//                       }
+//                     }
+//                   }}
+//                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
+//                 >
+//                   <option value="">Select Type</option>
+//                   {disabilitiesList.map((disability) => (
+//                     <option key={disability.id} value={disability.id}>
+//                       {disability.name}
+//                     </option>
+//                   ))}
+//                 </select>
+//                 {errors.pwdType && <p className="text-red-500 text-xs mt-1">{errors.pwdType}</p>}
+//               </div>
+              
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Disability Percentage (%) <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdPercentage}
+//                   onChange={(e) => {
+//                     const value = e.target.value.replace(/\D/g, '');
+//                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
+//                     if (value && parseInt(value) >= 40) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
+//                     }
+//                   }}
+//                   onKeyDown={validateNumberInput}
+//                   maxLength={2}
+//                   placeholder="Should be ≥ 40% to claim benefit"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdPercentage ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdPercentage && <p className="text-red-500 text-xs mt-1">{errors.pwdPercentage}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   PwD Certificate Number <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdCertificateNumber}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter PwD Certificate Number"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Certificate Date Of issue <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="date"
+//                   value={reservationCategory.pwdCertificateIssueDate}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
+//                     }
+//                   }}
+//                   max={new Date().toISOString().split('T')[0]}
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateIssueDate}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                  Certificate Issued Authority <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdCertificateAuthority}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateAuthority}</p>}
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       </div>
+
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Ex-Serviceman Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Ex-Serviceman?
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="exService"
+//                   value="yes"
+//                   checked={reservationCategory.isExServiceman === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
+//                     if (e.target.value === "yes") {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="exService"
+//                   value="no"
+//                   checked={reservationCategory.isExServiceman === "no"}
+//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value })}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isExServiceman === "yes" && (
+//             <div>
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Years of Service (0-30) <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="number"
+//                 min={0}
+//                 max={30}
+//                 value={reservationCategory.exServicemanYears}
+//                 onChange={(e) => {
+//                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
+//                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
+//                   if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+//                   }
+//                 }}
+//                 placeholder="0-30"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.exServicemanYears ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.exServicemanYears && <p className="text-red-500 text-xs mt-1">{errors.exServicemanYears}</p>}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Sports Quota Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Claim Sports Quota? *
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="sports"
+//                   value="yes"
+//                   checked={reservationCategory.isSportsQuota === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
+//                     if (e.target.value === "yes") {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="sports"
+//                   value="no"
+//                   checked={reservationCategory.isSportsQuota === "no"}
+//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value })}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isSportsQuota === "yes" && (
+//             <>
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Sports Level <span className="text-red-600">*</span>
+//                 </label>
+//                 <select
+//                   value={reservationCategory.sportsLevel}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
+//                     }
+//                   }}
+//                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
+//                 >
+//                   <option value="">Select Level</option>
+//                   <option value="international">Medal or Participation in International Level Competition organized by IOC/International Paralympic Committee or its affiliated federations.</option>
+//                   <option value="national">Medal or Participation in National Level Competition organized by IOA/Indian Paralympic Committee or its affiliated National Sports federations.</option>
+//                 </select>
+//                 {errors.sportsLevel && <p className="text-red-500 text-xs mt-1">{errors.sportsLevel}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Achievement Details <span className="text-red-600">*</span>
+//                 </label>
+//                 <textarea
+//                   value={reservationCategory.sportsAchievement}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
+//                     if (e.target.value.trim()) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
+//                     }
+//                   }}
+//                   rows={2}
+//                   placeholder="Describe your achievements..."
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsAchievement ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsAchievement && <p className="text-red-500 text-xs mt-1">{errors.sportsAchievement}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Sports Certificate Number <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.sportsCertificateNumber}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Sports Certificate Number"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Certificate  Issue Date <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="date"
+//                   value={reservationCategory.sportsCertificateIssueDate}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
+//                     }
+//                   }}
+//                   max={new Date().toISOString().split('T')[0]}
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateIssueDate}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Issuing Authority <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.sportsCertificateAuthority}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateAuthority}</p>}
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       </div>
+
+//       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+//         <label className="flex items-start gap-4 cursor-pointer">
+//           <input
+//             type="checkbox"
+//             checked={reservationCategory.declaration}
+//             onChange={(e) => {
+//               setReservationCategory({ ...reservationCategory, declaration: e.target.checked });
+//               if (e.target.checked) {
+//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
+//               }
+//             }}
+//             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
+//           />
+//           <span className="text-sm font-medium text-slate-700 leading-6">
+//             I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that providing false information may lead to cancellation of my application.{" "}
+//             <span className="text-red-500 font-bold">*</span>
+//           </span>
+//         </label>
+//         {errors.declaration && <p className="text-red-500 text-xs mt-2 ml-9">{errors.declaration}</p>}
+//       </div>
+//     </div>
+//   );
+// };
+
+// const renderEducationDetails = () => {
+//   const errors = stepErrors[2] || {};
+  
+//   // Get degree options for dropdown
+//   const degreeOptions = degreesList.map(degree => degree.degreeName);
+  
+//   return (
+//     <div className="space-y-8">
+//       {/* 10th Education */}
+//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//         <div className="absolute -top-4 left-5 bg-white px-3">
+//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//             <Award className="w-5 h-5 text-primary" />
+//             10th / SSC Education
+//           </h3>
+//         </div>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Board Name <span className="text-red-600">*</span>
+//             </label>
+//             <SearchableDropdown
+//               options={boards}
+//               value={education.tenth.board}
+//               onChange={(value) => {
+//                 setEducation({ ...education, tenth: { ...education.tenth, board: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthBoard: "" } }));
+//               }}
+//               placeholder="Select Board"
+//               required
+//             />
+//             {errors.tenthBoard && <p className="text-red-500 text-xs mt-1">{errors.tenthBoard}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Total Marks <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.tenth.totalMarks}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, tenth: { ...education.tenth, totalMarks: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 500"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Marks Obtained 
+//             </label>
+//             <input
+//               type="text"
+//               value={education.tenth.marksObtained}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, tenth: { ...education.tenth, marksObtained: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 450"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Percentage (%) / CGPA <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.tenth.percentage}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/[^0-9.]/g, '');
+//                 setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "" } }));
+//               }}
+//               placeholder="e.g., 82.5"
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarks ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Passing Certificate No. <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.tenth.passingCertificateNo}
+//               onChange={(e) => {
+//                 setEducation({ ...education, tenth: { ...education.tenth, passingCertificateNo: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthCertificate: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthCertificate ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.tenthCertificate && <p className="text-red-500 text-xs mt-1">{errors.tenthCertificate}</p>}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* 12th Education */}
+//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//         <div className="absolute -top-4 left-5 bg-white px-3">
+//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//             <BookOpen className="w-5 h-5 text-primary" />
+//             12th / HSC Education
+//           </h3>
+//         </div>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Board Name <span className="text-red-600">*</span>
+//             </label>
+//             <SearchableDropdown
+//               options={boards}
+//               value={education.twelfth.board}
+//               onChange={(value) => {
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, board: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthBoard: "" } }));
+//               }}
+//               placeholder="Select Board"
+//             />
+//             {errors.twelfthBoard && <p className="text-red-500 text-xs mt-1">{errors.twelfthBoard}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Total Marks
+//             </label>
+//             <input
+//               type="text"
+//               value={education.twelfth.totalMarks}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, totalMarks: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 500"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Marks Obtained
+//             </label>
+//             <input
+//               type="text"
+//               value={education.twelfth.marksObtained}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, marksObtained: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 450"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Percentage (%) <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.twelfth.percentage}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/[^0-9.]/g, '');
+//                 setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarks ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Passing Certificate No.
+//             </label>
+//             <input
+//               type="text"
+//               value={education.twelfth.passingCertificateNo}
+//               onChange={(e) => setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } })}
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Graduation Education */}
+//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//         <div className="absolute -top-4 left-5 bg-white px-3">
+//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//             <GraduationCap className="w-5 h-5 text-primary" />
+//             Graduation Education
+//           </h3>
+//         </div>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Course Name <span className="text-red-600">*</span>
+//             </label>
+//             <SearchableDropdown
+//               options={degreeOptions}
+//               value={(() => {
+//                 const foundDegree = degreesList.find(d => d.degreeId === education.graduation.graduationCourseId);
+//                 return foundDegree ? foundDegree.degreeName : education.graduation.graduationCourse;
+//               })()}
+//               onChange={(value) => {
+//                 const selectedDegree = degreesList.find(d => d.degreeName === value);
+//                 setEducation({ 
+//                   ...education, 
+//                   graduation: { 
+//                     ...education.graduation, 
+//                     graduationCourse: value,
+//                     graduationCourseId: selectedDegree?.degreeId 
+//                   } 
+//                 });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
+//               }}
+//               placeholder="Select Course"
+//               required
+//             />
+//             {errors.graduationCourse && <p className="text-red-500 text-xs mt-1">{errors.graduationCourse}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               University Name <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.graduation.university}
+//               onChange={(e) => {
+//                 setEducation({ ...education, graduation: { ...education.graduation, university: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationUniversity: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.graduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.graduationUniversity}</p>}
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Total Marks <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.graduation.totalMarks}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, graduation: { ...education.graduation, totalMarks: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 3000"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Marks Obtained <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.graduation.marksObtained}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/\D/g, '');
+//                 setEducation({ ...education, graduation: { ...education.graduation, marksObtained: value } });
+//               }}
+//               onKeyDown={validateNumberInput}
+//               placeholder="e.g., 2400"
+//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//             />
+//           </div>
+          
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Percentage/CGPA <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.graduation.percentage}
+//               onChange={(e) => {
+//                 const value = e.target.value.replace(/[^0-9.]/g, '');
+//                 setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
+//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationMarks: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarks ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
+//           </div>
+          
+        
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Passing Certificate No. <span className="text-red-600">*</span>
+//             </label>
+//             <input
+//               type="text"
+//               value={education.graduation.passingCertificateNo}
+//               onChange={(e) => {
+//                 setEducation({ ...education, graduation: { ...education.graduation, passingCertificateNo: e.target.value } });
+//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCertificate: "" } }));
+//               }}
+//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationCertificate ? 'border-red-500' : 'border-slate-300'}`}
+//             />
+//             {errors.graduationCertificate && <p className="text-red-500 text-xs mt-1">{errors.graduationCertificate}</p>}
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Post-Graduation Qualification */}
+//       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+//         <label className="flex items-center gap-3 cursor-pointer mb-4">
+//           <input
+//             type="checkbox"
+//             checked={education.postGraduation.hasPostGraduation}
+//             onChange={(e) =>
+//               setEducation({
+//                 ...education,
+//                 postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
+//               })
+//             }
+//             className="w-4 h-4 text-primary rounded"
+//           />
+//           <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
+//         </label>
+//         {education.postGraduation.hasPostGraduation && (
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 University/College Name
+//               </label>
+//               <input
+//                 type="text"
+//                 value={education.postGraduation.university}
+//                 onChange={(e) =>
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, university: e.target.value },
+//                   })
+//                 }
+//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 Total Marks
+//               </label>
+//               <input
+//                 type="text"
+//                 value={education.postGraduation.totalMarks}
+//                 onChange={(e) => {
+//                   const value = e.target.value.replace(/\D/g, '');
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, totalMarks: value },
+//                   });
+//                 }}
+//                 onKeyDown={validateNumberInput}
+//                 placeholder="e.g., 2000"
+//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 Marks Obtained
+//               </label>
+//               <input
+//                 type="text"
+//                 value={education.postGraduation.marksObtained}
+//                 onChange={(e) => {
+//                   const value = e.target.value.replace(/\D/g, '');
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, marksObtained: value },
+//                   });
+//                 }}
+//                 onKeyDown={validateNumberInput}
+//                 placeholder="e.g., 1600"
+//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 Percentage
+//               </label>
+//               <input
+//                 type="text"
+//                 value={education.postGraduation.percentage}
+//                 onChange={(e) => {
+//                   const value = e.target.value.replace(/[^0-9.]/g, '');
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, percentage: value },
+//                   });
+//                 }}
+//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-2">
+//                 Passing Certificate No.
+//               </label>
+//               <input
+//                 type="text"
+//                 value={education.postGraduation.passingCertificateNo}
+//                 onChange={(e) =>
+//                   setEducation({
+//                     ...education,
+//                     postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
+//                   })
+//                 }
+//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+//               />
+//             </div>
+//           </div>
+//         )}
+//       </div>
+ 
+//     </div>
+//   );
+// };
 
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
   
-  // Get degree options for dropdown
-  const degreeOptions = degreesList.map(degree => degree.degreeName);
+  // Get degree options for dropdown from API
+  const bachelorDegreeOptions = bachelorDegrees.map(degree => degree.degreeName);
+  const masterDegreeOptions = masterDegrees.map(degree => degree.degreeName);
   
   return (
     <div className="space-y-8">
@@ -3839,13 +5078,13 @@ const renderEducationDetails = () => {
               Course Name <span className="text-red-600">*</span>
             </label>
             <SearchableDropdown
-              options={degreeOptions}
+              options={bachelorDegreeOptions}
               value={(() => {
-                const foundDegree = degreesList.find(d => d.degreeId === education.graduation.graduationCourseId);
+                const foundDegree = bachelorDegrees.find(d => d.degreeId === education.graduation.graduationCourseId);
                 return foundDegree ? foundDegree.degreeName : education.graduation.graduationCourse;
               })()}
               onChange={(value) => {
-                const selectedDegree = degreesList.find(d => d.degreeName === value);
+                const selectedDegree = bachelorDegrees.find(d => d.degreeName === value);
                 setEducation({ 
                   ...education, 
                   graduation: { 
@@ -3929,38 +5168,8 @@ const renderEducationDetails = () => {
             {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
           </div>
           
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Specialization/Subject <span className="text-red-600">*</span>
-            </label>
-            <MultiSelectDropdown
-              options={subjectsApiList.map(s => s.subjectName)}
-              values={(() => {
-                if (education.graduation.specializationIds && education.graduation.specializationIds.length > 0) {
-                  return education.graduation.specializationIds
-                    .map(id => subjectsApiList.find(s => s.subjectId === id)?.subjectName)
-                    .filter(Boolean) as string[];
-                }
-                return education.graduation.specialization ? education.graduation.specialization.split(",").map((item) => item.trim()).filter(Boolean) : [];
-              })()}
-              onChange={(values) => {
-                const selectedIds = values
-                  .map(name => subjectsApiList.find(s => s.subjectName === name)?.subjectId)
-                  .filter(id => id !== undefined) as number[];
-                setEducation({ 
-                  ...education, 
-                  graduation: { 
-                    ...education.graduation, 
-                    specialization: values.join(", "),
-                    specializationIds: selectedIds
-                  } 
-                });
-                if (values.length > 0) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationSpecialization: "" } }));
-              }}
-              placeholder="Select Subject(s)"
-            />
-            {errors.graduationSpecialization && <p className="text-red-500 text-xs mt-1">{errors.graduationSpecialization}</p>}
-          </div>
+          
+          
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -4000,6 +5209,30 @@ const renderEducationDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
+                Course/Degree Name <span className="text-red-600">*</span>
+              </label>
+              <SearchableDropdown
+                options={masterDegreeOptions}
+                value={(() => {
+                  const foundDegree = masterDegrees.find(d => d.degreeId === education.postGraduation.degreeId);
+                  return foundDegree ? foundDegree.degreeName : education.postGraduation.degreeName;
+                })()}
+                onChange={(value) => {
+                  const selectedDegree = masterDegrees.find(d => d.degreeName === value);
+                  setEducation({
+                    ...education,
+                    postGraduation: {
+                      ...education.postGraduation,
+                      degreeName: value,
+                      degreeId: selectedDegree?.degreeId
+                    },
+                  });
+                }}
+                placeholder="Select Post-Graduation Degree"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 University/College Name
               </label>
               <input
@@ -4014,32 +5247,8 @@ const renderEducationDetails = () => {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Subject
-              </label>
-              <MultiSelectDropdown
-                options={subjectsApiList.map(s => s.subjectName)}
-                values={(() => {
-                  if (education.postGraduation.subjectIds && education.postGraduation.subjectIds.length > 0) {
-                    return education.postGraduation.subjectIds
-                      .map(id => subjectsApiList.find(s => s.subjectId === id)?.subjectName)
-                      .filter(Boolean) as string[];
-                  }
-                  return education.postGraduation.subject;
-                })()}
-                onChange={(values) => {
-                  const selectedIds = values
-                    .map(name => subjectsApiList.find(s => s.subjectName === name)?.subjectId)
-                    .filter(id => id !== undefined) as number[];
-                  setEducation({
-                    ...education,
-                    postGraduation: { ...education.postGraduation, subject: values, subjectIds: selectedIds },
-                  });
-                }}
-                placeholder="Select Subject(s)"
-              />
-            </div>
+            
+            
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Total Marks
@@ -4111,144 +5320,8 @@ const renderEducationDetails = () => {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Post-Qualification Experience */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={education.experience.hasExperience}
-            onChange={(e) =>
-              setEducation({
-                ...education,
-                experience: { ...education.experience, hasExperience: e.target.checked },
-              })
-            }
-            className="w-4 h-4 text-primary rounded"
-          />
-          <span className="font-semibold text-slate-800">Post-Qualification Experience</span>
-        </label>
-        {education.experience.hasExperience && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Organization Name
-              </label>
-              <input
-                type="text"
-                value={education.experience.organization}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: { ...education.experience, organization: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Designation
-              </label>
-              <input
-                type="text"
-                value={education.experience.designation}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: { ...education.experience, designation: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Date of Joining
-              </label>
-              <input
-                type="date"
-                value={education.experience.dateOfJoining}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: { ...education.experience, dateOfJoining: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Relieving Date
-              </label>
-              <input
-                type="date"
-                value={education.experience.relievingDate}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: { ...education.experience, relievingDate: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Years
-                  </label>
-                  <SearchableDropdown
-                    options={yearsRange}
-                    value={education.experience.durationYears}
-                    onChange={(value) =>
-                      setEducation({
-                        ...education,
-                        experience: { ...education.experience, durationYears: value },
-                      })
-                    }
-                    placeholder="Select Years"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Months
-                  </label>
-                  <SearchableDropdown
-                    options={months}
-                    value={education.experience.durationMonths}
-                    onChange={(value) =>
-                      setEducation({
-                        ...education,
-                        experience: { ...education.experience, durationMonths: value },
-                      })
-                    }
-                    placeholder="Select Months"
-                  />
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Experience Letter No.
-              </label>
-              <input
-                type="text"
-                value={education.experience.experienceLetterNo}
-                onChange={(e) =>
-                  setEducation({
-                    ...education,
-                    experience: { ...education.experience, experienceLetterNo: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
+           
+           
           </div>
         )}
       </div>
@@ -4256,257 +5329,6 @@ const renderEducationDetails = () => {
   );
 };
 
-// const renderPostPreference = () => {
-//   const errors = stepErrors[3] || {};
-  
-//   // Helper function - OK to be here (not a Hook)
-//   const getAvailablePriorities = (currentPostId: number) => {
-//     const usedPriorities = Object.entries(postPreference.postRankings)
-//       .filter(([id, priority]) => Number(id) !== currentPostId && priority !== 0)
-//       .map(([, priority]) => priority);
-    
-//     const totalPosts = postsToShow.length;
-//     const allPriorities = Array.from({ length: totalPosts }, (_, i) => i + 1);
-//     return allPriorities.filter(p => !usedPriorities.includes(p));
-//   };
-
-//   // Event handler - OK to be here (not a Hook)
-//   const handlePriorityChange = (postId: number, priority: number) => {
-//     const isPriorityUsed = Object.entries(postPreference.postRankings)
-//       .some(([id, p]) => Number(id) !== postId && p === priority);
-    
-//     if (isPriorityUsed && priority !== 0) {
-//       toast.error(`Priority ${priority} is already selected for another post. Please choose a different priority.`);
-//       return;
-//     }
-    
-//     setPostPreference({
-//       ...postPreference,
-//       postRankings: { ...postPreference.postRankings, [postId]: priority },
-//     });
-    
-//     // Clear error when user starts assigning priorities
-//     if (priority !== 0 && Object.values(postPreference.postRankings).filter(p => p !== 0).length + 1 === postsToShow.length) {
-//       setStepErrors(prev => ({ ...prev, [3]: {} }));
-//     } else if (priority === 0) {
-//       setStepErrors(prev => ({ ...prev, [3]: { ...prev[3], postRankings: "Please assign priorities to all posts" } }));
-//     }
-//   };
-
-//   const postsToShow = dynamicPosts.length > 0 ? dynamicPosts : [];
-//   const postsAvailable = postsToShow.length;
-//   const allPrioritiesAssigned = postsAvailable > 0 && Object.values(postPreference.postRankings).every(p => p !== 0);
-
-//   // Return JSX - OK (no Hooks)
-//   return (
-//     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//       <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <div className="mb-6">
-//           <h3 className="text-lg font-bold text-primary uppercase tracking-wider">
-//             Post Preference Selection
-//           </h3>
-//           <p className="text-sm text-slate-500 mt-1">
-//             Based on your educational qualifications, we have identified the following posts for which you are eligible. Please rank them in order of priority.
-//           </p>
-//         </div>
-
-//         <section className="mb-8">
-//           <div className="flex items-center gap-3 mb-4">
-//             <div className="h-6 w-1 bg-primary rounded-full"></div>
-//             <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-//               1. Vacancy Stream Selection
-//             </h4>
-//           </div>
-
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-//               <div className="flex justify-between items-start">
-//                 <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="regular"
-//                   checked={postPreference.vacancyStream === "regular"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
-//             </label>
-
-//             <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-//               <div className="flex justify-between items-start">
-//                 <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="backlog"
-//                   checked={postPreference.vacancyStream === "backlog"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
-//             </label>
-
-//             <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
-//               <div className="flex justify-between items-start">
-//                 <div>
-//                   <h3 className="font-bold text-primary">Both (Recommended)</h3>
-//                 </div>
-//                 <input
-//                   type="radio"
-//                   name="vacancy_stream"
-//                   value="both"
-//                   checked={postPreference.vacancyStream === "both"}
-//                   onChange={(e) =>
-//                     setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-//                   }
-//                   className="w-4 h-4 accent-primary"
-//                 />
-//               </div>
-//               <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
-//             </label>
-//           </div>
-//         </section>
-
-//         <section>
-//           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-//             <div className="flex items-center gap-3">
-//               <div className="h-6 w-1 bg-primary rounded-full"></div>
-//               <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-//                 2. Ranking Eligible Posts
-//               </h4>
-//             </div>
-//             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-//               {postsAvailable} Posts Available
-//             </span>
-//           </div>
-
-//           <p className="text-xs text-slate-500 mb-4 italic">
-//             Select priority number from dropdown (1 = highest priority). Each priority number can be used only once.
-//             {postsAvailable > 0 && ` You have ${postsAvailable} posts to rank from 1 to ${postsAvailable}.`}
-//           </p>
-
-//           {/* Error message for post rankings */}
-//           {errors.postRankings && postsAvailable > 0 && (
-//             <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
-//               <p className="text-xs text-red-700 flex items-center gap-2">
-//                 <AlertCircle size={14} />
-//                 {errors.postRankings}
-//               </p>
-//             </div>
-//           )}
-
-//           {postsAvailable === 0 ? (
-//             <div className="text-center py-8 bg-slate-50 rounded-lg">
-//               <p className="text-slate-500">No posts available based on your qualifications.</p>
-//               <p className="text-xs text-slate-400 mt-2">Please complete your education details first.</p>
-//             </div>
-//           ) : (
-//             <div className={`space-y-3 ${errors.postRankings ? 'border-2 border-red-500 rounded-xl p-3' : ''}`}>
-//               {postsToShow.map((post, index) => {
-//                 const currentPriority = postPreference.postRankings[post.postId] || 0;
-//                 const availablePriorities = getAvailablePriorities(post.postId);
-                
-//                 return (
-//                   <div
-//                     key={post.postId}
-//                     className="flex items-center gap-4 bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow"
-//                   >
-//                     <div className="flex items-center gap-3 shrink-0">
-//                       <span className="text-sm font-bold text-slate-400 w-6">{index + 1}.</span>
-//                     </div>
-
-//                     <div className="flex-1 min-w-0">
-//                       <h4 className="text-sm font-bold text-slate-800 truncate">{post.postTitle}</h4>
-//                       <p className="text-xs text-slate-500 truncate mt-0.5">{post.postContent}</p>
-//                     </div>
-
-//                     <div className="shrink-0 ml-2">
-//                       <select
-//                         value={currentPriority}
-//                         onChange={(e) => handlePriorityChange(post.postId, parseInt(e.target.value))}
-//                         className={`w-32 h-12 border rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2 ${
-//                           currentPriority === 0 ? 'border-red-300 bg-red-50' : 'border-slate-300'
-//                         }`}
-//                       >
-//                         <option value={0}>Select Priority</option>
-//                         {availablePriorities.map((priority) => (
-//                           <option key={priority} value={priority}>
-//                             Priority {priority}
-//                           </option>
-//                         ))}
-//                         {currentPriority !== 0 && !availablePriorities.includes(currentPriority) && (
-//                           <option value={currentPriority} disabled>
-//                             Priority {currentPriority} (Already selected)
-//                           </option>
-//                         )}
-//                       </select>
-//                     </div>
-//                   </div>
-//                 );
-//               })}
-//             </div>
-//           )}
-          
-//           {postsAvailable > 0 && !allPrioritiesAssigned && (
-//             <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-//               <p className="text-xs text-amber-800 flex items-center gap-2">
-//                 <AlertCircle size={14} />
-//                 Please assign priorities to all {postsAvailable} posts before proceeding. Each post must have a unique priority from 1 to {postsAvailable}.
-//               </p>
-//             </div>
-//           )}
-          
-//           {postsAvailable > 0 && allPrioritiesAssigned && (
-//             <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-//               <p className="text-xs text-green-800 flex items-center gap-2">
-//                 <CheckCircle size={14} />
-//                 All priorities have been assigned! You can proceed to the next step.
-//               </p>
-//             </div>
-//           )}
-//         </section>
-//       </div>
-
-//       <aside className="space-y-6">
-//         <div className="bg-primary rounded-lg p-6 text-white shadow-lg">
-//           <div className="flex items-center gap-2 mb-5">
-//             <Info size={20} className="text-emerald-300" />
-//             <h3 className="text-base font-bold uppercase tracking-wider">Selection Rules</h3>
-//           </div>
-//           <ul className="text-sm space-y-4 list-disc pl-5 opacity-90 leading-relaxed">
-//             <li>Preferences once locked cannot be changed after the final submission of the form.</li>
-//             <li>Ranking must be unique for each post (e.g., you cannot have two posts with same priority).</li>
-//             <li>Allocations will be made strictly based on Merit and the Preferences provided here.</li>
-//             <li>Check the physical and medical criteria for specific posts in the official brochure.</li>
-//           </ul>
-//         </div>
-
-//         <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm text-center">
-//           <div className="w-12 h-12 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-//             <HelpCircle size={24} />
-//           </div>
-//           <h4 className="text-sm font-bold text-slate-800">Need Help?</h4>
-//           <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
-//             Contact the recruitment helpdesk for clarification on post duties and eligibility.
-//           </p>
-//           <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
-//             <FileText size={16} />
-//             Read Full Advertisement
-//           </button>
-//         </div>
-//       </aside>
-//     </div>
-//   );
-// };
-
-// Updated renderPostPreference function
 const renderPostPreference = () => {
   const errors = stepErrors[3] || {};
   
@@ -4566,76 +5388,13 @@ const renderPostPreference = () => {
           </p>
         </div>
 
-        <section className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-6 w-1 bg-primary rounded-full"></div>
-            <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-              1. Vacancy Stream Selection
-            </h4>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold text-slate-800">Regular Vacancy</h3>
-                <input
-                  type="radio"
-                  name="vacancy_stream"
-                  value="regular"
-                  checked={postPreference.vacancyStream === "regular"}
-                  onChange={(e) =>
-                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                  }
-                  className="w-4 h-4 accent-primary"
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Standard recruitment cycle for fresh posts.</p>
-            </label>
-
-            <label className="border border-slate-300 bg-white rounded-lg p-4 cursor-pointer hover:border-primary transition-all">
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold text-slate-800">Backlog Vacancy</h3>
-                <input
-                  type="radio"
-                  name="vacancy_stream"
-                  value="backlog"
-                  checked={postPreference.vacancyStream === "backlog"}
-                  onChange={(e) =>
-                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                  }
-                  className="w-4 h-4 accent-primary"
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Unfilled posts from previous recruitment years.</p>
-            </label>
-
-            <label className="border-2 border-primary bg-primary/5 rounded-lg p-4 cursor-pointer md:col-span-2 transition-all">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-bold text-primary">Both (Recommended)</h3>
-                </div>
-                <input
-                  type="radio"
-                  name="vacancy_stream"
-                  value="both"
-                  checked={postPreference.vacancyStream === "both"}
-                  onChange={(e) =>
-                    setPostPreference({ ...postPreference, vacancyStream: e.target.value })
-                  }
-                  className="w-4 h-4 accent-primary"
-                />
-              </div>
-              <p className="text-xs text-primary/80 mt-2">Apply for all available opportunities across both streams.</p>
-            </label>
-          </div>
-        </section>
-
+        
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
               <div className="h-6 w-1 bg-primary rounded-full"></div>
               <h4 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">
-                2. Ranking Posts
+                 Ranking Posts
               </h4>
             </div>
             <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
@@ -6144,4 +6903,6 @@ const renderApplicationReview = () => {
 };
 
 export default MyApplications;
+
+
 
