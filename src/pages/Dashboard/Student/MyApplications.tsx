@@ -190,6 +190,16 @@ interface Education {
     totalMarks: string;
     marksObtained: string;
   };
+  experience: {
+    hasExperience: boolean;
+    durationMonths: string;
+    durationYears: string;
+    organization: string;
+    designation: string;
+    dateOfJoining: string;
+    relievingDate: string;
+    experienceLetterNo: string;
+  };
   postGraduation: {
     hasPostGraduation: boolean;
     degreeName: string;
@@ -893,6 +903,16 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     totalMarks: "",
     marksObtained: "",
   },
+  experience: {
+    hasExperience: false,
+    durationMonths: "",
+    durationYears: "",
+    organization: "",
+    designation: "",
+    dateOfJoining: "",
+    relievingDate: "",
+    experienceLetterNo: "",
+  },
   postGraduation: {
     hasPostGraduation: false,
     degreeName: "",
@@ -1557,8 +1577,8 @@ useEffect(() => {
   };
 
   // Add these with other API Data States
-const [subjectsApiList, setSubjectsApiList] = useState<{ subjectId: number; subjectName: string }[]>([]);
-const [degreesList, setDegreesList] = useState<{ degreeId: number; degreeName: string }[]>([]);
+const [, setSubjectsApiList] = useState<{ subjectId: number; subjectName: string }[]>([]);
+const [, setDegreesList] = useState<{ degreeId: number; degreeName: string }[]>([]);
 // Fetch all API data on component mount
 useEffect(() => {
   const fetchApiData = async () => {
