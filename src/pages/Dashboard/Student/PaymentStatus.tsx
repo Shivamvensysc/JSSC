@@ -1,163 +1,5 @@
-// // src/pages/Dashboard/PaymentStatus.tsx
-
-// import React from "react";
-// import { DollarSign, CheckCircle, Clock, AlertCircle } from "lucide-react";
-
-// const PaymentStatus: React.FC = () => {
-//   const payments = [
-//     {
-//       id: 1,
-//       item: "Semester 1 Tuition Fee",
-//       amount: "$2,500",
-//       status: "paid",
-//       date: "2024-01-10",
-//     },
-//     {
-//       id: 2,
-//       item: "Exam Fee",
-//       amount: "$150",
-//       status: "pending",
-//       date: "2024-01-15",
-//     },
-//     {
-//       id: 3,
-//       item: "Library Fee",
-//       amount: "$50",
-//       status: "overdue",
-//       date: "2024-01-05",
-//     },
-//   ];
-
-//   const getStatusIcon = (status: string) => {
-//     switch (status) {
-//       case "paid":
-//         return <CheckCircle className="w-5 h-5 text-green-500" />;
-//       case "pending":
-//         return <Clock className="w-5 h-5 text-yellow-500" />;
-//       case "overdue":
-//         return <AlertCircle className="w-5 h-5 text-red-500" />;
-//       default:
-//         return null;
-//     }
-//   };
-
-//   const getStatusColor = (status: string) => {
-//     switch (status) {
-//       case "paid":
-//         return "bg-green-100 text-green-700";
-//       case "pending":
-//         return "bg-yellow-100 text-yellow-700";
-//       case "overdue":
-//         return "bg-red-100 text-red-700";
-//       default:
-//         return "";
-//     }
-//   };
-
-//   const totalPaid = payments
-//     .filter((p) => p.status === "paid")
-//     .reduce(
-//       (sum, p) => sum + parseFloat(p.amount.replace("$", "").replace(",", "")),
-//       0,
-//     );
-//   const totalPending = payments
-//     .filter((p) => p.status !== "paid")
-//     .reduce(
-//       (sum, p) => sum + parseFloat(p.amount.replace("$", "").replace(",", "")),
-//       0,
-//     );
-
-//   return (
-//     <div>
-//       <div className="mb-6">
-//         <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
-//           Payment Status
-//         </h1>
-//         <p className="text-slate-600 mt-2">Track your fee payments</p>
-//       </div>
-
-//       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-//         <div className="bg-green-50 rounded-xl p-6 border border-green-200 shadow-sm">
-//           <div className="flex items-center justify-between">
-//             <div>
-//               <p className="text-slate-600 text-sm">Total Paid</p>
-//               <p className="text-slate-800 text-2xl font-bold">
-//                 ${totalPaid.toLocaleString()}
-//               </p>
-//             </div>
-//             <CheckCircle className="w-8 h-8 text-green-500" />
-//           </div>
-//         </div>
-//         <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200 shadow-sm">
-//           <div className="flex items-center justify-between">
-//             <div>
-//               <p className="text-slate-600 text-sm">Pending Amount</p>
-//               <p className="text-slate-800 text-2xl font-bold">
-//                 ${totalPending.toLocaleString()}
-//               </p>
-//             </div>
-//             <DollarSign className="w-8 h-8 text-yellow-500" />
-//           </div>
-//         </div>
-//       </div>
-
-//       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-//         <div className="overflow-x-auto">
-//           <table className="w-full">
-//             <thead className="bg-slate-50 border-b border-slate-200">
-//               <tr>
-//                 <th className="text-left px-6 py-4 text-slate-700 font-semibold">
-//                   Item
-//                 </th>
-//                 <th className="text-left px-6 py-4 text-slate-700 font-semibold">
-//                   Amount
-//                 </th>
-//                 <th className="text-left px-6 py-4 text-slate-700 font-semibold">
-//                   Due Date
-//                 </th>
-//                 <th className="text-left px-6 py-4 text-slate-700 font-semibold">
-//                   Status
-//                 </th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {payments.map((payment) => (
-//                 <tr
-//                   key={payment.id}
-//                   className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-//                 >
-//                   <td className="px-6 py-4 text-slate-700">{payment.item}</td>
-//                   <td className="px-6 py-4 text-slate-700 font-semibold">
-//                     {payment.amount}
-//                   </td>
-//                   <td className="px-6 py-4 text-slate-600">{payment.date}</td>
-//                   <td className="px-6 py-4">
-//                     <div className="flex items-center gap-2">
-//                       {getStatusIcon(payment.status)}
-//                       <span
-//                         className={`capitalize px-2 py-1 rounded text-sm ${getStatusColor(payment.status)}`}
-//                       >
-//                         {payment.status}
-//                       </span>
-//                     </div>
-//                   </td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default PaymentStatus;
-
-
-
-
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { 
   Wallet, 
   CheckCircle2, 
@@ -179,6 +21,18 @@ import {
   CircleDollarSign,
   FileCheck2,
 } from "lucide-react";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  };
+};
 
 interface Transaction {
   id: string;
@@ -205,22 +59,22 @@ const PaymentStatus: React.FC = () => {
 
   // Current user data
   const [userData, setUserData] = useState({
-    name: "Rajesh Kumar Sharma",
-    applicationId: "JTGLCCE2026001234",
+    name: "Candidate",
+    applicationId: "",
     currentCategory: {
-      main: "OBC (Non-Creamy Layer)",
-      code: "obc",
+      main: "Unreserved (General)",
+      code: "general",
       subCategory: "",
       hasPwD: false,
       hasExServiceman: false,
       hasSportsQuota: false,
     },
     feeStructure: {
-      baseFee: 600,
-      payableAmount: 600,
-      paidAmount: 600,
-      pendingAmount: 0,
-      lastPaymentDate: "2024-01-15",
+      baseFee: 100,
+      payableAmount: 100,
+      paidAmount: 0,
+      pendingAmount: 100,
+      lastPaymentDate: "-",
     }
   });
 
@@ -234,28 +88,93 @@ const PaymentStatus: React.FC = () => {
   ];
 
   // Transaction history
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: "TXN001",
-      date: "2024-01-15",
-      description: "Application Fee Payment",
-      amount: 600,
-      type: "debit",
-      status: "success",
-      reference: "HDFC123456789",
-      mode: "online"
-    },
-    {
-      id: "TXN002",
-      date: "2024-01-10",
-      description: "Initial Registration",
-      amount: 0,
-      type: "credit",
-      status: "success",
-      reference: "REG001",
-      mode: "adjustment"
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchApplicationData();
+  }, []);
+
+  const fetchApplicationData = async () => {
+    try {
+      setLoading(true);
+      // Fetch application details to get applicationId
+      const appRes = await axios.get(`${API_BASE_URL}/application`, getAuthHeaders());
+      if (appRes.data.status === "success" && appRes.data.data) {
+        const app = appRes.data.data;
+        const appId = app.id;
+        
+        // Use application reference logic
+        const appRef = app.applicationReferenceNumber || appId.substring(0, 8).toUpperCase();
+        
+        // Fetch Step 1 and Payment Status
+        const [stepsRes, paymentsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/application/${appId}/steps`, getAuthHeaders()),
+          axios.get(`${API_BASE_URL}/payment/${appId}/status`, getAuthHeaders())
+        ]);
+
+        const steps = stepsRes.data.data || [];
+        const step1 = steps.find((s: any) => s.stepNumber === 1)?.data || {};
+
+        const isPwd = step1.isPwd === "yes" || step1.isPwd === true;
+        const isExServiceman = step1.isExServiceman === "yes" || step1.isExServiceman === true;
+
+        let amount = 100;
+        let pending = 100;
+        let paid = 0;
+        let lastDate = "-";
+        
+        if (isExServiceman) { amount = 0; pending = 0; }
+        else if (isPwd) { amount = 50; pending = 50; }
+        // SC/ST Jharkhand domicile logic handled roughly here as placeholder
+
+        // Map Payment transactions
+        const paymentData = paymentsRes.data.data || paymentsRes.data || [];
+        const mappedTxns: Transaction[] = paymentData.map((p: any) => {
+          if (p.status === "completed") {
+            paid += parseFloat(p.amount);
+            pending = Math.max(0, amount - paid);
+            lastDate = new Date(p.updatedAt).toLocaleDateString();
+          }
+          return {
+            id: p.id,
+            date: new Date(p.createdAt).toLocaleDateString(),
+            description: "Application Fee Payment",
+            amount: parseFloat(p.amount),
+            type: "debit",
+            status: p.status,
+            reference: p.transactionId || p.paymentOrderId,
+            mode: p.paymentMode || "online"
+          };
+        });
+
+        setTransactions(mappedTxns);
+        setUserData({
+          name: "Candidate",
+          applicationId: appRef,
+          currentCategory: {
+            main: step1.mainCategory ? `Category ID: ${step1.mainCategory}` : "Unreserved",
+            code: "general",
+            subCategory: "",
+            hasPwD: isPwd,
+            hasExServiceman: isExServiceman,
+            hasSportsQuota: step1.isSportsQuota === "yes",
+          },
+          feeStructure: {
+            baseFee: 100,
+            payableAmount: amount,
+            paidAmount: paid,
+            pendingAmount: pending,
+            lastPaymentDate: lastDate,
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load payment info", err);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   // Category change requests history
   const [changeRequests] = useState([
