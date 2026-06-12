@@ -62,6 +62,33 @@ const OTPVerificationModal: FC<OTPVerificationModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>): void => {
+  e.preventDefault();
+
+  const pastedData = e.clipboardData.getData("text").trim();
+
+  // Allow only digits
+  const digits = pastedData.replace(/\D/g, "");
+
+  if (!digits) return;
+
+  const newOtp = [...otp];
+
+  for (let i = 0; i < Math.min(digits.length, 6); i++) {
+    newOtp[i] = digits[i];
+  }
+
+  setOtp(newOtp);
+
+  // Focus last filled input
+  const focusIndex = Math.min(digits.length, 6) - 1;
+  if (focusIndex >= 0) {
+    inputRefs.current[focusIndex]?.focus();
+  }
+
+  setError("");
+};
+
   const handleOtpChange = (index: number, value: string): void => {
     // Only allow numbers
     if (value && !/^\d*$/.test(value)) return;
@@ -173,22 +200,22 @@ const OTPVerificationModal: FC<OTPVerificationModalProps> = ({
           <div className="flex justify-center gap-2 sm:gap-3 mb-4">
             {otp.map((digit, index) => (
               <input
-                key={index}
-                // ref={(el) => (inputRefs.current[index] = el)}
-                ref={(el) => {
-  inputRefs.current[index] = el;
-}}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 rounded-xl focus:border-green-600 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-gray-50"
-                style={{
-                  borderColor: error ? "#EF4444" : digit ? "#10B981" : "#E5E7EB",
-                }}
-              />
+  key={index}
+  ref={(el) => {
+    inputRefs.current[index] = el;
+  }}
+  type="text"
+  inputMode="numeric"
+  maxLength={1}
+  value={digit}
+  onChange={(e) => handleOtpChange(index, e.target.value)}
+  onKeyDown={(e) => handleKeyDown(index, e)}
+  onPaste={handlePaste}
+  className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-bold border-2 rounded-xl focus:border-green-600 focus:ring-2 focus:ring-green-200 outline-none transition-all bg-gray-50"
+  style={{
+    borderColor: error ? "#EF4444" : digit ? "#10B981" : "#E5E7EB",
+  }}
+/>
             ))}
           </div>
 
