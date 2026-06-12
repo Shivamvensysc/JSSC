@@ -192,6 +192,16 @@ interface Education {
     totalMarks: string;
     marksObtained: string;
   };
+  experience: {
+    hasExperience: boolean;
+    durationMonths: string;
+    durationYears: string;
+    organization: string;
+    designation: string;
+    dateOfJoining: string;
+    relievingDate: string;
+    experienceLetterNo: string;
+  };
   postGraduation: {
     hasPostGraduation: boolean;
     degreeName: string;
@@ -1123,6 +1133,16 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     passingCertificateNo: "",
     totalMarks: "",
     marksObtained: "",
+  },
+  experience: {
+    hasExperience: false,
+    durationMonths: "",
+    durationYears: "",
+    organization: "",
+    designation: "",
+    dateOfJoining: "",
+    relievingDate: "",
+    experienceLetterNo: "",
   },
   postGraduation: {
     hasPostGraduation: false,
