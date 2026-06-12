@@ -3,6 +3,7 @@ import {
   FileText,
   CheckCircle,
   User,
+  RefreshCw,
   GraduationCap,
   MapPin,
   FileCheck,
@@ -74,6 +75,7 @@ const apiService = {
   submitApplication: (applicationId: string) => axios.post(`${API_BASE_URL}/application/${applicationId}/submit`, {}, getAuthHeaders()),
   submitApplicationFinal: (applicationId: string) => axios.post(`${API_BASE_URL}/application/${applicationId}/submit-final`, {}, getAuthHeaders()),
   getDegreesByType: (degreeType: string) => axios.get(`${API_BASE_URL}/degrees?degreeType=${degreeType}`, getAuthHeaders()),
+  getCandidateRegistration: () => axios.get(`${API_BASE_URL}/auth/candidate/registration`, getAuthHeaders()),
 };
 
 interface SearchableDropdownProps {
@@ -259,7 +261,7 @@ interface FeePayment {
   transactionId: string;
   paymentDate: string;
   bankName: string;
-  paymentStatus: "pending" | "completed" | "failed";
+   paymentStatus: "pending" | "processing" | "completed" | "failed";
 }
 
 interface Documents {
@@ -369,6 +371,9 @@ interface ReviewData {
 import { toast } from "react-toastify";
 
 const MyApplications: React.FC = () => {
+  // Add this with other state declarations
+const [registrationData, setRegistrationData] = useState<any>(null);
+console.log(registrationData)
   // Add this state near other API Data States
 const [postsList, setPostsList] = useState<any[]>([]);
 const [eligiblePosts, setEligiblePosts] = useState<any[]>([]);
@@ -442,6 +447,58 @@ useEffect(() => {
   };
 
   fetchApiData();
+}, []);
+
+// Add this useEffect with your other useEffects
+// Fetch candidate registration data on component mount
+useEffect(() => {
+  const fetchRegistrationData = async () => {
+    try {
+      const response = await apiService.getCandidateRegistration();
+      if (response.data.success && response.data.data) {
+        const data = response.data.data;
+        setRegistrationData(data);
+        
+        // Calculate age from date of birth
+        let calculatedAge = 0;
+        if (data.dateOfBirth) {
+          const birthDate = new Date(data.dateOfBirth);
+          const today = new Date();
+          calculatedAge = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            calculatedAge--;
+          }
+        }
+        
+        // Auto-fill personal info from registration data
+        setPersonalInfo(prev => ({
+          ...prev,
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          mobileNumber: data.mobileNumber || "",
+          emailId: data.email || "",
+          dob: data.dateOfBirth || "",
+          age: calculatedAge,
+        }));
+        
+        // Set verification status
+        if (data.mobileVerified === true) {
+          setMobileOtpVerified(true);
+          setMobileOtpSent(true);
+        }
+        if (data.emailVerified === true) {
+          setEmailOtpVerified(true);
+          setEmailOtpSent(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching registration data:", error);
+      // Don't show error toast as this is not critical
+    }
+  };
+  
+  fetchRegistrationData();
 }, []);
 
 const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
@@ -529,7 +586,8 @@ const validateStep0 = (): boolean => {
   
   // Basic Information
   if (!personalInfo.firstName.trim()) errors.firstName = "First name is required";
-  if (!personalInfo.lastName.trim()) errors.lastName = "Last name is required";
+ 
+  
   if (!personalInfo.fathersName.trim()) errors.fathersName = "Father's name is required";
   if (!personalInfo.motherName.trim()) errors.motherName = "Mother's name is required";
   if (!personalInfo.gender) errors.gender = "Gender is required";
@@ -585,6 +643,57 @@ const validateStep0 = (): boolean => {
 };
 
 
+// const validateStep1 = (): boolean => {
+//   const errors: { [field: string]: string } = {};
+  
+//   // Only require main category if Jharkhand Domicile is Yes OR if user manually selected a category
+//   if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.mainCategoryId) {
+//     errors.mainCategory = "Please select a category";
+//   } else if (reservationCategory.isJharkhandDomicile === "no" && !reservationCategory.mainCategoryId) {
+//     // If domicile is No, category should be auto-set to Unreserved (UR)
+//     // But still check if it's set
+//     if (!reservationCategory.mainCategoryId) {
+//       errors.mainCategory = "Please select a category";
+//     }
+//   }
+  
+//   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
+  
+//   if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.domicileCertificateNumber.trim()) {
+//     errors.domicileCertificateNumber = "Domicile certificate number is required";
+//   }
+  
+//   if (reservationCategory.isPwd === "yes") {
+//     if (!reservationCategory.pwdTypeId) errors.pwdType = "Please select disability type";
+//     if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
+//     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
+//     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
+//     if (!reservationCategory.pwdCertificateNumber.trim()) errors.pwdCertificateNumber = "PwD certificate number is required";
+//   }
+  
+//   if (reservationCategory.isExServiceman === "yes") {
+//     if (!reservationCategory.exServicemanYears) errors.exServicemanYears = "Please enter years of service";
+//     const years = parseInt(reservationCategory.exServicemanYears);
+//     if (years < 0 || years > 30) errors.exServicemanYears = "Years of service must be between 0 and 30";
+//   }
+  
+//   if (reservationCategory.isSportsQuota === "yes") {
+//     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
+//     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
+//     if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
+//   }
+  
+//   // Declaration is now required - Next button will be disabled if not checked
+//   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
+  
+//   setStepErrors(prev => ({ ...prev, [1]: errors }));
+//   return Object.keys(errors).length === 0;
+// };
+
+// Validation for Step 2 - Education Details
+
+
+
 const validateStep1 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
@@ -601,8 +710,37 @@ const validateStep1 = (): boolean => {
   
   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
   
-  if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.domicileCertificateNumber.trim()) {
-    errors.domicileCertificateNumber = "Domicile certificate number is required";
+  // Validate local district if local resident is Yes
+  if (reservationCategory.isLocallyResident === "yes" && !reservationCategory.localDistrictId) {
+    errors.localDistrictName = "Please select your district of local residence";
+  }
+  
+  if (reservationCategory.isJharkhandDomicile === "yes") {
+    if (!reservationCategory.domicileCertificateNumber.trim()) {
+      errors.domicileCertificateNumber = "Domicile certificate number is required";
+    }
+    if (!reservationCategory.domicileCertificateAuthority.trim()) {
+      errors.domicileCertificateAuthority = "Domicile certificate issuing authority is required";
+    }
+    if (!reservationCategory.domicileCertificateIssueDate) {
+      errors.domicileCertificateIssueDate = "Domicile certificate issue date is required";
+    }
+  }
+  
+  // Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS)
+  if (reservationCategory.mainCategoryId && 
+      reservationCategory.mainCategory !== "Unreserved (UR)" && 
+      reservationCategory.mainCategory !== "Unreserved" && 
+      reservationCategory.mainCategory !== "EWS") {
+    if (!reservationCategory.categoryCertificateNumber.trim()) {
+      errors.categoryCertificateNumber = "Category certificate number is required";
+    }
+    if (!reservationCategory.categoryCertificateAuthority.trim()) {
+      errors.categoryCertificateAuthority = "Category certificate issuing authority is required";
+    }
+    if (!reservationCategory.categoryCertificateIssueDate) {
+      errors.categoryCertificateIssueDate = "Category certificate issue date is required";
+    }
   }
   
   if (reservationCategory.isPwd === "yes") {
@@ -611,6 +749,8 @@ const validateStep1 = (): boolean => {
     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
     if (!reservationCategory.pwdCertificateNumber.trim()) errors.pwdCertificateNumber = "PwD certificate number is required";
+    if (!reservationCategory.pwdCertificateAuthority.trim()) errors.pwdCertificateAuthority = "PwD certificate issuing authority is required";
+    if (!reservationCategory.pwdCertificateIssueDate) errors.pwdCertificateIssueDate = "PwD certificate issue date is required";
   }
   
   if (reservationCategory.isExServiceman === "yes") {
@@ -623,6 +763,8 @@ const validateStep1 = (): boolean => {
     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
     if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
+    if (!reservationCategory.sportsCertificateAuthority.trim()) errors.sportsCertificateAuthority = "Sports certificate issuing authority is required";
+    if (!reservationCategory.sportsCertificateIssueDate) errors.sportsCertificateIssueDate = "Sports certificate issue date is required";
   }
   
   // Declaration is now required - Next button will be disabled if not checked
@@ -632,7 +774,7 @@ const validateStep1 = (): boolean => {
   return Object.keys(errors).length === 0;
 };
 
-// Validation for Step 2 - Education Details
+
 const validateStep2 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
@@ -644,26 +786,59 @@ const validateStep2 = (): boolean => {
   if (!tenthIsValid) errors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
   if (!education.tenth.passingCertificateNo) errors.tenthCertificate = "10th certificate number is required";
   
-  // 12th validation
-  const twelfthIsValid = (education.twelfth.percentage && education.twelfth.percentage !== "") || 
-                         (education.twelfth.totalMarks && education.twelfth.marksObtained);
+
   
-  if (!education.twelfth.board) errors.twelfthBoard = "12th board is required";
-  if (!twelfthIsValid) errors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+ 
+  
+  
+  
+  
   
   // Graduation validation
-  // const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
-  //                     (education.graduation.totalMarks && education.graduation.marksObtained);
+  const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
+                      (education.graduation.totalMarks && education.graduation.marksObtained);
   
-  // if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
-  // if (!education.graduation.university) errors.graduationUniversity = "University name is required";
-  // if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  // if (!education.graduation.specialization) errors.graduationSpecialization = "Specialization/Subject is required";
-  // if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
+  if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
+  if (!education.graduation.university) errors.graduationUniversity = "University name is required";
+  if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+  if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
+  
+  // Graduation Total Marks validation - Only validate if user entered total marks
+  if (education.graduation.totalMarks && education.graduation.totalMarks !== "") {
+    const totalMarks = parseFloat(education.graduation.totalMarks);
+    if (isNaN(totalMarks) || totalMarks <= 0) {
+      errors.graduationTotalMarks = "Total marks must be a valid positive number";
+    }
+  }
+  
+  // Graduation Marks Obtained validation - Only validate if user entered marks obtained
+  if (education.graduation.marksObtained && education.graduation.marksObtained !== "") {
+    const marksObtained = parseFloat(education.graduation.marksObtained);
+    if (isNaN(marksObtained) || marksObtained < 0) {
+      errors.graduationMarksObtained = "Marks obtained must be a valid positive number";
+    }
+    // Check if marks obtained exceeds total marks (only if both are provided)
+    if (education.graduation.totalMarks && education.graduation.totalMarks !== "" && !isNaN(marksObtained)) {
+      const totalMarks = parseFloat(education.graduation.totalMarks);
+      if (!isNaN(totalMarks) && marksObtained > totalMarks) {
+        errors.graduationMarksObtained = "Marks obtained cannot exceed total marks";
+      }
+    }
+  }
+  
+  // Graduation Percentage validation - must be between 0 and 100
+  if (education.graduation.percentage && education.graduation.percentage !== "") {
+    const percentage = parseFloat(education.graduation.percentage);
+    if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+      errors.graduationPercentage = "Percentage must be between 0 and 100";
+    }
+  }
   
   setStepErrors(prev => ({ ...prev, [2]: errors }));
   return Object.keys(errors).length === 0;
 };
+
+
 
 // Validation for Step 3 - Post Preferences (skipped as it has its own validation)
 const validateStep3 = (): boolean => {
@@ -689,6 +864,61 @@ const validateStep4 = (): boolean => {
   return Object.keys(errors).length === 0;
 };
 
+const validateStep5 = (): boolean => {
+  const errors: { [field: string]: string } = {};
+  
+  // Get already uploaded documents from API
+  const uploadedDocsFromApi = reviewData?.steps?.documents || {};
+  
+  // Required documents based on user selections
+  const requiredDocs = [
+    { key: "photo", label: "Passport Size Photograph" },
+    { key: "signature", label: "Signature Scan" },
+    { key: "tenthMarksheet", label: "10th Marksheet" },
+    { key: "twelfthMarksheet", label: "12th Marksheet" },
+    { key: "graduationMarksheet", label: "Graduation Degree Certificate" },
+    { key: "aadharCard", label: "Aadhar Card" },
+  ];
+  
+  // Add conditional documents based on selection
+  if (reservationCategory.isJharkhandDomicile === "yes") {
+    requiredDocs.push({ key: "domicileCertificate", label: "Domicile Certificate" });
+  }
+  
+  if (reservationCategory.mainCategory === "ews" || reservationCategory.mainCategory === "economically_weaker_section_(ews)") {
+    requiredDocs.push({ key: "ewsCertificate", label: "EWS Certificate" });
+  }
+  
+  if (reservationCategory.mainCategory && 
+      !["unreserved", "unreserved_(ur)", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+    requiredDocs.push({ key: "castCertificate", label: "Caste Certificate" });
+  }
+  
+  if (education.postGraduation.hasPostGraduation) {
+    requiredDocs.push({ key: "postGraduationCertificate", label: "Post-Graduation Certificate" });
+  }
+  
+  if (reservationCategory.isPwd === "yes") {
+    requiredDocs.push({ key: "pwdCertificate", label: "Disability Certificate" });
+  }
+  
+  if (reservationCategory.isSportsQuota === "yes") {
+    requiredDocs.push({ key: "sportsCertificate", label: "Sports Certificate" });
+  }
+  
+  // Check each required document - consider both newly uploaded and already uploaded from API
+  requiredDocs.forEach((doc) => {
+    const isNewlyUploaded = documents[doc.key as keyof Documents] !== null;
+    const isAlreadyUploaded = uploadedDocsFromApi[doc.key] && uploadedDocsFromApi[doc.key] !== "null" && uploadedDocsFromApi[doc.key] !== "";
+    
+    if (!isNewlyUploaded && !isAlreadyUploaded) {
+      errors[`documents.${doc.key}`] = `${doc.label} is required`;
+    }
+  });
+  
+  setStepErrors(prev => ({ ...prev, [5]: errors }));
+  return Object.keys(errors).length === 0;
+};
 
 // Combined validation for current step
 const validateCurrentStep = (): boolean => {
@@ -698,6 +928,7 @@ const validateCurrentStep = (): boolean => {
     case 2: return validateStep2();
     case 3: return validateStep3();
     case 4: return validateStep4();
+    case 5: return validateStep5();
     default: return true;
   }
 };
@@ -916,7 +1147,7 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   const [languageSelection, setLanguageSelection] = useState<LanguageSelection>({
     paperOneLanguage: "",
     paperTwoLanguage: "",
-    paperThreeLanguage: "",
+    paperThreeLanguage: "Technical / Specialized Subject and General Knowledge",
   });
   
  const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
@@ -965,6 +1196,31 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
     bankName: "",
     paymentStatus: "pending",
   });
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const FEE_AMOUNTS: Record<string, number> = {
+  general: 100,
+  obc: 100,
+  sc_st_ph: 50,
+  exserviceman: 0,
+};
+
+const getMappedFeeCategory = () => {
+  if (reservationCategory.isExServiceman === "yes") return "exserviceman";
+  if (reservationCategory.isPwd === "yes") return "sc_st_ph";
+  
+  const cat = reservationCategory.mainCategory?.toLowerCase() || "";
+  const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
+  
+  if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) return "sc_st_ph";
+  if (cat.includes("obc") || cat.includes("ebc") || cat.includes("bc")) return "obc";
+  return "general";
+};
+
+const calculateTotalFee = () => {
+  const feeCat = getMappedFeeCategory();
+  return FEE_AMOUNTS[feeCat] ?? 100;
+};
 
   const [documents, setDocuments] = useState<Documents>({
     tenthMarksheet: null,
@@ -1330,6 +1586,33 @@ const fetchAndAutoFillData = async () => {
   }
 };
 
+// Add this useEffect with your other useEffects, before the renderStep function
+// Auto-assign priority when only one post is available
+useEffect(() => {
+  if (postsList.length === 1 && postsList[0]) {
+    const post = postsList[0];
+    const currentPriority = postPreference.postRankings[post.postCode];
+    // Only auto-assign if not already assigned
+    if (!currentPriority || currentPriority === 0) {
+      setPostPreference(prev => ({
+        ...prev,
+        postRankings: { ...prev.postRankings, [post.postCode]: 1 }
+      }));
+    }
+  }
+}, [postsList, postPreference.postRankings]);
+
+// Add this with your other useEffects
+// Clear error when all priorities are assigned
+useEffect(() => {
+  if (postsList.length > 0) {
+    const allAssigned = Object.values(postPreference.postRankings).every(p => p !== 0);
+    if (allAssigned) {
+      setStepErrors(prev => ({ ...prev, [3]: {} }));
+    }
+  }
+}, [postPreference.postRankings, postsList.length]);
+
 // Optional: Keep as fallback, but check if reviewData already exists
 useEffect(() => {
   const fetchReviewData = async () => {
@@ -1481,11 +1764,51 @@ useEffect(() => {
     return age;
   };
 
-  const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dob = e.target.value;
-    const age = calculateAge(dob);
-    setPersonalInfo({ ...personalInfo, dob, age });
-    // Clear DOB error when user selects a date
+//   const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const dob = e.target.value;
+//     const age = calculateAge(dob);
+//     setPersonalInfo({ ...personalInfo, dob, age });
+//     // Clear DOB error when user selects a date
+//   if (dob) {
+//     const birthDate = new Date(dob);
+//     const today = new Date();
+//     let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+//     const monthDiff = today.getMonth() - birthDate.getMonth();
+//     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+//       calculatedAge--;
+//     }
+//     if (calculatedAge >= 21) {
+//       setStepErrors(prev => ({ 
+//         ...prev, 
+//         [0]: { ...prev[0], dob: "" } 
+//       }));
+//     }
+//   } else {
+//     setStepErrors(prev => ({ 
+//       ...prev, 
+//       [0]: { ...prev[0], dob: "Date of birth is required" } 
+//     }));
+//   }
+// };
+
+  // const handlePermanentStateChange = (stateId: number, stateName: string) => {
+  //   setPersonalInfo({
+  //     ...personalInfo,
+  //     permanentAddress: {
+  //       ...personalInfo.permanentAddress,
+  //       state: stateName,
+  //       stateId: stateId,
+  //       district: "",
+  //       districtId: undefined,
+  //     },
+  //   });
+  // };
+
+const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const dob = e.target.value;
+  const age = calculateAge(dob);
+  setPersonalInfo({ ...personalInfo, dob, age });
+  // Clear DOB error when user selects a date
   if (dob) {
     const birthDate = new Date(dob);
     const today = new Date();
@@ -1499,6 +1822,11 @@ useEffect(() => {
         ...prev, 
         [0]: { ...prev[0], dob: "" } 
       }));
+    } else {
+      setStepErrors(prev => ({ 
+        ...prev, 
+        [0]: { ...prev[0], dob: `Age must be at least 21 years. Current age: ${calculatedAge} years` } 
+      }));
     }
   } else {
     setStepErrors(prev => ({ 
@@ -1508,29 +1836,97 @@ useEffect(() => {
   }
 };
 
+// Add state for local districts
+const [localDistricts, setLocalDistricts] = useState<District[]>([]);
+
+// Add useEffect to fetch districts when local resident is selected
+useEffect(() => {
+  const fetchLocalDistricts = async () => {
+    if (reservationCategory.isLocallyResident === "yes") {
+      // Jharkhand state ID is 15
+      const jharkhandStateId = 15;
+      try {
+        const response = await apiService.getDistrictsByState(jharkhandStateId);
+        if (response.data.success) {
+          setLocalDistricts(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching districts for Jharkhand:", error);
+      }
+    }
+  };
+  fetchLocalDistricts();
+}, [reservationCategory.isLocallyResident]);
+
   const handlePermanentStateChange = (stateId: number, stateName: string) => {
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: {
-        ...personalInfo.permanentAddress,
-        state: stateName,
-        stateId: stateId,
+  setPersonalInfo({
+    ...personalInfo,
+    permanentAddress: {
+      ...personalInfo.permanentAddress,
+      state: stateName,
+      stateId: stateId,
+      district: "",
+      districtId: undefined,
+    },
+  });
+  
+  // If sameAsPermanent is true, also update correspondence address
+  if (personalInfo.sameAsPermanent) {
+    setPersonalInfo(prev => ({
+      ...prev,
+      correspondenceAddress: {
+        ...prev.permanentAddress,
+        street: prev.permanentAddress.street,
+        post: prev.permanentAddress.post,
         district: "",
         districtId: undefined,
+        state: stateName,
+        stateId: stateId,
+        pincode: prev.permanentAddress.pincode,
+        cityOrVillage: prev.permanentAddress.cityOrVillage,
       },
-    });
-  };
+    }));
+    
+    // Fetch districts for correspondence address if state changed
+    const fetchDistrictsForCorrespondence = async () => {
+      try {
+        const response = await apiService.getDistrictsByState(stateId);
+        if (response.data.success) {
+          setCorrespondenceDistricts(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching districts for correspondence:", error);
+      }
+    };
+    fetchDistrictsForCorrespondence();
+  }
+};
 
-  const handlePermanentDistrictChange = (districtId: number, districtName: string) => {
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: {
-        ...personalInfo.permanentAddress,
+const handlePermanentDistrictChange = (districtId: number, districtName: string) => {
+  setPersonalInfo({
+    ...personalInfo,
+    permanentAddress: {
+      ...personalInfo.permanentAddress,
+      district: districtName,
+      districtId: districtId,
+    },
+  });
+  
+  // If sameAsPermanent is true, also update correspondence address
+  if (personalInfo.sameAsPermanent) {
+    setPersonalInfo(prev => ({
+      ...prev,
+      correspondenceAddress: {
+        ...prev.correspondenceAddress,
         district: districtName,
         districtId: districtId,
       },
-    });
-  };
+    }));
+  }
+};
+
+
+
 
   const handleCorrespondenceStateChange = (stateId: number, stateName: string) => {
     setPersonalInfo({
@@ -1559,6 +1955,7 @@ useEffect(() => {
   // Add these with other API Data States
 const [subjectsApiList, setSubjectsApiList] = useState<{ subjectId: number; subjectName: string }[]>([]);
 const [degreesList, setDegreesList] = useState<{ degreeId: number; degreeName: string }[]>([]);
+console.log(subjectsApiList,degreesList)
 // Fetch all API data on component mount
 useEffect(() => {
   const fetchApiData = async () => {
@@ -1650,6 +2047,8 @@ const validateFileType = (file: File, acceptedTypes: string[]): boolean => {
   return true;
 };
 
+
+
 const handleFileUpload = (field: keyof Documents, file: File | null) => {
   if (!file) {
     if (filePreviewUrls[field]) {
@@ -1709,44 +2108,52 @@ const removeFile = (field: keyof Documents) => {
 };
 
   const sendMobileOtp = () => {
-    if (personalInfo.mobileNumber.length === 10) {
-      setMobileOtpSent(true);
-      toast.info(`OTP sent to ${personalInfo.mobileNumber}`);
-    } else {
-      toast.error("Please enter a valid 10-digit mobile number");
-    }
-  };
+  if (mobileOtpVerified) {
+    toast.info("Mobile number already verified");
+    return;
+  }
+  if (personalInfo.mobileNumber.length === 10) {
+    setMobileOtpSent(true);
+    toast.info(`OTP sent to ${personalInfo.mobileNumber}`);
+  } else {
+    toast.error("Please enter a valid 10-digit mobile number");
+  }
+};
+
+const sendEmailOtp = () => {
+  if (emailOtpVerified) {
+    toast.info("Email already verified");
+    return;
+  }
+  if (personalInfo.emailId.includes("@")) {
+    setEmailOtpSent(true);
+    toast.info(`OTP sent to ${personalInfo.emailId}`);
+  } else {
+    toast.error("Please enter a valid email address");
+  }
+};
 
   const verifyMobileOtp = () => {
     setMobileOtpVerified(true);
     toast.success("Mobile number verified successfully!");
   };
 
-  const sendEmailOtp = () => {
-    if (personalInfo.emailId.includes("@")) {
-      setEmailOtpSent(true);
-      toast.info(`OTP sent to ${personalInfo.emailId}`);
-    } else {
-      toast.error("Please enter a valid email address");
-    }
-  };
-
-
   
 
-  const calculateTotalFee = () => {
-    let fee = 100;
-    if (
-      reservationCategory.mainCategory === "sc" ||
-      reservationCategory.mainCategory === "st"
-    ) {
-      fee = 50;
-    }
-    if (reservationCategory.isPwd === "yes") {
-      fee = 0;
-    }
-    return fee;
-  };
+
+  // const calculateTotalFee = () => {
+  //   let fee = 100;
+  //   if (
+  //     reservationCategory.mainCategory === "sc" ||
+  //     reservationCategory.mainCategory === "st"
+  //   ) {
+  //     fee = 50;
+  //   }
+  //   if (reservationCategory.isPwd === "yes") {
+  //     fee = 0;
+  //   }
+  //   return fee;
+  // };
 
   // Save Step 1 API call
   const saveStep1 = async () => {
@@ -1782,8 +2189,6 @@ const removeFile = (field: keyof Documents) => {
           ? {
               street: personalInfo.permanentAddress.street,
               post: personalInfo.permanentAddress.post,
-              // state: personalInfo.permanentAddress.stateId,
-              // district: personalInfo.permanentAddress.districtId,
               state: personalInfo.correspondenceAddress.stateId ? String(personalInfo.correspondenceAddress.stateId) : "", // Send state ID as string
             district: personalInfo.correspondenceAddress.districtId ? String(personalInfo.correspondenceAddress.districtId) : "",
               pincode: personalInfo.permanentAddress.pincode,
@@ -1955,7 +2360,7 @@ const saveStep3 = async () => {
       graduationCourse: education.graduation.graduationCourseId || 0,
       university: education.graduation.university,
       percentage: education.graduation.percentage,
-      specialization: education.graduation.specializationIds?.join(',') || '',
+      // specialization: education.graduation.specializationIds?.join(',') || '',
       totalMarks: education.graduation.totalMarks,
       marksObtained: education.graduation.marksObtained,
       passingCertificateNo: education.graduation.passingCertificateNo,
@@ -1965,7 +2370,7 @@ const saveStep3 = async () => {
       degreeId: education.postGraduation.degreeId || 0,
       university: education.postGraduation.university,
       percentage: education.postGraduation.percentage,
-      subject: education.postGraduation.subjectIds?.join(',') || '',
+      // subject: education.postGraduation.subjectIds?.join(',') || '',
       totalMarks: education.postGraduation.totalMarks,
       marksObtained: education.postGraduation.marksObtained,
       passingCertificateNo: education.postGraduation.passingCertificateNo,
@@ -2045,9 +2450,6 @@ const saveStep3 = async () => {
         "twelfthMarksheet",
         "graduationMarksheet",
         "postGraduationCertificate",
-        "diplomaCertificate",
-        "experienceCertificate",
-        "contractualServiceCertificate",
         "ewsCertificate",
         "aadharCard",
         "signature",
@@ -2192,9 +2594,103 @@ const saveStep6 = async () => {
     }
   };
 
-  const handleFinalSubmit = async () => {
+//   const handleFinalSubmit = async () => {
+//   if (!applicationId) {
+//     toast.error("Application ID not found. Please save your progress first.");
+//     return;
+//   }
+
+//   setSavingStep(true);
+
+//   try {
+//     const response = await apiService.submitApplicationFinal(applicationId);
+
+//     if (response.data.success) {
+//       toast.success("Application submitted successfully!");
+
+//       setApplicationStatus({
+//         isSubmitted: true,
+//         registrationNumber:
+//           response.data.data?.applicationReferenceNumber ||
+//           "Application Submitted",
+//         submissionDate: new Date().toLocaleDateString(),
+//       });
+
+//       setIsSubmitted(true);
+
+//       setTimeout(() => {
+//         navigate("/dashboard");
+//       }, 2000);
+//     } else {
+//       toast.error(response.data.message || "Failed to submit application");
+//     }
+//   } catch (error: any) {
+//     console.error("Error submitting application:", error);
+//     toast.error(
+//       error.response?.data?.message || "Failed to submit application"
+//     );
+//   } finally {
+//     setSavingStep(false);
+//   }
+// };
+
+// const handleFinalSubmit = async () => {
+//   if (!applicationId) {
+//     toast.error("Application ID not found. Please save your progress first.");
+//     return;
+//   }
+
+//   // Check if payment is completed
+//   if (feePayment.paymentStatus !== "completed") {
+//     toast.error("Please complete the payment before submitting the application.");
+//     return;
+//   }
+
+//   setSavingStep(true);
+
+//   try {
+//     const response = await apiService.submitApplicationFinal(applicationId);
+
+//     if (response.data.success) {
+//       toast.success("Application submitted successfully!");
+
+//       setApplicationStatus({
+//         isSubmitted: true,
+//         registrationNumber:
+//           response.data.data?.applicationReferenceNumber ||
+//           "Application Submitted",
+//         submissionDate: new Date().toLocaleDateString(),
+//       });
+
+//       setIsSubmitted(true);
+
+//       setTimeout(() => {
+//         navigate("/dashboard");
+//       }, 2000);
+//     } else {
+//       toast.error(response.data.message || "Failed to submit application");
+//     }
+//   } catch (error: any) {
+//     console.error("Error submitting application:", error);
+//     toast.error(
+//       error.response?.data?.message || "Failed to submit application"
+//     );
+//   } finally {
+//     setSavingStep(false);
+//   }
+// };
+
+
+const handleFinalSubmit = async () => {
   if (!applicationId) {
     toast.error("Application ID not found. Please save your progress first.");
+    return;
+  }
+
+  // Check if payment is completed
+  if (feePayment.paymentStatus !== "completed") {
+    toast.error("Please complete the payment before submitting the application.");
+    setCurrentStep(6); // Redirect to payment step
     return;
   }
 
@@ -2323,26 +2819,8 @@ const saveStep6 = async () => {
             {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
           </div>
           
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Last Name <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={personalInfo.lastName}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                setPersonalInfo({ ...personalInfo, lastName: value });
-                if (value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], lastName: "" } }));
-                }
-              }}
-              onKeyDown={validateTextInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            />
-           {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
-          </div>
-
+          
+        
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Father's Name <span className="text-red-600">*</span>
@@ -2382,39 +2860,41 @@ const saveStep6 = async () => {
             {errors.motherName && <p className="text-red-500 text-xs mt-1">{errors.motherName}</p>}
           </div>
           <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Date of Birth <span className="text-red-600">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={personalInfo.dob}
-                min="1900-01-01"
-                max="2026-12-31"
-                onChange={handleDateOfBirthChange}
-                 className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
-          errors.dob ? 'border-red-500' : 'border-slate-300'
-        }`}
-              />
-              {personalInfo.age > 0 && (
-                <div className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg">
-                  <Calendar size={16} />
-                  <span className="text-sm font-medium">Age: {personalInfo.age} years</span>
-                </div>
-              )}
-            </div>
-             {errors.dob && (
-      <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Date of Birth <span className="text-red-600">*</span>
+  </label>
+  <div className="flex gap-2">
+    <input
+      type="date"
+      value={personalInfo.dob}
+      min="1900-01-01"
+      max="2026-12-31"
+      onChange={handleDateOfBirthChange}
+      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+        errors.dob ? 'border-red-500' : 'border-slate-300'
+      }`}
+    />
+    {personalInfo.age > 0 && (
+      <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${
+        personalInfo.age >= 21 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+      }`}>
+        <Calendar size={16} />
+        <span className="text-sm font-medium">Age: {personalInfo.age} years</span>
+      </div>
     )}
-    {personalInfo.dob && personalInfo.age < 21 && personalInfo.age > 0 && (
-      <p className="text-red-500 text-xs mt-1">
-        ⚠️ You must be at least 21 years old to apply. Current age: {personalInfo.age} years
-      </p>
-    )}
-    <p className="text-xs text-slate-500">
-      Minimum age requirement: 21 years as on the last date of application
+  </div>
+  {errors.dob && (
+    <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
+  )}
+  {personalInfo.dob && personalInfo.age > 0 && personalInfo.age < 21 && (
+    <p className="text-red-500 text-xs mt-1">
+      ⚠️ You must be at least 21 years old to apply. Current age: {personalInfo.age} years
     </p>
-          </div>
+  )}
+  <p className="text-xs text-slate-500">
+   Age must be 21 years or above as of 01.08.2025.
+  </p>
+</div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Gender<span className="text-red-600">*</span>
@@ -2463,7 +2943,8 @@ const saveStep6 = async () => {
           </div>
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Marital Status <span className="text-red-600">*</span>
+              Marital Status 
+              
             </label>
             <select
               value={personalInfo.maritalStatus}
@@ -2476,12 +2957,13 @@ const saveStep6 = async () => {
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               <option value="">Select Marital Status</option>
-              <option value="married">Married</option>
               <option value="unmarried">Unmarried</option>
+              <option value="married">Married</option>
               <option value="divorced">Divorced</option>
               <option value="widowed">Widowed</option>
             </select>
-            {/* {errors.maritalStatus && <p className="text-red-500 text-xs mt-1">{errors.maritalStatus}</p>} */}
+            
+            
           </div>
 
         </div>
@@ -2553,57 +3035,68 @@ const saveStep6 = async () => {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Mobile Number <span className="text-red-600">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                maxLength={10}
-                value={personalInfo.mobileNumber}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  setPersonalInfo({ ...personalInfo, mobileNumber: value });
-                  if (value.length === 10) {
-                    setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], mobileNumber: "" } }));
-                  }
-                }}
-                onKeyDown={validateNumberInput}
-                placeholder="9876543210"
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-              />
-              {!mobileOtpVerified ? (
-                <button
-                  onClick={sendMobileOtp}
-                  disabled={mobileOtpSent}
-                  className="px-4 py-2 bg-primary text-white rounded-lg text-sm whitespace-nowrap disabled:opacity-50"
-                >
-                  {mobileOtpSent ? "OTP Sent" : "Send OTP"}
-                </button>
-              ) : (
-                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
-                  <CheckCircle size={16} /> Verified
-                </span>
-              )}
-            </div>
-            {errors.mobileNumber && <p className="text-red-500 text-xs mt-1">{errors.mobileNumber}</p>}
-            {mobileOtpSent && !mobileOtpVerified && (
-              <div className="flex gap-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
-                />
-                <button
-                  onClick={verifyMobileOtp}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
-                >
-                  Verify
-                </button>
-              </div>
-            )}
-          </div>
+          
+          
+<div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Mobile Number <span className="text-red-600">*</span>
+  </label>
+  <div className="flex gap-2">
+    <input
+      type="tel"
+      maxLength={10}
+      value={personalInfo.mobileNumber}
+      onChange={(e) => {
+        const value = e.target.value.replace(/\D/g, '');
+        setPersonalInfo({ ...personalInfo, mobileNumber: value });
+        if (value.length === 10) {
+          setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], mobileNumber: "" } }));
+        }
+        // Reset verification when mobile number changes
+        if (mobileOtpVerified) {
+          setMobileOtpVerified(false);
+          setMobileOtpSent(false);
+        }
+      }}
+      onKeyDown={validateNumberInput}
+      placeholder="9876543210"
+      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+      disabled={mobileOtpVerified}
+    />
+    {!mobileOtpVerified ? (
+      <button
+        onClick={sendMobileOtp}
+        disabled={mobileOtpSent}
+        className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
+          mobileOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
+        }`}
+      >
+        {mobileOtpSent ? "OTP Sent" : "Send OTP"}
+      </button>
+    ) : (
+      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+        <CheckCircle size={16} /> Verified
+      </span>
+    )}
+  </div>
+  {errors.mobileNumber && <p className="text-red-500 text-xs mt-1">{errors.mobileNumber}</p>}
+  {mobileOtpSent && !mobileOtpVerified && (
+    <div className="flex gap-2 mt-2">
+      <input
+        type="text"
+        placeholder="Enter OTP"
+        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
+      />
+      <button
+        onClick={verifyMobileOtp}
+        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+      >
+        Verify
+      </button>
+    </div>
+  )}
+</div>
+
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Aadhar Card Number (Preferred)
@@ -2620,39 +3113,53 @@ const saveStep6 = async () => {
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
             />
           </div>
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Email ID <span className="text-red-600">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={personalInfo.emailId}
-                 onChange={(e) => {
-                  setPersonalInfo({ ...personalInfo, emailId: e.target.value });
-                  if (e.target.value && e.target.value.includes('@')) {
-                    setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], emailId: "" } }));
-                  }
-                }}
-                placeholder="example@domain.com"
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-              />
-              {!emailOtpVerified ? (
-                <button
-                  onClick={sendEmailOtp}
-                  disabled={emailOtpSent}
-                  className="px-4 py-2 bg-primary text-white rounded-lg text-sm whitespace-nowrap disabled:opacity-50"
-                >
-                  {emailOtpSent ? "OTP Sent" : "Send OTP"}
-                </button>
-              ) : (
-                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
-                  <CheckCircle size={16} /> Verified
-                </span>
-              )}
-            </div>
-             {errors.emailId && <p className="text-red-500 text-xs mt-1">{errors.emailId}</p>}
-          </div>
+
+
+         
+         
+<div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Email ID <span className="text-red-600">*</span>
+  </label>
+  <div className="flex gap-2">
+    <input
+      type="email"
+      value={personalInfo.emailId}
+      onChange={(e) => {
+        setPersonalInfo({ ...personalInfo, emailId: e.target.value });
+        if (e.target.value && e.target.value.includes('@')) {
+          setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], emailId: "" } }));
+        }
+        // Reset verification when email changes
+        if (emailOtpVerified) {
+          setEmailOtpVerified(false);
+          setEmailOtpSent(false);
+        }
+      }}
+      placeholder="example@domain.com"
+      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+      disabled={emailOtpVerified}
+    />
+    {!emailOtpVerified ? (
+      <button
+        onClick={sendEmailOtp}
+        disabled={emailOtpSent}
+        className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
+          emailOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
+        }`}
+      >
+        {emailOtpSent ? "OTP Sent" : "Send OTP"}
+      </button>
+    ) : (
+      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+        <CheckCircle size={16} /> Verified
+      </span>
+    )}
+  </div>
+  {errors.emailId && <p className="text-red-500 text-xs mt-1">{errors.emailId}</p>}
+</div>
+
+
         </div>
       </div>
 
@@ -2669,19 +3176,27 @@ const saveStep6 = async () => {
               House No./Street <span className="text-red-600">*</span>
             </label>
             <input
-              type="text"
-              value={personalInfo.permanentAddress.street}
-              onChange={(e) => {
-                setPersonalInfo({
-                  ...personalInfo,
-                  permanentAddress: { ...personalInfo.permanentAddress, street: e.target.value },
-                });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentStreet: "" } }));
-                }
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
+  type="text"
+  value={personalInfo.permanentAddress.street}
+  onChange={(e) => {
+    const newStreet = e.target.value;
+    setPersonalInfo({
+      ...personalInfo,
+      permanentAddress: { ...personalInfo.permanentAddress, street: newStreet },
+    });
+    if (e.target.value.trim()) {
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentStreet: "" } }));
+    }
+    // If sameAsPermanent is true, also update correspondence address
+    if (personalInfo.sameAsPermanent) {
+      setPersonalInfo(prev => ({
+        ...prev,
+        correspondenceAddress: { ...prev.correspondenceAddress, street: newStreet },
+      }));
+    }
+  }}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+/>
             {errors.permanentStreet && <p className="text-red-500 text-xs mt-1">{errors.permanentStreet}</p>}
           </div>
 
@@ -2690,19 +3205,27 @@ const saveStep6 = async () => {
               Village/City/Town <span className="text-red-600">*</span>
             </label>
             <input
-              type="text"
-              value={personalInfo.permanentAddress.cityOrVillage}
-              onChange={(e) => {
-                setPersonalInfo({
-                  ...personalInfo,
-                  permanentAddress: { ...personalInfo.permanentAddress, cityOrVillage: e.target.value },
-                });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentCity: "" } }));
-                }
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
+  type="text"
+  value={personalInfo.permanentAddress.cityOrVillage}
+  onChange={(e) => {
+    const newCity = e.target.value;
+    setPersonalInfo({
+      ...personalInfo,
+      permanentAddress: { ...personalInfo.permanentAddress, cityOrVillage: newCity },
+    });
+    if (e.target.value.trim()) {
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentCity: "" } }));
+    }
+    // If sameAsPermanent is true, also update correspondence address
+    if (personalInfo.sameAsPermanent) {
+      setPersonalInfo(prev => ({
+        ...prev,
+        correspondenceAddress: { ...prev.correspondenceAddress, cityOrVillage: newCity },
+      }));
+    }
+  }}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+/>
             {errors.permanentCity && <p className="text-red-500 text-xs mt-1">{errors.permanentCity}</p>}
           </div>
           <div>
@@ -2710,19 +3233,27 @@ const saveStep6 = async () => {
               Post Office <span className="text-red-600">*</span>
             </label>
             <input
-              type="text"
-              value={personalInfo.permanentAddress.post}
-              onChange={(e) => {
-                setPersonalInfo({
-                  ...personalInfo,
-                  permanentAddress: { ...personalInfo.permanentAddress, post: e.target.value },
-                });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPost: "" } }));
-                }
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
+  type="text"
+  value={personalInfo.permanentAddress.post}
+  onChange={(e) => {
+    const newPost = e.target.value;
+    setPersonalInfo({
+      ...personalInfo,
+      permanentAddress: { ...personalInfo.permanentAddress, post: newPost },
+    });
+    if (e.target.value.trim()) {
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPost: "" } }));
+    }
+    // If sameAsPermanent is true, also update correspondence address
+    if (personalInfo.sameAsPermanent) {
+      setPersonalInfo(prev => ({
+        ...prev,
+        correspondenceAddress: { ...prev.correspondenceAddress, post: newPost },
+      }));
+    }
+  }}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+/>
             {errors.permanentPost && <p className="text-red-500 text-xs mt-1">{errors.permanentPost}</p>}
           </div>
           <div>
@@ -2730,16 +3261,16 @@ const saveStep6 = async () => {
               State <span className="text-red-600">*</span>
             </label>
             <select
-              value={personalInfo.permanentAddress.stateId || ""}
-              onChange={(e) => {
-                const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
-                if (selectedState) {
-                  handlePermanentStateChange(selectedState.stateId, selectedState.stateName);
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentState: "" } }));
-                }
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            >
+  value={personalInfo.permanentAddress.stateId || ""}
+  onChange={(e) => {
+    const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
+    if (selectedState) {
+      handlePermanentStateChange(selectedState.stateId, selectedState.stateName);
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentState: "" } }));
+    }
+  }}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+>
               <option value="">Select State</option>
               {getStateOptions().map((state) => (
                 <option key={state.id} value={state.id}>
@@ -2754,17 +3285,17 @@ const saveStep6 = async () => {
               District <span className="text-red-600">*</span>
             </label>
             <select
-              value={personalInfo.permanentAddress.districtId || ""}
-              onChange={(e) => {
-                const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
-                if (selectedDistrict) {
-                  handlePermanentDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentDistrict: "" } }));
-                }
-              }}
-              disabled={!personalInfo.permanentAddress.stateId}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
-            >
+  value={personalInfo.permanentAddress.districtId || ""}
+  onChange={(e) => {
+    const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
+    if (selectedDistrict) {
+      handlePermanentDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentDistrict: "" } }));
+    }
+  }}
+  disabled={!personalInfo.permanentAddress.stateId}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
+>
               <option value="">Select District</option>
               {getPermanentDistrictOptions().map((district) => (
                 <option key={district.id} value={district.id}>
@@ -2779,22 +3310,29 @@ const saveStep6 = async () => {
               Pincode <span className="text-red-600">*</span>
             </label>
             <input
-              type="text"
-              maxLength={6}
-              value={personalInfo.permanentAddress.pincode}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                setPersonalInfo({
-                  ...personalInfo,
-                  permanentAddress: { ...personalInfo.permanentAddress, pincode: value },
-                });
-                if (value.length === 6) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPincode: "" } }));
-                }
-              }}
-              onKeyDown={validateNumberInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-            />
+  type="text"
+  maxLength={6}
+  value={personalInfo.permanentAddress.pincode}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setPersonalInfo({
+      ...personalInfo,
+      permanentAddress: { ...personalInfo.permanentAddress, pincode: value },
+    });
+    if (value.length === 6) {
+      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPincode: "" } }));
+    }
+    // If sameAsPermanent is true, also update correspondence address
+    if (personalInfo.sameAsPermanent) {
+      setPersonalInfo(prev => ({
+        ...prev,
+        correspondenceAddress: { ...prev.correspondenceAddress, pincode: value },
+      }));
+    }
+  }}
+  onKeyDown={validateNumberInput}
+  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+/>
              {errors.permanentPincode && <p className="text-red-500 text-xs mt-1">{errors.permanentPincode}</p>}
           </div>
         </div>
@@ -2809,48 +3347,51 @@ const saveStep6 = async () => {
         </div>
         <div className="flex items-center gap-3 mb-4">
           <input
-            type="checkbox"
-            id="sameAsPermanent"
-            checked={personalInfo.sameAsPermanent}
-            onChange={(e) => {
-              const isChecked = e.target.checked;
-              if (isChecked) {
-                setPersonalInfo({
-                  ...personalInfo,
-                  sameAsPermanent: true,
-                  correspondenceAddress: {
-                    street: personalInfo.permanentAddress.street,
-                    post: personalInfo.permanentAddress.post,
-                    district: personalInfo.permanentAddress.district,
-                    districtId: personalInfo.permanentAddress.districtId,
-                    state: personalInfo.permanentAddress.state,
-                    stateId: personalInfo.permanentAddress.stateId,
-                    pincode: personalInfo.permanentAddress.pincode,
-                    cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
-                  },
-                });
-                if (personalInfo.permanentAddress.stateId) {
-                  const fetchCopiedDistricts = async () => {
-                    try {
-                      const response = await apiService.getDistrictsByState(personalInfo.permanentAddress.stateId!);
-                      if (response.data.success) {
-                        setCorrespondenceDistricts(response.data.data);
-                      }
-                    } catch (error) {
-                      console.error("Error fetching districts for copied address:", error);
-                    }
-                  };
-                  fetchCopiedDistricts();
-                }
-              } else {
-                setPersonalInfo({
-                  ...personalInfo,
-                  sameAsPermanent: false,
-                });
-              }
-            }}
-            className="w-4 h-4 text-primary rounded"
-          />
+  type="checkbox"
+  id="sameAsPermanent"
+  checked={personalInfo.sameAsPermanent}
+  onChange={(e) => {
+    const isChecked = e.target.checked;
+    if (isChecked) {
+      // When checking, copy all permanent address values to correspondence
+      setPersonalInfo({
+        ...personalInfo,
+        sameAsPermanent: true,
+        correspondenceAddress: {
+          street: personalInfo.permanentAddress.street,
+          post: personalInfo.permanentAddress.post,
+          district: personalInfo.permanentAddress.district,
+          districtId: personalInfo.permanentAddress.districtId,
+          state: personalInfo.permanentAddress.state,
+          stateId: personalInfo.permanentAddress.stateId,
+          pincode: personalInfo.permanentAddress.pincode,
+          cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
+        },
+      });
+      // Also fetch districts for the copied state
+      if (personalInfo.permanentAddress.stateId) {
+        const fetchCopiedDistricts = async () => {
+          try {
+            const response = await apiService.getDistrictsByState(personalInfo.permanentAddress.stateId!);
+            if (response.data.success) {
+              setCorrespondenceDistricts(response.data.data);
+            }
+          } catch (error) {
+            console.error("Error fetching districts for copied address:", error);
+          }
+        };
+        fetchCopiedDistricts();
+      }
+    } else {
+      // When unchecking, just set sameAsPermanent to false without copying
+      setPersonalInfo({
+        ...personalInfo,
+        sameAsPermanent: false,
+      });
+    }
+  }}
+  className="w-4 h-4 text-primary rounded"
+/>
           <label htmlFor="sameAsPermanent" className="text-slate-700 font-medium cursor-pointer">
             Same as Permanent Address
           </label>
@@ -3078,7 +3619,7 @@ const renderReservationCategory = () => {
           {/* Locally Resident of Jharkhand - Dropdown Field */}
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Are you a Local Resident of Jharkhand? <span className="text-red-600">*</span>
+              Are you Local Resident of Jharkhand? <span className="text-red-600">*</span>
             </label>
             <select
               value={reservationCategory.isLocallyResident || ""}
@@ -3093,6 +3634,37 @@ const renderReservationCategory = () => {
               <option value="no">No</option>
             </select>
             {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-800 mb-2">
+              Jharkhand Domicile Claim <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="domicile"
+                  value="yes"
+                  checked={reservationCategory.isJharkhandDomicile === "yes"}
+                  onChange={(e) => handleDomicileChange(e.target.value)}
+                  className="w-4 h-4 text-primary"
+                />
+                Yes
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="domicile"
+                  value="no"
+                  checked={reservationCategory.isJharkhandDomicile === "no"}
+                  onChange={(e) => handleDomicileChange(e.target.value)}
+                  className="w-4 h-4 text-primary"
+                />
+                No
+              </label>
+            </div>
+            {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
           </div>
 
           <div>
@@ -3145,65 +3717,47 @@ const renderReservationCategory = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Jharkhand Domicile Claim <span className="text-red-600">*</span>
-            </label>
-            <div className="flex gap-6 mt-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="domicile"
-                  value="yes"
-                  checked={reservationCategory.isJharkhandDomicile === "yes"}
-                  onChange={(e) => handleDomicileChange(e.target.value)}
-                  className="w-4 h-4 text-primary"
-                />
-                Yes
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="domicile"
-                  value="no"
-                  checked={reservationCategory.isJharkhandDomicile === "no"}
-                  onChange={(e) => handleDomicileChange(e.target.value)}
-                  className="w-4 h-4 text-primary"
-                />
-                No
-              </label>
-            </div>
-            {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
-          </div>
+          
+          
         </div>
 
         {/* District of Local Residence - Text Input Field (Shows when Locally Resident is Yes) */}
-        {reservationCategory.isLocallyResident === "yes" && (
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-slate-800 mb-2">
-             Your District of Local Residence <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={reservationCategory.localDistrictName || ""}
-              onChange={(e) => {
-                setReservationCategory({
-                  ...reservationCategory,
-                  localDistrictName: e.target.value,
-                });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
-                }
-              }}
-              placeholder="Enter your district name (e.g., Ranchi, Dumka, Hazaribagh)"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
-            <p className="text-xs text-slate-500 mt-1">
-              Please enter the name of your district in Jharkhand
-            </p>
-          </div>
-        )}
+        {/* District of Local Residence - Dropdown Field (Shows when Locally Resident is Yes) */}
+{reservationCategory.isLocallyResident === "yes" && (
+  <div className="mt-4">
+    <label className="block text-sm font-semibold text-slate-800 mb-2">
+      Your District of Local Residence <span className="text-red-600">*</span>
+    </label>
+    <select
+      value={reservationCategory.localDistrictId || ""}
+      onChange={(e) => {
+        const selectedId = Number(e.target.value);
+        const selectedDistrict = localDistricts.find(d => d.districtId === selectedId);
+        if (selectedDistrict) {
+          setReservationCategory({
+            ...reservationCategory,
+            localDistrictId: selectedId,
+            localDistrictName: selectedDistrict.districtName,
+          });
+          if (selectedId) {
+            setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
+          }
+        }
+      }}
+      className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
+    >
+      <option value="">Select District</option>
+      {localDistricts.map((district) => (
+        <option key={district.districtId} value={district.districtId}>
+          {district.districtName}
+        </option>
+      ))}
+    </select>
+    {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
+    
+    
+  </div>
+)}
         
         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
         {reservationCategory.mainCategoryId && 
@@ -3213,7 +3767,7 @@ const renderReservationCategory = () => {
           <>
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Category Certificate Number <span className="text-red-600">*</span>
+                Caste/Category Certificate Number <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3232,7 +3786,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-               Certificate Date Of issue <span className="text-red-600">*</span>
+              Caste/Category Certificate Date Of issue <span className="text-red-600">*</span>
               </label>
               <input
                 type="date"
@@ -3672,7 +4226,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Certificate  Issue Date <span className="text-red-600">*</span>
+                Certificate Date Of Issue <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
@@ -3691,7 +4245,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Issuing Authority <span className="text-red-600">*</span>
+                  Certificate Issued Authority<span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -3737,1137 +4291,6 @@ const renderReservationCategory = () => {
   );
 };
 
-// const renderReservationCategory = () => {
-//   const errors = stepErrors[1] || {};
-  
-//   // Get main categories from API (parent categories)
-//   const mainCategories = categoriesList.filter(cat => cat.catParentId === null);
-  
-//   // Get ST subcategories when ST is selected
-//   const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
-//   const stSubCategories = stCategory?.subCategories || [];
-
-//   return (
-//     <div className="space-y-6">
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Category Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-//            {/* Locally Resident of Jharkhand - Dropdown Field */}
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Are you a Local Resident of Jharkhand? <span className="text-red-600">*</span>
-//             </label>
-//             <select
-//               value={reservationCategory.isLocallyResident || ""}
-//               onChange={(e) => {
-//                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
-//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
-//               }}
-//               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
-//             >
-//               <option value="">Select Option</option>
-//               <option value="yes">Yes</option>
-//               <option value="no">No</option>
-//             </select>
-//             {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Reservation Category <span className="text-red-600">*</span>
-//             </label>
-//             <select
-//               value={reservationCategory.mainCategoryId || ""}
-//               onChange={(e) => {
-//                 const selectedId = Number(e.target.value);
-//                 const selected = mainCategories.find(cat => cat.catId === selectedId);
-//                 if (selected) {
-//                   setReservationCategory({
-//                     ...reservationCategory,
-//                     mainCategory: selected.catName,
-//                     mainCategoryId: selected.catId,
-//                     subCategory: "",
-//                     subCategoryId: undefined,
-//                   });
-//                   const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
-//                   setFeePayment({ ...feePayment, applicationFee: fee });
-//                   if (selectedId) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
-//                   }
-//                 }
-//               }}
-//               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
-//             >
-//               <option value="">Select Category</option>
-//               {mainCategories.map((cat) => (
-//                 <option key={cat.catId} value={cat.catId}>
-//                   {cat.catName}
-//                 </option>
-//               ))}
-//             </select>
-//             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
-//           </div>
-          
-//           {/* ST Sub Category - Only show when ST is selected */}
-//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
-//             <div>
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Sub-Category (Primitive Tribe)
-//               </label>
-//               <select
-//                 value={reservationCategory.subCategoryId || ""}
-//                 onChange={(e) => {
-//                   const selectedId = Number(e.target.value);
-//                   const selected = stSubCategories.find(sub => sub.catId === selectedId);
-//                   if (selected) {
-//                     setReservationCategory({
-//                       ...reservationCategory,
-//                       subCategory: selected.catName,
-//                       subCategoryId: selected.catId,
-//                     });
-//                   }
-//                 }}
-//                 className="w-full h-12 border border-slate-300 rounded-lg px-4"
-//               >
-//                 <option value="">Select Sub-Category</option>
-//                 {stSubCategories.map((sub) => (
-//                   <option key={sub.catId} value={sub.catId}>
-//                     {sub.catName}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           )}
-          
-         
-         
-
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Jharkhand Domicile Claim <span className="text-red-600">*</span>
-//             </label>
-//             <div className="flex gap-6 mt-2">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="domicile"
-//                   value="yes"
-//                   checked={reservationCategory.isJharkhandDomicile === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="domicile"
-//                   value="no"
-//                   checked={reservationCategory.isJharkhandDomicile === "no"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isJharkhandDomicile: e.target.value });
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
-//           </div>
-//         </div>
-
-//         {/* District of Local Residence - Text Input Field (Shows when Locally Resident is Yes) */}
-//         {reservationCategory.isLocallyResident === "yes" && (
-//           <div className="mt-4">
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//              Your District of Local Residence <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={reservationCategory.localDistrictName || ""}
-//               onChange={(e) => {
-//                 setReservationCategory({
-//                   ...reservationCategory,
-//                   localDistrictName: e.target.value,
-//                 });
-//                 if (e.target.value.trim()) {
-//                   setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
-//                 }
-//               }}
-//               placeholder="Enter your district name (e.g., Ranchi, Dumka, Hazaribagh)"
-//               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
-//             <p className="text-xs text-slate-500 mt-1">
-//               Please enter the name of your district in Jharkhand
-//             </p>
-//           </div>
-//         )}
-        
-//         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
-//         {reservationCategory.mainCategoryId && ![1, 8].includes(reservationCategory.mainCategoryId) && (
-//           <>
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Category Certificate Number <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.categoryCertificateNumber}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Category Certificate Number"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                Certificate Date Of issue <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="date"
-//                 value={reservationCategory.categoryCertificateIssueDate}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
-//                   }
-//                 }}
-//                 max={new Date().toISOString().split('T')[0]}
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                Certificate Issued Authority <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.categoryCertificateAuthority}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
-//             </div>
-//           </>
-//         )}
-        
-//         {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
-//         {reservationCategory.isJharkhandDomicile === "yes" && (
-//           <>
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Resdential / Domicile Certificate Number <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.domicileCertificateNumber}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Domicile Certificate Number"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                Certificate Date Of issue <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="date"
-//                 value={reservationCategory.domicileCertificateIssueDate}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
-//                   }
-//                 }}
-//                 max={new Date().toISOString().split('T')[0]}
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateIssueDate}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                Certificate Issued Authority <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.domicileCertificateAuthority}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateAuthority}</p>}
-//             </div>
-//           </>
-//         )}
-//       </div>
-
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Physical Handicap (PwD) Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Physically Handicapped?
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="pwd"
-//                   value="yes"
-//                   checked={reservationCategory.isPwd === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({
-//                       ...reservationCategory,
-//                       isPwd: e.target.value,
-//                     });
-//                     if (e.target.value === "yes") {
-//                       setFeePayment({ ...feePayment, applicationFee: "0" });
-//                     } else {
-//                       const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
-//                       setFeePayment({ ...feePayment, applicationFee: fee });
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="pwd"
-//                   value="no"
-//                   checked={reservationCategory.isPwd === "no"}
-//                   onChange={(e) => {
-//                     setReservationCategory({
-//                       ...reservationCategory,
-//                       isPwd: e.target.value,
-//                     });
-//                     const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
-//                     setFeePayment({ ...feePayment, applicationFee: fee });
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isPwd === "yes" && (
-//             <>
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Type of Disability <span className="text-red-600">*</span>
-//                 </label>
-//                 <select
-//                   value={reservationCategory.pwdTypeId || ""}
-//                   onChange={(e) => {
-//                     const selectedId = Number(e.target.value);
-//                     const selected = disabilitiesList.find(d => d.id === selectedId);
-//                     if (selected) {
-//                       setReservationCategory({ 
-//                         ...reservationCategory, 
-//                         pwdTypeId: selectedId,
-//                         pwdType: selected.name
-//                       });
-//                       if (selectedId) {
-//                         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
-//                       }
-//                     }
-//                   }}
-//                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
-//                 >
-//                   <option value="">Select Type</option>
-//                   {disabilitiesList.map((disability) => (
-//                     <option key={disability.id} value={disability.id}>
-//                       {disability.name}
-//                     </option>
-//                   ))}
-//                 </select>
-//                 {errors.pwdType && <p className="text-red-500 text-xs mt-1">{errors.pwdType}</p>}
-//               </div>
-              
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Disability Percentage (%) <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdPercentage}
-//                   onChange={(e) => {
-//                     const value = e.target.value.replace(/\D/g, '');
-//                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
-//                     if (value && parseInt(value) >= 40) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
-//                     }
-//                   }}
-//                   onKeyDown={validateNumberInput}
-//                   maxLength={2}
-//                   placeholder="Should be ≥ 40% to claim benefit"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdPercentage ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdPercentage && <p className="text-red-500 text-xs mt-1">{errors.pwdPercentage}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   PwD Certificate Number <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdCertificateNumber}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter PwD Certificate Number"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Certificate Date Of issue <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="date"
-//                   value={reservationCategory.pwdCertificateIssueDate}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
-//                     }
-//                   }}
-//                   max={new Date().toISOString().split('T')[0]}
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateIssueDate}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                  Certificate Issued Authority <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdCertificateAuthority}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateAuthority}</p>}
-//               </div>
-//             </>
-//           )}
-//         </div>
-//       </div>
-
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Ex-Serviceman Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Ex-Serviceman?
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="exService"
-//                   value="yes"
-//                   checked={reservationCategory.isExServiceman === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
-//                     if (e.target.value === "yes") {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="exService"
-//                   value="no"
-//                   checked={reservationCategory.isExServiceman === "no"}
-//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value })}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isExServiceman === "yes" && (
-//             <div>
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Years of Service (0-30) <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="number"
-//                 min={0}
-//                 max={30}
-//                 value={reservationCategory.exServicemanYears}
-//                 onChange={(e) => {
-//                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
-//                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
-//                   if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-//                   }
-//                 }}
-//                 placeholder="0-30"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.exServicemanYears ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.exServicemanYears && <p className="text-red-500 text-xs mt-1">{errors.exServicemanYears}</p>}
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Sports Quota Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Claim Sports Quota? *
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="sports"
-//                   value="yes"
-//                   checked={reservationCategory.isSportsQuota === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
-//                     if (e.target.value === "yes") {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="sports"
-//                   value="no"
-//                   checked={reservationCategory.isSportsQuota === "no"}
-//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value })}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isSportsQuota === "yes" && (
-//             <>
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Sports Level <span className="text-red-600">*</span>
-//                 </label>
-//                 <select
-//                   value={reservationCategory.sportsLevel}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
-//                     }
-//                   }}
-//                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
-//                 >
-//                   <option value="">Select Level</option>
-//                   <option value="international">Medal or Participation in International Level Competition organized by IOC/International Paralympic Committee or its affiliated federations.</option>
-//                   <option value="national">Medal or Participation in National Level Competition organized by IOA/Indian Paralympic Committee or its affiliated National Sports federations.</option>
-//                 </select>
-//                 {errors.sportsLevel && <p className="text-red-500 text-xs mt-1">{errors.sportsLevel}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Achievement Details <span className="text-red-600">*</span>
-//                 </label>
-//                 <textarea
-//                   value={reservationCategory.sportsAchievement}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
-//                     if (e.target.value.trim()) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
-//                     }
-//                   }}
-//                   rows={2}
-//                   placeholder="Describe your achievements..."
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsAchievement ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsAchievement && <p className="text-red-500 text-xs mt-1">{errors.sportsAchievement}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Sports Certificate Number <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.sportsCertificateNumber}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Sports Certificate Number"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Certificate  Issue Date <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="date"
-//                   value={reservationCategory.sportsCertificateIssueDate}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
-//                     }
-//                   }}
-//                   max={new Date().toISOString().split('T')[0]}
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateIssueDate}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Issuing Authority <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.sportsCertificateAuthority}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateAuthority}</p>}
-//               </div>
-//             </>
-//           )}
-//         </div>
-//       </div>
-
-//       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-//         <label className="flex items-start gap-4 cursor-pointer">
-//           <input
-//             type="checkbox"
-//             checked={reservationCategory.declaration}
-//             onChange={(e) => {
-//               setReservationCategory({ ...reservationCategory, declaration: e.target.checked });
-//               if (e.target.checked) {
-//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
-//               }
-//             }}
-//             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
-//           />
-//           <span className="text-sm font-medium text-slate-700 leading-6">
-//             I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that providing false information may lead to cancellation of my application.{" "}
-//             <span className="text-red-500 font-bold">*</span>
-//           </span>
-//         </label>
-//         {errors.declaration && <p className="text-red-500 text-xs mt-2 ml-9">{errors.declaration}</p>}
-//       </div>
-//     </div>
-//   );
-// };
-
-// const renderEducationDetails = () => {
-//   const errors = stepErrors[2] || {};
-  
-//   // Get degree options for dropdown
-//   const degreeOptions = degreesList.map(degree => degree.degreeName);
-  
-//   return (
-//     <div className="space-y-8">
-//       {/* 10th Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <Award className="w-5 h-5 text-primary" />
-//             10th / SSC Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Board Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={boards}
-//               value={education.tenth.board}
-//               onChange={(value) => {
-//                 setEducation({ ...education, tenth: { ...education.tenth, board: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthBoard: "" } }));
-//               }}
-//               placeholder="Select Board"
-//               required
-//             />
-//             {errors.tenthBoard && <p className="text-red-500 text-xs mt-1">{errors.tenthBoard}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 500"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained 
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 450"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage (%) / CGPA <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "" } }));
-//               }}
-//               placeholder="e.g., 82.5"
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No. <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.tenth.passingCertificateNo}
-//               onChange={(e) => {
-//                 setEducation({ ...education, tenth: { ...education.tenth, passingCertificateNo: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthCertificate: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthCertificate ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.tenthCertificate && <p className="text-red-500 text-xs mt-1">{errors.tenthCertificate}</p>}
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* 12th Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <BookOpen className="w-5 h-5 text-primary" />
-//             12th / HSC Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Board Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={boards}
-//               value={education.twelfth.board}
-//               onChange={(value) => {
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, board: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthBoard: "" } }));
-//               }}
-//               placeholder="Select Board"
-//             />
-//             {errors.twelfthBoard && <p className="text-red-500 text-xs mt-1">{errors.twelfthBoard}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 500"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 450"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage (%) <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No.
-//             </label>
-//             <input
-//               type="text"
-//               value={education.twelfth.passingCertificateNo}
-//               onChange={(e) => setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } })}
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Graduation Education */}
-//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
-//         <div className="absolute -top-4 left-5 bg-white px-3">
-//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-//             <GraduationCap className="w-5 h-5 text-primary" />
-//             Graduation Education
-//           </h3>
-//         </div>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Course Name <span className="text-red-600">*</span>
-//             </label>
-//             <SearchableDropdown
-//               options={degreeOptions}
-//               value={(() => {
-//                 const foundDegree = degreesList.find(d => d.degreeId === education.graduation.graduationCourseId);
-//                 return foundDegree ? foundDegree.degreeName : education.graduation.graduationCourse;
-//               })()}
-//               onChange={(value) => {
-//                 const selectedDegree = degreesList.find(d => d.degreeName === value);
-//                 setEducation({ 
-//                   ...education, 
-//                   graduation: { 
-//                     ...education.graduation, 
-//                     graduationCourse: value,
-//                     graduationCourseId: selectedDegree?.degreeId 
-//                   } 
-//                 });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
-//               }}
-//               placeholder="Select Course"
-//               required
-//             />
-//             {errors.graduationCourse && <p className="text-red-500 text-xs mt-1">{errors.graduationCourse}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               University Name <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.university}
-//               onChange={(e) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, university: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationUniversity: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.graduationUniversity}</p>}
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Total Marks <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.totalMarks}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, totalMarks: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 3000"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Marks Obtained <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.marksObtained}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/\D/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, marksObtained: value } });
-//               }}
-//               onKeyDown={validateNumberInput}
-//               placeholder="e.g., 2400"
-//               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//             />
-//           </div>
-          
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Percentage/CGPA <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.percentage}
-//               onChange={(e) => {
-//                 const value = e.target.value.replace(/[^0-9.]/g, '');
-//                 setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
-//                 if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationMarks: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarks ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
-//           </div>
-          
-        
-//           <div>
-//             <label className="block text-slate-700 text-sm font-medium mb-2">
-//               Passing Certificate No. <span className="text-red-600">*</span>
-//             </label>
-//             <input
-//               type="text"
-//               value={education.graduation.passingCertificateNo}
-//               onChange={(e) => {
-//                 setEducation({ ...education, graduation: { ...education.graduation, passingCertificateNo: e.target.value } });
-//                 if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCertificate: "" } }));
-//               }}
-//               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationCertificate ? 'border-red-500' : 'border-slate-300'}`}
-//             />
-//             {errors.graduationCertificate && <p className="text-red-500 text-xs mt-1">{errors.graduationCertificate}</p>}
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Post-Graduation Qualification */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-//         <label className="flex items-center gap-3 cursor-pointer mb-4">
-//           <input
-//             type="checkbox"
-//             checked={education.postGraduation.hasPostGraduation}
-//             onChange={(e) =>
-//               setEducation({
-//                 ...education,
-//                 postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
-//               })
-//             }
-//             className="w-4 h-4 text-primary rounded"
-//           />
-//           <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
-//         </label>
-//         {education.postGraduation.hasPostGraduation && (
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 University/College Name
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.university}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, university: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Total Marks
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.totalMarks}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, totalMarks: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 2000"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Marks Obtained
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.marksObtained}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/\D/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, marksObtained: value },
-//                   });
-//                 }}
-//                 onKeyDown={validateNumberInput}
-//                 placeholder="e.g., 1600"
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Percentage
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.percentage}
-//                 onChange={(e) => {
-//                   const value = e.target.value.replace(/[^0-9.]/g, '');
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, percentage: value },
-//                   });
-//                 }}
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700 mb-2">
-//                 Passing Certificate No.
-//               </label>
-//               <input
-//                 type="text"
-//                 value={education.postGraduation.passingCertificateNo}
-//                 onChange={(e) =>
-//                   setEducation({
-//                     ...education,
-//                     postGraduation: { ...education.postGraduation, passingCertificateNo: e.target.value },
-//                   })
-//                 }
-//                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-//               />
-//             </div>
-//           </div>
-//         )}
-//       </div>
- 
-//     </div>
-//   );
-// };
 
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
@@ -4906,7 +4329,7 @@ const renderEducationDetails = () => {
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Total Marks <span className="text-red-600">*</span>
+              Total Marks
             </label>
             <input
               type="text"
@@ -4938,23 +4361,41 @@ const renderEducationDetails = () => {
             />
           </div>
           
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage (%) / CGPA <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={education.tenth.percentage}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9.]/g, '');
-                setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "" } }));
-              }}
-              placeholder="e.g., 82.5"
-              className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarks ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
-          </div>
+        <div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Percentage (%) / CGPA <span className="text-red-600">*</span>
+  </label>
+  <input
+    type="text"
+    value={education.tenth.percentage}
+    onChange={(e) => {
+      let value = e.target.value.replace(/[^0-9.]/g, '');
+      // Prevent multiple decimal points
+      const decimalCount = (value.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        value = value.slice(0, value.lastIndexOf('.'));
+      }
+      // Check if value is within 0-100 range
+      const numValue = parseFloat(value);
+      let errorMessage = "";
+      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
+        errorMessage = "Percentage must be between 0 and 100";
+      }
+      setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
+      if (value && !errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "", tenthPercentage: "" } }));
+      } else if (errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthPercentage: errorMessage } }));
+      }
+    }}
+    placeholder="e.g., 82.5"
+    className={`w-full px-4 py-2 border rounded-lg ${
+      errors.tenthMarks || errors.tenthPercentage ? 'border-red-500' : 'border-slate-300'
+    }`}
+  />
+  {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
+  {errors.tenthPercentage && <p className="text-red-500 text-xs mt-1">{errors.tenthPercentage}</p>}
+</div>
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -4985,7 +4426,8 @@ const renderEducationDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Board Name <span className="text-red-600">*</span>
+              Board Name 
+              
             </label>
             <SearchableDropdown
               options={boards}
@@ -5034,21 +4476,40 @@ const renderEducationDetails = () => {
           </div>
           
           <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage (%) <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={education.twelfth.percentage}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9.]/g, '');
-                setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "" } }));
-              }}
-              className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarks ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
-          </div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Percentage (%) /CGPA
+    
+  </label>
+  <input
+    type="text"
+    value={education.twelfth.percentage}
+    onChange={(e) => {
+      let value = e.target.value.replace(/[^0-9.]/g, '');
+      // Prevent multiple decimal points
+      const decimalCount = (value.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        value = value.slice(0, value.lastIndexOf('.'));
+      }
+      // Check if value is within 0-100 range
+      const numValue = parseFloat(value);
+      let errorMessage = "";
+      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
+        errorMessage = "Percentage must be between 0 and 100";
+      }
+      setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
+      if (value && !errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "", twelfthPercentage: "" } }));
+      } else if (errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthPercentage: errorMessage } }));
+      }
+    }}
+    className={`w-full px-4 py-2 border rounded-lg ${
+      errors.twelfthMarks || errors.twelfthPercentage ? 'border-red-500' : 'border-slate-300'
+    }`}
+  />
+  {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
+  {errors.twelfthPercentage && <p className="text-red-500 text-xs mt-1">{errors.twelfthPercentage}</p>}
+</div>
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -5132,6 +4593,7 @@ const renderEducationDetails = () => {
               placeholder="e.g., 3000"
               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
             />
+            {errors.graduationTotalMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationTotalMarks}</p>}
           </div>
           
           <div>
@@ -5149,24 +4611,49 @@ const renderEducationDetails = () => {
               placeholder="e.g., 2400"
               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
             />
+            {errors.graduationMarksObtained && <p className="text-red-500 text-xs mt-1">{errors.graduationMarksObtained}</p>}
           </div>
-          
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Percentage/CGPA <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={education.graduation.percentage}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9.]/g, '');
-                setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationMarks: "" } }));
-              }}
-              className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarks ? 'border-red-500' : 'border-slate-300'}`}
-            />
-            {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
-          </div>
+           
+           
+         
+         
+         <div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Percentage/CGPA <span className="text-red-600">*</span>
+  </label>
+  <input
+  type="text"
+  value={education.graduation.percentage}
+  onChange={(e) => {
+    let value = e.target.value.replace(/[^0-9.]/g, '');
+    const decimalCount = (value.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      value = value.slice(0, value.lastIndexOf('.'));
+    }
+    const numValue = parseFloat(value);
+    let errorMessage = "";
+    if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
+      errorMessage = "Percentage must be between 0 and 100";
+    }
+    setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
+    // Clear errors when user types
+    setStepErrors(prev => ({ 
+      ...prev, 
+      [2]: { 
+        ...prev[2], 
+        graduationMarks: "", 
+        graduationPercentage: errorMessage 
+      } 
+    }));
+  }}
+  className={`w-full px-4 py-2 border rounded-lg ${
+    errors.graduationMarks || errors.graduationPercentage ? 'border-red-500' : 'border-slate-300'
+  }`}
+/>
+{errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
+{errors.graduationPercentage && <p className="text-red-500 text-xs mt-1">{errors.graduationPercentage}</p>}
+
+</div>
           
           
           
@@ -5209,7 +4696,7 @@ const renderEducationDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Course/Degree Name <span className="text-red-600">*</span>
+                Course/Degree Name 
               </label>
               <SearchableDropdown
                 options={masterDegreeOptions}
@@ -5287,23 +4774,47 @@ const renderEducationDetails = () => {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
+
+
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Percentage
-              </label>
-              <input
-                type="text"
-                value={education.postGraduation.percentage}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                  setEducation({
-                    ...education,
-                    postGraduation: { ...education.postGraduation, percentage: value },
-                  });
-                }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-              />
-            </div>
+  <label className="block text-sm font-medium text-slate-700 mb-2">
+    Percentage
+  </label>
+  <input
+    type="text"
+    value={education.postGraduation.percentage}
+    onChange={(e) => {
+      let value = e.target.value.replace(/[^0-9.]/g, '');
+      // Prevent multiple decimal points
+      const decimalCount = (value.match(/\./g) || []).length;
+      if (decimalCount > 1) {
+        value = value.slice(0, value.lastIndexOf('.'));
+      }
+      // Check if value is within 0-100 range
+      const numValue = parseFloat(value);
+      let errorMessage = "";
+      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
+        errorMessage = "Percentage must be between 0 and 100";
+      }
+      setEducation({
+        ...education,
+        postGraduation: { ...education.postGraduation, percentage: value },
+      });
+      if (value && !errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], postGraduationPercentage: "" } }));
+      } else if (errorMessage) {
+        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], postGraduationPercentage: errorMessage } }));
+      }
+    }}
+    className={`w-full px-4 py-2 border rounded-lg ${
+      errors.postGraduationPercentage ? 'border-red-500' : 'border-slate-300'
+    }`}
+  />
+ 
+ 
+</div>
+
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Passing Certificate No.
@@ -5328,6 +4839,7 @@ const renderEducationDetails = () => {
     </div>
   );
 };
+
 
 const renderPostPreference = () => {
   const errors = stepErrors[3] || {};
@@ -5369,6 +4881,9 @@ const renderPostPreference = () => {
   // Use postsList from API
   const postsToShow = postsList.length > 0 ? postsList : [];
   const postsAvailable = postsToShow.length;
+  
+  // Auto-assign priority when only one post is available - This logic is moved to useEffect at component level
+  // We'll handle auto-assignment when posts are loaded
   const allPrioritiesAssigned = postsAvailable > 0 && Object.values(postPreference.postRankings).every(p => p !== 0);
 
   return (
@@ -5388,7 +4903,6 @@ const renderPostPreference = () => {
           </p>
         </div>
 
-        
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
@@ -5405,6 +4919,9 @@ const renderPostPreference = () => {
           <p className="text-xs text-slate-500 mb-4 italic">
             Select priority number from dropdown (1 = highest priority). Each priority number can be used only once.
             {postsAvailable > 0 && ` You have ${postsAvailable} posts to rank from 1 to ${postsAvailable}.`}
+            {postsAvailable === 1 && (
+              <span className="block mt-1 text-green-600">Priority will be automatically set to 1.</span>
+            )}
           </p>
 
           {/* Error message for post rankings */}
@@ -5418,16 +4935,41 @@ const renderPostPreference = () => {
           )}
 
           {postsAvailable === 0 ? (
-            <div className="text-center py-8 bg-slate-50 rounded-lg">
-              <p className="text-slate-500">No posts available at the moment.</p>
-              <p className="text-xs text-slate-400 mt-2">Please check back later or contact support.</p>
-            </div>
+            <div className="text-center py-12 bg-amber-50/30 rounded-2xl border border-amber-200">
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+      <AlertCircle className="w-8 h-8 text-amber-600" />
+    </div>
+    <h3 className="text-md font-semibold text-amber-800 mb-2">No Eligible Posts Found</h3>
+    <p className="text-sm text-amber-700 mb-3">
+      Based on your educational qualifications, no posts are available at this moment.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+      <button
+        onClick={() => setCurrentStep(2)}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all text-sm"
+      >
+        <GraduationCap size={14} />
+        Review Education Details
+      </button>
+      <button
+        onClick={() => window.location.reload()}
+        className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-all text-sm"
+      >
+        <RefreshCw size={14} />
+        Refresh
+      </button>
+    </div>
+    <p className="text-xs text-amber-600 mt-4">
+      Please ensure all your education details are correctly filled and try again.
+    </p>
+  </div>
           ) : (
             <div className={`space-y-3 ${errors.postRankings ? 'border-2 border-red-500 rounded-xl p-3' : ''}`}>
               {postsToShow.map((post, index) => {
                 const currentPriority = postPreference.postRankings[post.postCode] || 0;
                 const availablePriorities = getAvailablePriorities(post.postCode);
                 const isEligible = eligiblePosts.some((ep: any) => ep.postCode === post.postCode);
+                const isAutoAssigned = postsAvailable === 1 && currentPriority === 1;
                 
                 return (
                   <div
@@ -5459,8 +5001,10 @@ const renderPostPreference = () => {
                         value={currentPriority}
                         onChange={(e) => handlePriorityChange(post.postCode, parseInt(e.target.value))}
                         className={`w-32 h-12 border rounded-lg text-center font-bold text-primary focus:border-primary outline-none px-2 ${
-                          currentPriority === 0 ? 'border-red-300 bg-red-50' : 'border-slate-300'
+                          currentPriority === 0 ? 'border-red-300 bg-red-50' : 
+                          isAutoAssigned ? 'border-green-500 bg-green-50' : 'border-slate-300'
                         }`}
+                        disabled={postsAvailable === 1 && currentPriority === 1}
                       >
                         <option value={0}>Select Priority</option>
                         {availablePriorities.map((priority) => (
@@ -5474,6 +5018,9 @@ const renderPostPreference = () => {
                           </option>
                         )}
                       </select>
+                      {isAutoAssigned && (
+                        <p className="text-xs text-green-600 mt-1 text-center">Auto-assigned</p>
+                      )}
                     </div>
                   </div>
                 );
@@ -5524,10 +5071,6 @@ const renderPostPreference = () => {
           <p className="text-xs text-slate-500 mt-2 mb-5 leading-normal">
             Contact the recruitment helpdesk for clarification on post duties and eligibility.
           </p>
-          <button className="w-full flex items-center justify-center gap-2 h-12 bg-transparent border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-all text-sm">
-            <FileText size={16} />
-            Read Full Advertisement
-          </button>
         </div>
       </aside>
     </div>
@@ -5541,16 +5084,22 @@ const renderLanguageSelection = () => {
   const paperTwoOptions = [
     "Hindi Language & Literature",
     "English Language & Literature",
-    "Sanskrit Language & Literature",
     "Urdu Language & Literature",
+    "Santali Language & Literature",
     "Bengali Language & Literature",
-    "Santhali Language & Literature",
+    "Mundari Language & Literature",
+    "Ho Language & Literature",
+    "Kharia Language & Literature",
+    "Kudukh (Oraon) Language & Literature",
+    "Kurmali Language & Literature",
+    "Khortha Language & Literature",
+    "Nagpuri Language & Literature",
+    "Panchpargania Language & Literature",
+    "Odia Language & Literature",
+    "Sanskrit Language & Literature",
   ];
   const paperThreeOptions = [
-    "General Studies", "General Science", "Mathematics", "Physics",
-    "Chemistry", "Zoology", "Botany", "Statistics", "Economics",
-    "Commerce", "Geology", "Dairy Technology", "Fisheries Science",
-    "Pharmacy", "Pharmaceutical Chemistry", "Ayurveda",
+    "Technical / Specialized Subject and General Knowledge",
   ];
 
   return (
@@ -5564,7 +5113,7 @@ const renderLanguageSelection = () => {
       <div className="space-y-6 mt-4">
         <div>
           <label className="block text-slate-700 text-sm font-medium mb-2">
-            Paper-I Language <span className="text-red-600">*</span>
+            Paper-I Subject/Language <span className="text-red-600">*</span>
           </label>
           <select
             value={languageSelection.paperOneLanguage}
@@ -5619,250 +5168,25 @@ const renderLanguageSelection = () => {
               <option key={subject} value={subject}>{subject}</option>
             ))}
           </select>
-          {errors.paperThreeLanguage && <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>}
-        </div>
-      </div>
-    </div>
-  );
-};
-
- 
-  const renderFeePayment = () => {
-  const totalFee = calculateTotalFee();
-  let applicableFeeText = "";
-  if (reservationCategory.isPwd === "yes") {
-    applicableFeeText = "PwD Candidates (Fee: ₹0)";
-  } else if (reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st") {
-    applicableFeeText = "SC / ST (Fee: ₹50)";
-  } else {
-    applicableFeeText = "UR / EWS / OBC-II / EBC-I (Fee: ₹100)";
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-slate-800">
-                  Calculated Examination Fee
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Based on your selected category and disability status.
-                </p>
-              </div>
-              <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
-                {feePayment.paymentStatus}
-              </span>
-            </div>
-            <div className="my-6">
-              <span className="text-4xl font-extrabold text-primary">
-                ₹{totalFee}.00
-              </span>
-              <span className="text-sm text-slate-500 ml-2">
-                (Rupees {totalFee} Only)
-              </span>
-            </div>
-            <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
-              <div>
-                <span className="block text-xs font-bold text-slate-500">
-                  Candidate Category
-                </span>
-                <span className="font-bold text-slate-800">
-                  {reservationCategory.mainCategory || "Not Selected"}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs font-bold text-slate-500">
-                  PwD Status
-                </span>
-                <span className="font-bold text-slate-800">
-                  {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm font-medium text-blue-800">
-                Applicable Fee: <strong>{applicableFeeText}</strong>
-              </p>
-              <div className="mt-2 text-xs text-blue-700">
-                <p>Fee Structure:</p>
-                <ul className="list-disc pl-5 mt-1">
-                  <li>UR / EWS / OBC-II / EBC-I: ₹100</li>
-                  <li>SC / ST: ₹50</li>
-                  <li>PwD Candidates: ₹0</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h4 className="text-xs font-bold text-primary uppercase mb-5">
-              Choose Payment Method
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label
-                className={`border-2 rounded-lg p-5 flex flex-col items-center text-center cursor-not-allowed transition-all ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
-              >
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="online"
-                  checked={feePayment.paymentMode === "online"}
-                  onChange={(e) =>
-                    setFeePayment({
-                      ...feePayment,
-                      paymentMode: e.target.value,
-                    })
-                  }
-                  className="sr-only"
-                  disabled
-                />
-                <CreditCard size={28} className="text-primary mb-3" />
-                <span className="text-sm font-bold text-primary">
-                  Pay Online
-                </span>
-                <span className="text-xs text-slate-500">
-                  Net Banking, Card, UPI
-                </span>
-              </label>
-            </div>
-          </div>
-          {feePayment.paymentMode && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 mb-4">
-                Payment Information
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Bank Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={feePayment.bankName}
-                    onChange={(e) =>
-                      setFeePayment({
-                        ...feePayment,
-                        bankName: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Transaction ID *
-                  </label>
-                  <input
-                    type="text"
-                    value={feePayment.transactionId}
-                    onChange={(e) =>
-                      setFeePayment({
-                        ...feePayment,
-                        transactionId: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Payment Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={feePayment.paymentDate}
-                    onChange={(e) =>
-                      setFeePayment({
-                        ...feePayment,
-                        paymentDate: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-                    disabled
-                  />
-                </div>
-              </div>
-            </div>
+          {errors.paperThreeLanguage && (
+            <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>
           )}
+          
+          
         </div>
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-5">
-            <h4 className="text-xs font-bold text-slate-800 mb-3">
-              Supported Gateways
-            </h4>
-            <div className="grid grid-cols-3 gap-2">
-              {["SBI", "HDFC", "ICICI", "PAYTM"].map((g, i) => (
-                <div
-                  key={i}
-                  className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
-                >
-                  {g}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-2xl p-5 text-white">
-            <div className="flex items-center gap-2 mb-4">
-              <Info size={18} className="text-emerald-300" />
-              <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
-                Important Instructions
-              </h4>
-            </div>
-            <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
-              <li>
-                Wait for 24 hours after registration to initiate payment.
-              </li>
-              <li>Do not refresh the page during transaction.</li>
-              <li>Keep Transaction ID for future correspondence.</li>
-            </ul>
-          </div>
-          <div className="bg-sky-50 rounded-2xl p-4 flex justify-between items-center">
-            <div className="flex gap-3">
-              <div className="p-2 bg-primary text-white rounded-lg">
-                <HelpCircle size={18} />
-              </div>
-              <div>
-                <h5 className="text-sm font-bold text-primary">
-                  Payment Issues?
-                </h5>
-                <p className="text-xs text-primary/70">
-                  Support 10 AM - 6 PM
-                </p>
-              </div>
-            </div>
-            <button className="h-10 px-4 bg-white border border-sky-200 text-primary text-xs font-bold rounded-lg opacity-50 cursor-not-allowed" disabled>
-              Call Help Desk
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <button
-          onClick={() =>
-            setFeePayment({ ...feePayment, paymentStatus: "completed" })
-          }
-          className="h-14 px-12 bg-primary hover:bg-primary/80 text-white font-semibold rounded-xl flex items-center gap-2 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          Proceed to Payment <ExternalLink size={16} />
-        </button>
       </div>
     </div>
   );
 };
 
-// const renderFeePayment = () => {
+
+
+//   const renderFeePayment = () => {
+//   const totalFee = calculateTotalFee();
 //   let applicableFeeText = "";
-  
-//   if (isExServicemanSelected) {
-//     applicableFeeText = "Ex-Serviceman (Fee: ₹0)";
-//   } else if (isPwdSelected) {
+//   if (reservationCategory.isPwd === "yes") {
 //     applicableFeeText = "PwD Candidates (Fee: ₹0)";
-//   } else if (isSCST) {
+//   } else if (reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st") {
 //     applicableFeeText = "SC / ST (Fee: ₹50)";
 //   } else {
 //     applicableFeeText = "UR / EWS / OBC-II / EBC-I (Fee: ₹100)";
@@ -5882,18 +5206,16 @@ const renderLanguageSelection = () => {
 //                   Based on your selected category and disability status.
 //                 </p>
 //               </div>
-//               <span className={`px-3 py-1 text-white text-xs font-bold rounded-full ${
-//                 paymentHook.paymentStatus === "completed" ? "bg-green-600" : "bg-primary"
-//               }`}>
-//                 {paymentHook.paymentStatus === "completed" ? "PAID" : "PENDING"}
+//               <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
+//                 {feePayment.paymentStatus}
 //               </span>
 //             </div>
 //             <div className="my-6">
 //               <span className="text-4xl font-extrabold text-primary">
-//                 ₹{finalFee}.00
+//                 ₹{totalFee}.00
 //               </span>
 //               <span className="text-sm text-slate-500 ml-2">
-//                 (Rupees {finalFee} Only)
+//                 (Rupees {totalFee} Only)
 //               </span>
 //             </div>
 //             <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
@@ -5910,15 +5232,7 @@ const renderLanguageSelection = () => {
 //                   PwD Status
 //                 </span>
 //                 <span className="font-bold text-slate-800">
-//                   {isPwdSelected ? "Yes" : "No"}
-//                 </span>
-//               </div>
-//               <div>
-//                 <span className="block text-xs font-bold text-slate-500">
-//                   Ex-Serviceman Status
-//                 </span>
-//                 <span className="font-bold text-slate-800">
-//                   {isExServicemanSelected ? "Yes" : "No"}
+//                   {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
 //                 </span>
 //               </div>
 //             </div>
@@ -5932,23 +5246,17 @@ const renderLanguageSelection = () => {
 //                   <li>UR / EWS / OBC-II / EBC-I: ₹100</li>
 //                   <li>SC / ST: ₹50</li>
 //                   <li>PwD Candidates: ₹0</li>
-//                   <li>Ex-Serviceman: ₹0</li>
 //                 </ul>
 //               </div>
 //             </div>
 //           </div>
-
 //           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
 //             <h4 className="text-xs font-bold text-primary uppercase mb-5">
 //               Choose Payment Method
 //             </h4>
 //             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 //               <label
-//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center transition-all ${
-//                   paymentHook.isProcessing ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-primary"
-//                 } ${
-//                   feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"
-//                 }`}
+//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center cursor-not-allowed transition-all ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
 //               >
 //                 <input
 //                   type="radio"
@@ -5962,7 +5270,435 @@ const renderLanguageSelection = () => {
 //                     })
 //                   }
 //                   className="sr-only"
-//                   disabled={paymentHook.isProcessing || paymentHook.paymentStatus === "completed"}
+//                   disabled
+//                 />
+//                 <CreditCard size={28} className="text-primary mb-3" />
+//                 <span className="text-sm font-bold text-primary">
+//                   Pay Online
+//                 </span>
+//                 <span className="text-xs text-slate-500">
+//                   Net Banking, Card, UPI
+//                 </span>
+//               </label>
+//             </div>
+//           </div>
+//           {feePayment.paymentMode && (
+//             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//               <h4 className="text-sm font-bold text-slate-800 mb-4">
+//                 Payment Information
+//               </h4>
+//               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                 <div>
+//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
+//                     Bank Name *
+//                   </label>
+//                   <input
+//                     type="text"
+//                     value={feePayment.bankName}
+//                     onChange={(e) =>
+//                       setFeePayment({
+//                         ...feePayment,
+//                         bankName: e.target.value,
+//                       })
+//                     }
+//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
+//                     disabled
+//                   />
+//                 </div>
+//                 <div>
+//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
+//                     Transaction ID *
+//                   </label>
+//                   <input
+//                     type="text"
+//                     value={feePayment.transactionId}
+//                     onChange={(e) =>
+//                       setFeePayment({
+//                         ...feePayment,
+//                         transactionId: e.target.value,
+//                       })
+//                     }
+//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
+//                     disabled
+//                   />
+//                 </div>
+//                 <div>
+//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
+//                     Payment Date *
+//                   </label>
+//                   <input
+//                     type="date"
+//                     value={feePayment.paymentDate}
+//                     onChange={(e) =>
+//                       setFeePayment({
+//                         ...feePayment,
+//                         paymentDate: e.target.value,
+//                       })
+//                     }
+//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
+//                     disabled
+//                   />
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+//         </div>
+//         <div className="space-y-6">
+//           <div className="bg-white border border-slate-200 rounded-2xl p-5">
+//             <h4 className="text-xs font-bold text-slate-800 mb-3">
+//               Supported Gateways
+//             </h4>
+//             <div className="grid grid-cols-3 gap-2">
+//               {["SBI", "HDFC", "ICICI", "PAYTM"].map((g, i) => (
+//                 <div
+//                   key={i}
+//                   className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
+//                 >
+//                   {g}
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//           <div className="bg-slate-800 rounded-2xl p-5 text-white">
+//             <div className="flex items-center gap-2 mb-4">
+//               <Info size={18} className="text-emerald-300" />
+//               <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
+//                 Important Instructions
+//               </h4>
+//             </div>
+//             <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
+//               <li>
+//                 Wait for 24 hours after registration to initiate payment.
+//               </li>
+//               <li>Do not refresh the page during transaction.</li>
+//               <li>Keep Transaction ID for future correspondence.</li>
+//             </ul>
+//           </div>
+//           <div className="bg-sky-50 rounded-2xl p-4 flex justify-between items-center">
+//             <div className="flex gap-3">
+//               <div className="p-2 bg-primary text-white rounded-lg">
+//                 <HelpCircle size={18} />
+//               </div>
+//               <div>
+//                 <h5 className="text-sm font-bold text-primary">
+//                   Payment Issues?
+//                 </h5>
+//                 <p className="text-xs text-primary/70">
+//                   Support 10 AM - 6 PM
+//                 </p>
+//               </div>
+//             </div>
+//             <button className="h-10 px-4 bg-white border border-sky-200 text-primary text-xs font-bold rounded-lg opacity-50 cursor-not-allowed" disabled>
+//               Call Help Desk
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//       <div className="flex justify-end">
+//         <button
+//           onClick={() =>
+//             setFeePayment({ ...feePayment, paymentStatus: "completed" })
+//           }
+//           className="h-14 px-12 bg-primary hover:bg-primary/80 text-white font-semibold rounded-xl flex items-center gap-2 opacity-50 cursor-not-allowed"
+//           disabled
+//         >
+//           Proceed to Payment <ExternalLink size={16} />
+//         </button>
+//       </div>
+//     </div>
+//   );
+// };
+
+
+// const renderFeePayment = () => {
+//   const totalFee = calculateTotalFee();
+//   // const [isProcessing, setIsProcessing] = useState(false);
+  
+//   const getMappedFeeCategory = () => {
+//     // if (reservationCategory.isExServiceman === "yes") return "exserviceman";
+//     // if (reservationCategory.isPwd === "yes") return "sc_st_ph";
+    
+//     const cat = reservationCategory.mainCategory?.toLowerCase() || "";
+//     const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
+    
+//     if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) return "sc_st_ph";
+//     if (cat.includes("obc") || cat.includes("ebc") || cat.includes("bc")) return "obc";
+//     return "general";
+//   };
+
+//   const feeCat = getMappedFeeCategory();
+//   let applicableFeeText = "";
+  
+//    if (feeCat === "sc_st_ph") {
+//     const cat = reservationCategory.mainCategory?.toLowerCase() || "";
+//     const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
+//     if (reservationCategory.isPwd === "yes") {
+//       applicableFeeText = "PwD Candidates (Fee: ₹50)";
+//     } else if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) {
+//       applicableFeeText = "SC / ST (Jharkhand Domicile) (Fee: ₹50)";
+//     } else {
+//       applicableFeeText = "SC/ST/PH Candidates (Fee: ₹50)";
+//     }
+//   } else {
+//     applicableFeeText = "UR / EWS / OBC-II / EBC-I / Other States (Fee: ₹100)";
+//   }
+
+// //   const handlePayment = async () => {
+// //   if (!feePayment.paymentMode) {
+// //     toast.error("Please select a payment method");
+// //     return;
+// //   }
+
+// //   setIsProcessing(true);
+// //   setFeePayment({ ...feePayment, paymentStatus: "processing" });
+
+// //   try {
+// //     const payload = {
+// //       applicationId,
+// //       paymentMode: "online_card",
+// //       feeCategory: feeCat
+// //     };
+
+// //     const response = await axios.post(`${API_BASE_URL}/payment/initiate`, payload, getAuthHeaders());
+    
+// //     if (response.data.status === "success" || response.data) {
+// //       const orderData = response.data.data || response.data;
+      
+// //       if (orderData.amount === 0 || !orderData.paymentOrderId) {
+// //         setFeePayment({ ...feePayment, paymentStatus: "completed" });
+// //         toast.success("Application fee exempted, submitted successfully!");
+// //         await handleFinalSubmit();
+// //         setIsProcessing(false);
+// //         return;
+// //       }
+
+// //       const options = {
+// //         key: orderData.key,
+// //         amount: orderData.amount,
+// //         currency: orderData.currency,
+// //         name: orderData.name || "JSSC Portal",
+// //         description: orderData.description || "Application Fee",
+// //         order_id: orderData.paymentOrderId,
+// //         handler: async function (res: any) {
+// //           try {
+// //             const verifyRes = await axios.post(`${API_BASE_URL}/payment/verify`, {
+// //               paymentOrderId: orderData.paymentOrderId,
+// //               razorpayOrderId: orderData.paymentOrderId,
+// //               razorpayPaymentId: res.razorpay_payment_id,
+// //               razorpaySignature: res.razorpay_signature
+// //             }, getAuthHeaders());
+            
+// //             if (verifyRes.data.status === "success" || verifyRes.data.paymentStatus === "completed" || verifyRes.data.data?.paymentStatus === "completed") {
+// //               setFeePayment({ ...feePayment, paymentStatus: "completed" });
+// //               toast.success("Payment verified successfully!");
+// //               await handleFinalSubmit();
+// //             }
+// //           } catch (err) {
+// //             toast.error("Payment verification failed");
+// //             setFeePayment({ ...feePayment, paymentStatus: "failed" });
+// //           } finally {
+// //             setIsProcessing(false);
+// //           }
+// //         },
+// //         prefill: orderData.prefill || {
+// //           name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+// //           contact: personalInfo.mobileNumber,
+// //           email: personalInfo.emailId
+// //         },
+// //         theme: {
+// //           color: "#0f766e"
+// //         }
+// //       };
+
+// //       const rzp = new (window as any).Razorpay(options);
+// //       rzp.on('payment.failed', function (res: any) {
+// //         toast.error(res.error.description || "Payment failed");
+// //         setFeePayment({ ...feePayment, paymentStatus: "failed" });
+// //         setIsProcessing(false);
+// //       });
+// //       rzp.open();
+// //     }
+// //   } catch (err: any) {
+// //     toast.error(err.response?.data?.message || err.message || "Failed to initiate payment");
+// //     setFeePayment({ ...feePayment, paymentStatus: "failed" });
+// //     setIsProcessing(false);
+// //   }
+// // };
+
+// const handlePayment = async () => {
+//   if (!feePayment.paymentMode) {
+//     toast.error("Please select a payment method");
+//     return;
+//   }
+
+//   setIsProcessing(true);
+//   setFeePayment({ ...feePayment, paymentStatus: "processing" });
+
+//   try {
+//     const payload = {
+//       applicationId,
+//       paymentMode: "online_card",
+//       feeCategory: feeCat
+//     };
+
+//     const response = await axios.post(`${API_BASE_URL}/payment/initiate`, payload, getAuthHeaders());
+    
+//     if (response.data.status === "success" || response.data) {
+//       const orderData = response.data.data || response.data;
+      
+//       if (orderData.amount === 0 || !orderData.paymentOrderId) {
+//         // For zero amount, just mark payment as completed and go to review step
+//         setFeePayment({ ...feePayment, paymentStatus: "completed" });
+//         toast.success("Payment completed successfully!");
+//         // Move to review step instead of submitting
+//         setCurrentStep(7); // Go to review step
+//         setIsProcessing(false);
+//         return;
+//       }
+
+//       const options = {
+//         key: orderData.key,
+//         amount: orderData.amount,
+//         currency: orderData.currency,
+//         name: orderData.name || "JSSC Portal",
+//         description: orderData.description || "Application Fee",
+//         order_id: orderData.paymentOrderId,
+//         handler: async function (res: any) {
+//           try {
+//             const verifyRes = await axios.post(`${API_BASE_URL}/payment/verify`, {
+//               paymentOrderId: orderData.paymentOrderId,
+//               razorpayOrderId: orderData.paymentOrderId,
+//               razorpayPaymentId: res.razorpay_payment_id,
+//               razorpaySignature: res.razorpay_signature
+//             }, getAuthHeaders());
+            
+//             if (verifyRes.data.status === "success" || verifyRes.data.paymentStatus === "completed" || verifyRes.data.data?.paymentStatus === "completed") {
+//               setFeePayment({ ...feePayment, paymentStatus: "completed" });
+//               toast.success("Payment verified successfully!");
+//               // Move to review step after successful payment
+//               setCurrentStep(7);
+//             } else {
+//               toast.error("Payment verification failed");
+//               setFeePayment({ ...feePayment, paymentStatus: "failed" });
+//             }
+//           } catch (err) {
+//             toast.error("Payment verification failed");
+//             setFeePayment({ ...feePayment, paymentStatus: "failed" });
+//           } finally {
+//             setIsProcessing(false);
+//           }
+//         },
+//         prefill: orderData.prefill || {
+//           name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+//           contact: personalInfo.mobileNumber,
+//           email: personalInfo.emailId
+//         },
+//         theme: {
+//           color: "#0f766e"
+//         }
+//       };
+
+//       const rzp = new (window as any).Razorpay(options);
+//       rzp.on('payment.failed', function (res: any) {
+//         toast.error(res.error.description || "Payment failed");
+//         setFeePayment({ ...feePayment, paymentStatus: "failed" });
+//         setIsProcessing(false);
+//       });
+//       rzp.open();
+//     }
+//   } catch (err: any) {
+//     toast.error(err.response?.data?.message || err.message || "Failed to initiate payment");
+//     setFeePayment({ ...feePayment, paymentStatus: "failed" });
+//     setIsProcessing(false);
+//   }
+// };
+
+//   return (
+//     <div className="space-y-6">
+//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+//         <div className="lg:col-span-2 space-y-6">
+//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//             <div className="flex justify-between">
+//               <div>
+//                 <h3 className="text-xl font-bold text-slate-800">
+//                   Calculated Examination Fee
+//                 </h3>
+//                 <p className="text-sm text-slate-500">
+//                   Based on your selected category and disability status.
+//                 </p>
+//               </div>
+//               <span className={`px-3 py-1 text-white text-xs font-bold rounded-full flex items-center justify-center ${
+//                 feePayment.paymentStatus === 'completed' ? 'bg-green-600' : 
+//                 feePayment.paymentStatus === 'processing' ? 'bg-amber-500' : 
+//                 feePayment.paymentStatus === 'failed' ? 'bg-red-500' : 'bg-primary'
+//               }`}>
+//                 {feePayment.paymentStatus.toUpperCase()}
+//               </span>
+//             </div>
+//             <div className="my-6">
+//               <span className="text-4xl font-extrabold text-primary">
+//                 ₹{totalFee}.00
+//               </span>
+//               <span className="text-sm text-slate-500 ml-2">
+//                 (Rupees {totalFee} Only)
+//               </span>
+//             </div>
+//             <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
+//               <div>
+//                 <span className="block text-xs font-bold text-slate-500">
+//                   Candidate Category
+//                 </span>
+//                 <span className="font-bold text-slate-800">
+//                   {categoriesList.find((c: any) => c.catId === reservationCategory.mainCategoryId)?.catName || reservationCategory.mainCategory || "Not Selected"}
+//                 </span>
+//               </div>
+//               <div>
+//                 <span className="block text-xs font-bold text-slate-500">
+//                   PwD Status
+//                 </span>
+//                 <span className="font-bold text-slate-800">
+//                   {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
+//                 </span>
+//               </div>
+//             </div>
+//             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+//               <p className="text-sm font-medium text-blue-800">
+//                 Applicable Fee: <strong>{applicableFeeText}</strong>
+//               </p>
+//               <div className="mt-2 text-xs text-blue-700">
+//                 <p>Fee Structure:</p>
+//                 <ul className="list-disc pl-5 mt-1">
+//                   <li>UR / EWS / OBC-II / EBC-I / Other States: ₹100</li>
+//                   <li>SC / ST (Jharkhand Domicile): ₹50</li>
+//                   <li>PwD Candidates: ₹50</li>
+//                   <li>Ex-Servicemen: ₹0</li>
+//                 </ul>
+//               </div>
+//             </div>
+//           </div>
+//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//             <h4 className="text-xs font-bold text-primary uppercase mb-5">
+//               Choose Payment Method
+//             </h4>
+//             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//               <label
+//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center transition-all ${
+//                   feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-primary'
+//                 } ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
+//               >
+//                 <input
+//                   type="radio"
+//                   name="payment_method"
+//                   value="online"
+//                   checked={feePayment.paymentMode === "online"}
+//                   onChange={(e) =>
+//                     setFeePayment({
+//                       ...feePayment,
+//                       paymentMode: e.target.value,
+//                     })
+//                   }
+//                   className="sr-only"
+//                   disabled={feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing'}
 //                 />
 //                 <CreditCard size={28} className="text-primary mb-3" />
 //                 <span className="text-sm font-bold text-primary">
@@ -5975,7 +5711,6 @@ const renderLanguageSelection = () => {
 //             </div>
 //           </div>
 //         </div>
-
 //         <div className="space-y-6">
 //           <div className="bg-white border border-slate-200 rounded-2xl p-5">
 //             <h4 className="text-xs font-bold text-slate-800 mb-3">
@@ -5992,7 +5727,6 @@ const renderLanguageSelection = () => {
 //               ))}
 //             </div>
 //           </div>
-
 //           <div className="bg-slate-800 rounded-2xl p-5 text-white">
 //             <div className="flex items-center gap-2 mb-4">
 //               <Info size={18} className="text-emerald-300" />
@@ -6007,41 +5741,28 @@ const renderLanguageSelection = () => {
 //               <li>After successful payment, your application will be submitted automatically.</li>
 //             </ul>
 //           </div>
-
-//           <div className="bg-sky-50 rounded-2xl p-4 flex justify-between items-center">
-//             <div className="flex gap-3">
-//               <div className="p-2 bg-primary text-white rounded-lg">
-//                 <HelpCircle size={18} />
-//               </div>
-//               <div>
-//                 <h5 className="text-sm font-bold text-primary">
-//                   Payment Issues?
-//                 </h5>
-//                 <p className="text-xs text-primary/70">
-//                   Support 10 AM - 6 PM
-//                 </p>
-//               </div>
-//             </div>
-//             <button className="h-10 px-4 bg-white border border-sky-200 text-primary text-xs font-bold rounded-lg">
-//               Call Help Desk
-//             </button>
-//           </div>
 //         </div>
 //       </div>
-
-//       <div className="flex justify-end">
-//         {paymentHook.paymentStatus !== "completed" ? (
+//       <div className="flex justify-end mt-6">
+//         {feePayment.paymentStatus === "completed" ? (
+//           <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-3 rounded-xl border border-green-200">
+//             <CheckCircle size={20} />
+//             <span className="font-semibold">Payment Completed! Application Submitted.</span>
+//           </div>
+//         ) : (
 //           <button
-//             onClick={paymentHook.handlePayment}
-//             disabled={paymentHook.isProcessing || !feePayment.paymentMode || paymentHook.paymentStatus === "completed"}
-//             className="h-14 px-12 bg-primary hover:bg-primary/80 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+//             onClick={handlePayment}
+//             disabled={isProcessing || !feePayment.paymentMode}
+//             className={`h-14 px-12 text-white font-semibold rounded-xl flex items-center gap-2 transition-all ${
+//               isProcessing || !feePayment.paymentMode ? "bg-slate-400 cursor-not-allowed" : "bg-primary hover:bg-primary/80"
+//             }`}
 //           >
-//             {paymentHook.isProcessing ? (
+//             {isProcessing ? (
 //               <>
 //                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
 //                 Processing...
 //               </>
-//             ) : finalFee === 0 ? (
+//             ) : totalFee === 0 ? (
 //               "Submit Application"
 //             ) : (
 //               <>
@@ -6049,18 +5770,302 @@ const renderLanguageSelection = () => {
 //               </>
 //             )}
 //           </button>
-//         ) : (
-//           <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-3 rounded-xl">
-//             <CheckCircle size={20} />
-//             <span className="font-semibold">Payment Completed! Application Submitted.</span>
-//           </div>
 //         )}
 //       </div>
 //     </div>
 //   );
 // };
 
+const renderFeePayment = () => {
+  const totalFee = calculateTotalFee();
   
+  const getMappedFeeCategory = () => {
+    const cat = reservationCategory.mainCategory?.toLowerCase() || "";
+    const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
+    
+    if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) return "sc_st_ph";
+    if (cat.includes("obc") || cat.includes("ebc") || cat.includes("bc")) return "obc";
+    return "general";
+  };
+
+  const feeCat = getMappedFeeCategory();
+  let applicableFeeText = "";
+  
+  if (feeCat === "sc_st_ph") {
+    const cat = reservationCategory.mainCategory?.toLowerCase() || "";
+    const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
+    if (reservationCategory.isPwd === "yes") {
+      applicableFeeText = "PwD Candidates (Fee: ₹50)";
+    } else if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) {
+      applicableFeeText = "SC / ST (Jharkhand Domicile) (Fee: ₹50)";
+    } else {
+      applicableFeeText = "SC/ST/PH Candidates (Fee: ₹50)";
+    }
+  } else {
+    applicableFeeText = "UR / EWS / OBC-II / EBC-I / Other States (Fee: ₹100)";
+  }
+
+  const handlePayment = async () => {
+    if (!feePayment.paymentMode) {
+      toast.error("Please select a payment method");
+      return;
+    }
+
+    setIsProcessing(true);
+    setFeePayment({ ...feePayment, paymentStatus: "processing" });
+
+    try {
+      const payload = {
+        applicationId,
+        paymentMode: "online_card",
+        feeCategory: feeCat
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/payment/initiate`, payload, getAuthHeaders());
+      
+      if (response.data.status === "success" || response.data) {
+        const orderData = response.data.data || response.data;
+        
+        if (orderData.amount === 0 || !orderData.paymentOrderId) {
+          setFeePayment({ ...feePayment, paymentStatus: "completed" });
+          toast.success("Payment completed successfully!");
+          setCurrentStep(7);
+          setIsProcessing(false);
+          return;
+        }
+
+        const options = {
+          key: orderData.key,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: orderData.name || "JSSC Portal",
+          description: orderData.description || "Application Fee",
+          order_id: orderData.paymentOrderId,
+          handler: async function (res: any) {
+            try {
+              const verifyRes = await axios.post(`${API_BASE_URL}/payment/verify`, {
+                paymentOrderId: orderData.paymentOrderId,
+                razorpayOrderId: orderData.paymentOrderId,
+                razorpayPaymentId: res.razorpay_payment_id,
+                razorpaySignature: res.razorpay_signature
+              }, getAuthHeaders());
+              
+              if (verifyRes.data.status === "success" || verifyRes.data.paymentStatus === "completed" || verifyRes.data.data?.paymentStatus === "completed") {
+                setFeePayment({ ...feePayment, paymentStatus: "completed" });
+                toast.success("Payment verified successfully!");
+                setCurrentStep(7);
+              } else {
+                toast.error("Payment verification failed");
+                setFeePayment({ ...feePayment, paymentStatus: "failed" });
+              }
+            } catch (err) {
+              toast.error("Payment verification failed");
+              setFeePayment({ ...feePayment, paymentStatus: "failed" });
+            } finally {
+              setIsProcessing(false);
+            }
+          },
+          prefill: orderData.prefill || {
+            name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+            contact: personalInfo.mobileNumber,
+            email: personalInfo.emailId
+          },
+          theme: {
+            color: "#0f766e"
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (res: any) {
+          toast.error(res.error.description || "Payment failed");
+          setFeePayment({ ...feePayment, paymentStatus: "failed" });
+          setIsProcessing(false);
+        });
+        rzp.open();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || "Failed to initiate payment");
+      setFeePayment({ ...feePayment, paymentStatus: "failed" });
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">
+                  Calculated Examination Fee
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Based on your selected category and disability status.
+                </p>
+              </div>
+              <span className={`px-3 py-1 text-white text-xs font-bold rounded-full flex items-center justify-center ${
+                feePayment.paymentStatus === 'completed' ? 'bg-green-600' : 
+                feePayment.paymentStatus === 'processing' ? 'bg-amber-500' : 
+                feePayment.paymentStatus === 'failed' ? 'bg-red-500' : 'bg-primary'
+              }`}>
+                {feePayment.paymentStatus.toUpperCase()}
+              </span>
+            </div>
+            <div className="my-6">
+              <span className="text-4xl font-extrabold text-primary">
+                ₹{totalFee}.00
+              </span>
+              <span className="text-sm text-slate-500 ml-2">
+                (Rupees {totalFee} Only)
+              </span>
+            </div>
+            <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
+              <div>
+                <span className="block text-xs font-bold text-slate-500">
+                  Candidate Category
+                </span>
+                <span className="font-bold text-slate-800">
+                  {categoriesList.find((c: any) => c.catId === reservationCategory.mainCategoryId)?.catName || reservationCategory.mainCategory || "Not Selected"}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs font-bold text-slate-500">
+                  PwD Status
+                </span>
+                <span className="font-bold text-slate-800">
+                  {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm font-medium text-blue-800">
+                Applicable Fee: <strong>{applicableFeeText}</strong>
+              </p>
+              <div className="mt-2 text-xs text-blue-700">
+                <p>Fee Structure:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  <li>UR / EWS / OBC-II / EBC-I / Other States: ₹100</li>
+                  <li>SC / ST (Jharkhand Domicile): ₹50</li>
+                  <li>PwD Candidates: ₹50</li>
+                  <li>Ex-Servicemen: ₹0</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h4 className="text-xs font-bold text-primary uppercase mb-5">
+              Choose Payment Method
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label
+                className={`border-2 rounded-lg p-5 flex flex-col items-center text-center transition-all ${
+                  feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-primary'
+                } ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
+              >
+                <input
+                  type="radio"
+                  name="payment_method"
+                  value="online"
+                  checked={feePayment.paymentMode === "online"}
+                  onChange={(e) =>
+                    setFeePayment({
+                      ...feePayment,
+                      paymentMode: e.target.value,
+                    })
+                  }
+                  className="sr-only"
+                  disabled={feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing'}
+                />
+                <CreditCard size={28} className="text-primary mb-3" />
+                <span className="text-sm font-bold text-primary">
+                  Pay Online
+                </span>
+                <span className="text-xs text-slate-500">
+                  Net Banking, Card, UPI
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <h4 className="text-xs font-bold text-slate-800 mb-3">
+              Supported Gateways
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              {["Razorpay", "SBI", "HDFC", "ICICI", "PAYTM", "UPI"].map((g, i) => (
+                <div
+                  key={i}
+                  className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
+                >
+                  {g}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-slate-800 rounded-2xl p-5 text-white">
+            <div className="flex items-center gap-2 mb-4">
+              <Info size={18} className="text-emerald-300" />
+              <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
+                Important Instructions
+              </h4>
+            </div>
+            <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
+              <li>Payment is mandatory to complete your application.</li>
+              <li>Do not refresh the page during transaction.</li>
+              <li>Keep Transaction ID for future correspondence.</li>
+              <li>After successful payment, you will be redirected to review your application.</li>
+              <li>You must manually submit your application after payment.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end mt-6">
+        {feePayment.paymentStatus === "completed" ? (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-3 rounded-xl border border-green-200">
+              <CheckCircle size={20} />
+              <span className="font-semibold">Payment Completed!</span>
+            </div>
+            <button
+              onClick={() => setCurrentStep(7)}
+              className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/80 transition-all font-semibold flex items-center gap-2"
+            >
+              Go to Review & Submit <ChevronRight size={18} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handlePayment}
+            disabled={isProcessing || !feePayment.paymentMode}
+            className={`h-14 px-12 text-white font-semibold rounded-xl flex items-center gap-2 transition-all ${
+              isProcessing || !feePayment.paymentMode ? "bg-slate-400 cursor-not-allowed" : "bg-primary hover:bg-primary/80"
+            }`}
+          >
+            {isProcessing ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Processing...
+              </>
+            ) : totalFee === 0 ? (
+              "Proceed to Review"
+            ) : (
+              <>
+                Proceed to Payment <ExternalLink size={16} />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const renderDocuments = () => {
   const getDocumentFields = () => {
     const baseFields = [
@@ -6075,7 +6080,7 @@ const renderDocuments = () => {
     if (reservationCategory.isJharkhandDomicile === "yes") {
       baseFields.push({ key: "domicileCertificate", label: "Domicile Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
-    if (["ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+    if (reservationCategory.mainCategory === "ews" || reservationCategory.mainCategory === "economically_weaker_section_(ews)") {
       baseFields.push({ key: "ewsCertificate", label: "EWS Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
     if (reservationCategory.mainCategory && !["unreserved", "unreserved_(ur)", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
@@ -6085,12 +6090,6 @@ const renderDocuments = () => {
       baseFields.push({ key: "postGraduationCertificate", label: "Post-Graduation Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
    
-    
-    if (education.experience.hasExperience) {
-      baseFields.push({ key: "experienceCertificate", label: "Experience Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
-    }
-    
-    
     if (reservationCategory.isPwd === "yes") {
       baseFields.push({ key: "pwdCertificate", label: "Disability Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
@@ -6102,6 +6101,7 @@ const renderDocuments = () => {
   };
 
   const documentFields = getDocumentFields();
+  const errors = stepErrors[5] || {};
   
   // Get already uploaded documents from reviewData
   const uploadedDocsFromApi = reviewData?.steps?.documents || {};
@@ -6120,9 +6120,13 @@ const renderDocuments = () => {
           const previewUrl = filePreviewUrls[field.key];
           const isImage = field.type === "image";
           const alreadyUploadedUrl = uploadedDocsFromApi[field.key];
+          const hasError = errors[`documents.${field.key}`];
+          
+          // Check if document is considered uploaded (either new file or already uploaded from API)
+          const isDocumentUploaded = uploadedFile !== null || (alreadyUploadedUrl && alreadyUploadedUrl !== "null" && alreadyUploadedUrl !== "");
           
           return (
-            <div key={field.key} className="border border-slate-200 rounded-xl p-4 bg-slate-50/30">
+            <div key={field.key} className={`border rounded-xl p-4 transition-all ${hasError && !isDocumentUploaded ? 'border-red-500 bg-red-50/10' : 'border-slate-200 bg-slate-50/30'}`}>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -6140,12 +6144,17 @@ const renderDocuments = () => {
                         return;
                       }
                       handleFileUpload(field.key as keyof Documents, file);
+                      // Clear error when file is selected
+                      setStepErrors(prev => ({ 
+                        ...prev, 
+                        [5]: { ...prev[5], [`documents.${field.key}`]: "" } 
+                      }));
                     }
                   }}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                 />
                 
-                <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white p-3 hover:border-primary transition-all min-h-[100px]">
+                <div className={`border-2 border-dashed rounded-xl bg-white p-3 hover:border-primary transition-all min-h-[100px] ${hasError && !isDocumentUploaded ? 'border-red-500' : 'border-slate-300'}`}>
                   {uploadedFile ? (
                     <div className="flex flex-col items-center justify-center text-center gap-2">
                       {isImage && previewUrl ? (
@@ -6160,6 +6169,11 @@ const renderDocuments = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               removeFile(field.key as keyof Documents);
+                              // Clear error when file is removed
+                              setStepErrors(prev => ({ 
+                                ...prev, 
+                                [5]: { ...prev[5], [`documents.${field.key}`]: "" } 
+                              }));
                             }}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                           >
@@ -6188,7 +6202,7 @@ const renderDocuments = () => {
                         </>
                       )}
                     </div>
-                  ) : alreadyUploadedUrl ? (
+                  ) : alreadyUploadedUrl && alreadyUploadedUrl !== "null" && alreadyUploadedUrl !== "" ? (
                     <div className="flex flex-col items-center justify-center text-center gap-2">
                       <FileCheck className="w-8 h-8 text-blue-500" />
                       <p className="text-xs font-medium text-blue-700 truncate max-w-[200px]">
@@ -6217,6 +6231,8 @@ const renderDocuments = () => {
                   )}
                 </div>
               </div>
+              {/* Only show error if document is NOT uploaded and validation failed */}
+              {hasError && !isDocumentUploaded && <p className="text-red-500 text-xs mt-2">{hasError}</p>}
             </div>
           );
         })}
@@ -6230,8 +6246,6 @@ const renderDocuments = () => {
     </div>
   );
 };
-
-
 
 const renderApplicationReview = () => {
   if (loadingReview) {
@@ -6330,10 +6344,7 @@ const renderApplicationReview = () => {
             <span className="text-slate-500 text-xs">Mobile Number</span>
             <span className="font-semibold">{personalInfoData?.mobileNumber}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">Alternate Mobile</span>
-            <span className="font-semibold">{personalInfoData?.alternateNumber || "N/A"}</span>
-          </div>
+          
           <div className="flex flex-col">
             <span className="text-slate-500 text-xs">Email ID</span>
             <span className="font-semibold">{personalInfoData?.emailId}</span>
@@ -6349,6 +6360,10 @@ const renderApplicationReview = () => {
           <div className="flex flex-col">
             <span className="text-slate-500 text-xs">Identification Mark 2</span>
             <span className="font-semibold">{personalInfoData?.identificationMark2 || "N/A"}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-slate-500 text-xs">Marital Status</span>
+            <span className="font-semibold">{personalInfoData?.maritalStatus || "N/A"}</span>
           </div>
         </div>
       </div>
@@ -6368,98 +6383,221 @@ const renderApplicationReview = () => {
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h4 className="font-semibold text-slate-700 mb-2">Permanent Address</h4>
-            <p className="text-sm text-slate-600">
-              {personalInfoData?.address?.permanent?.line1}<br />
-              {personalInfoData?.address?.permanent?.city}, {personalInfoData?.address?.permanent?.state}<br />
-              {personalInfoData?.address?.permanent?.country} - {personalInfoData?.address?.permanent?.pincode}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-slate-700 mb-2">Correspondence Address</h4>
-            <p className="text-sm text-slate-600">
-              {personalInfoData?.address?.correspondence?.sameAsPermanent ? (
-                <span className="text-green-600">Same as Permanent Address</span>
-              ) : (
-                <>
-                  {personalInfoData?.address?.correspondence?.line1}<br />
-                  {personalInfoData?.address?.correspondence?.city}, {personalInfoData?.address?.correspondence?.state}<br />
-                  {personalInfoData?.address?.correspondence?.country} - {personalInfoData?.address?.correspondence?.pincode}
-                </>
-              )}
-            </p>
-          </div>
+          
+  {/* Permanent Address Column */}
+  <div>
+    <h4 className="font-semibold text-slate-700 mb-3 border-b pb-2">Permanent Address</h4>
+    <div className="space-y-3">
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Street/House No.</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.street || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">City/Village/Town</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.city || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Post Office</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.post || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">District</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.district || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">State</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.state || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Country</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.country || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Pincode</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.permanent?.pincode || "N/A"}</span>
+      </div>
+    </div>
+  </div>
+
+  {/* Correspondence Address Column */}
+  <div>
+    <h4 className="font-semibold text-slate-700 mb-3 border-b pb-2">Correspondence Address</h4>
+    <div className="space-y-3">
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Street/House No.</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.street || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">City/Village/Town</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.city || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Post Office</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.post || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">District</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.district || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">State</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.state || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Country</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.country || "N/A"}</span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Pincode</span>
+        <span className="font-semibold text-sm">{personalInfoData?.address?.correspondence?.pincode || "N/A"}</span>
+      </div>
+      {personalInfoData?.address?.correspondence?.sameAsPermanent && (
+        <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+          ✓ This address is same as permanent address
         </div>
+      )}
+    </div>
+  </div>
+</div>
+      
       </div>
 
       {/* Category & Quota Section */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5">
-        <div className="flex justify-between border-b pb-3 mb-4">
-          <div className="flex items-center gap-2 font-bold text-primary">
-            <Globe size={18} />
-            <h3>Category & Quota</h3>
-          </div>
-          <button
-            onClick={() => setCurrentStep(1)}
-            className="text-xs font-bold text-primary hover:underline"
-          >
-            <Edit3 size={14} /> Edit
-          </button>
+  <div className="flex justify-between border-b pb-3 mb-4">
+    <div className="flex items-center gap-2 font-bold text-primary">
+      <Globe size={18} />
+      <h3>Category & Quota</h3>
+    </div>
+    <button
+      onClick={() => setCurrentStep(1)}
+      className="text-xs font-bold text-primary hover:underline"
+    >
+      <Edit3 size={14} /> Edit
+    </button>
+  </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
+    {/* Category Details */}
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">Category</span>
+      <span className="font-semibold">{reservationData?.mainCategoryName || "N/A"}</span>
+    </div>
+    
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">Sub Category</span>
+      <span className="font-semibold">{reservationData?.subCategoryName || "N/A"}</span>
+    </div>
+    
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">Jharkhand Domicile</span>
+      <span className="font-semibold">{reservationData?.isJharkhandDomicile ? "Yes" : "No"}</span>
+    </div>
+    
+    {/* Domicile Certificate Details */}
+    {reservationData?.isJharkhandDomicile && (
+      <>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Domicile Certificate Number</span>
+          <span className="font-semibold">{reservationData?.domicileCertificateNumber || "N/A"}</span>
         </div>
-        <div className="grid grid-cols-2 gap-y-3 text-sm">
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">Category</span>
-            <span className="font-semibold">{reservationData?.mainCategory || "N/A"}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">Jharkhand Domicile</span>
-            <span className="font-semibold">{reservationData?.isJharkhandDomicile ? "Yes" : "No"}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">PwD Status</span>
-            <span className="font-semibold">{reservationData?.isPwd ? "Yes" : "No"}</span>
-          </div>
-          {reservationData?.isPwd && (
-            <>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-xs">PwD Type</span>
-                <span className="font-semibold">{reservationData?.pwdType || "N/A"}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-xs">PwD Percentage</span>
-                <span className="font-semibold">{reservationData?.pwdPercentage || "N/A"}%</span>
-              </div>
-            </>
-          )}
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">Ex-Serviceman</span>
-            <span className="font-semibold">{reservationData?.isExServiceman ? "Yes" : "No"}</span>
-          </div>
-          {reservationData?.isExServiceman && (
-            <div className="flex flex-col">
-              <span className="text-slate-500 text-xs">Years of Service</span>
-              <span className="font-semibold">{reservationData?.exServicemanYears || "N/A"}</span>
-            </div>
-          )}
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-xs">Sports Quota</span>
-            <span className="font-semibold">{reservationData?.isSportsQuota ? "Yes" : "No"}</span>
-          </div>
-          {reservationData?.isSportsQuota && (
-            <>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-xs">Sports Level</span>
-                <span className="font-semibold capitalize">{reservationData?.sportsLevel || "N/A"}</span>
-              </div>
-              <div className="flex flex-col col-span-2">
-                <span className="text-slate-500 text-xs">Achievement</span>
-                <span className="font-semibold">{reservationData?.sportsAchievement || "N/A"}</span>
-              </div>
-            </>
-          )}
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Domicile Certificate Authority</span>
+          <span className="font-semibold">{reservationData?.domicileCertificateAuthorityName || "N/A"}</span>
         </div>
+      </>
+    )}
+    
+    {/* Category Certificate Details (for reserved categories) */}
+    {reservationData?.mainCategoryName && 
+     reservationData?.mainCategoryName !== "Unreserved (UR)" && 
+     reservationData?.mainCategoryName !== "Unreserved" && 
+     reservationData?.mainCategoryName !== "EWS" && (
+      <>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Category Certificate Number</span>
+          <span className="font-semibold">{reservationData?.categoryCertificateNumber || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Category Certificate Authority</span>
+          <span className="font-semibold">{reservationData?.categoryCertificateAuthorityName || "N/A"}</span>
+        </div>
+      </>
+    )}
+    
+    {/* PwD Details */}
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">PwD Status</span>
+      <span className="font-semibold">{reservationData?.isPwd ? "Yes" : "No"}</span>
+    </div>
+    
+    {reservationData?.isPwd && (
+      <>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">PwD Type</span>
+          <span className="font-semibold">{reservationData?.pwdType || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">PwD Percentage</span>
+          <span className="font-semibold">{reservationData?.pwdPercentage || "N/A"}%</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">PwD Certificate Number</span>
+          <span className="font-semibold">{reservationData?.pwdCertificateNumber || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">PwD Certificate Authority</span>
+          <span className="font-semibold">{reservationData?.pwdCertificateAuthorityName || "N/A"}</span>
+        </div>
+      </>
+    )}
+    
+    {/* Ex-Serviceman Details */}
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">Ex-Serviceman</span>
+      <span className="font-semibold">{reservationData?.isExServiceman ? "Yes" : "No"}</span>
+    </div>
+    
+    {reservationData?.isExServiceman && (
+      <div className="flex flex-col">
+        <span className="text-slate-500 text-xs">Years of Service</span>
+        <span className="font-semibold">{reservationData?.exServicemanYears || "N/A"}</span>
       </div>
+    )}
+    
+    {/* Sports Quota Details */}
+    <div className="flex flex-col">
+      <span className="text-slate-500 text-xs">Sports Quota</span>
+      <span className="font-semibold">{reservationData?.isSportsQuota ? "Yes" : "No"}</span>
+    </div>
+    
+    {reservationData?.isSportsQuota && (
+      <>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Sports Level</span>
+          <span className="font-semibold capitalize">{reservationData?.sportsLevel || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Sports Achievement</span>
+          <span className="font-semibold">{reservationData?.sportsAchievement || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Sports Certificate Number</span>
+          <span className="font-semibold">{reservationData?.sportsCertificateNumber || "N/A"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-slate-500 text-xs">Sports Certificate Authority</span>
+          <span className="font-semibold">{reservationData?.sportsCertificateAuthorityName || "N/A"}</span>
+        </div>
+      </>
+    )}
+    
+    {/* Declaration Status */}
+    <div className="flex flex-col col-span-1 md:col-span-2">
+      <span className="text-slate-500 text-xs">Declaration Accepted</span>
+      <span className="font-semibold text-green-600">{reservationData?.declaration ? "Yes" : "No"}</span>
+    </div>
+  </div>
+</div>
 
       {/* Educational Qualifications Section */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5">

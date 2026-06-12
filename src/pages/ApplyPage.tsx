@@ -1368,7 +1368,8 @@ const CandidateRegistrationStep1: FC = () => {
       setLoading(true);
       setVerificationType("email");
 
-      const result = await sendOtp(email);
+      // const result = await sendOtp(email);
+       const result = await sendOtp(email,);
 
       if (result?.userSub) {
         setCognitoSubId(result.userSub);

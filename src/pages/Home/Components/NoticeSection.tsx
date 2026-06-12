@@ -1,44 +1,67 @@
-import { CircleHelp, Download, Mail, PlayCircle, Calendar, Clock,  Bell, ChevronRight, Sparkles } from "lucide-react";
+
+
+import { CircleHelp,  Mail,Calendar, Clock, Sparkles, ChevronDown, ChevronUp, HelpCircle, MessageCircle, Phone } from "lucide-react";
 import { useState } from "react";
 
-const notices = [
+const faqItems = [
   {
-    date: "12",
-    month: "OCT",
-    year: "2024",
-    title: "Detailed Advertisement No. 05/2026 for JTGLCCE",
-    description:
-      "Complete guidelines regarding eligibility, reservation, and examination pattern are now available for download. Get all the essential information for your application.",
-    isNew: true,
-    isImportant: true,
-    category: "Advertisement",
+    id: 1,
+    question: "What is the eligibility criteria for JTGLCCE 2026?",
+    answer: "Candidates must have a Bachelor's degree in Engineering/Technology from a recognized university with at least 60% aggregate marks (55% for reserved categories). Age limit is 21-32 years as of 01/01/2026 with applicable relaxations.",
+    category: "Eligibility",
+    isPopular: true,
   },
   {
-    date: "10",
-    month: "OCT",
-    year: "2024",
-    title: "Revised Syllabus for Technical Assistant Posts",
-    description:
-      "Minor corrections in Section B (Technical Subjects) for Agriculture and Horticulture streams. Updated syllabus now available.",
-    isNew: false,
-    isImportant: false,
-    category: "Syllabus",
+    id: 2,
+    question: "How can I apply for the JTGLCCE 2026 examination?",
+    answer: "Applications must be submitted online through the official JTGLCCE portal. The process involves registration, filling personal and educational details, uploading documents (photo, signature, certificates), and paying the application fee online.",
+    category: "Application",
+    isPopular: true,
   },
   {
-    date: "05",
-    month: "OCT",
-    year: "2024",
-    title: "Instruction Manual for Online Application Form",
-    description:
-      "Step-by-step pictorial guide for successful registration and payment process. Follow the instructions carefully to avoid errors.",
-    isNew: false,
-    isImportant: true,
-    category: "Guide",
+    id: 3,
+    question: "What is the examination pattern and marking scheme?",
+    answer: "The exam consists of two stages: Stage 1 (Objective Type - 150 questions, 150 marks) and Stage 2 (Descriptive Type - 100 marks). There is a negative marking of 0.25 marks for each wrong answer in Stage 1.",
+    category: "Exam Pattern",
+    isPopular: false,
+  },
+  {
+    id: 4,
+    question: "What is the application fee and how can I pay?",
+    answer: "General/OBC: ₹1000, SC/ST: ₹500, PwD: Nil. Payment can be made via credit card, debit card, net banking, or UPI through the secure payment gateway.",
+    category: "Fee",
+    isPopular: false,
+  },
+  {
+    id: 5,
+    question: "When will the admit cards be released?",
+    answer: "Admit cards will be released 15 days before the Stage 1 examination. Candidates can download them from the official portal using their registration number and date of birth.",
+    category: "Admit Card",
+    isPopular: true,
+  },
+  {
+    id: 6,
+    question: "What documents are required for verification?",
+    answer: "Required documents: 10th & 12th mark sheets, degree certificate & mark sheets, caste certificate (if applicable), domicile certificate, PwD certificate (if applicable), recent passport size photographs, and valid ID proof.",
+    category: "Documents",
+    isPopular: false,
   },
 ];
 
-export default function NoticeSection() {
-  const [hoveredNotice, setHoveredNotice] = useState<number | null>(null);
+const categories = ["All", "Eligibility", "Application", "Exam Pattern", "Fee", "Admit Card", "Documents"];
+
+export default function FAQSection() {
+  const [hoveredFAQ, setHoveredFAQ] = useState<number | null>(null);
+  const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const toggleFAQ = (id: number) => {
+    setOpenFAQ(openFAQ === id ? null : id);
+  };
+
+  const filteredFAQs = activeCategory === "All" 
+    ? faqItems 
+    : faqItems.filter(item => item.category === activeCategory);
 
   return (
     <section className="w-full bg-gradient-to-br from-slate-50 to-slate-100 py-8 sm:py-12 lg:py-16">
@@ -46,112 +69,136 @@ export default function NoticeSection() {
         {/* Section Header */}
         <div className="text-center mb-8 sm:mb-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-1.5 mb-4">
-            <Bell size={14} className="text-primary" />
-            <span className="text-primary text-xs font-semibold uppercase tracking-wider">Latest Updates</span>
+            <HelpCircle size={14} className="text-primary" />
+            <span className="text-primary text-xs font-semibold uppercase tracking-wider">FAQ & Help Center</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-3">
-            Important Notices & Announcements
+            Frequently Asked Questions
           </h2>
           <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto">
-            Stay updated with the latest notifications, syllabus changes, and important dates for JTGLCCE 2026
+            Find quick answers to common queries about JTGLCCE 2026 eligibility, application process, exam pattern, and more
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* LEFT SECTION - NOTICES (2/3 width) */}
+          {/* LEFT SECTION - FAQ (2/3 width) */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
               {/* HEADER */}
               <div className="bg-gradient-to-r from-primary to-primary-dark px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Bell size={20} className="text-white" />
+                    <MessageCircle size={20} className="text-white" />
                   </div>
                   <h2 className="text-lg sm:text-xl font-bold text-white">
-                      Notices & Circulars
+                    Frequently Asked Questions
                   </h2>
                 </div>
                 
-                <button className="text-white text-sm font-semibold hover:text-yellow-300 transition-colors duration-200 flex items-center gap-1 group">
-                  View All Announcements
-                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </button>
+                
+                
               </div>
 
-              {/* NOTICE LIST */}
-              <div className="divide-y divide-slate-100">
-                {notices.map((item, index) => (
-                  <div
-                    key={item.title}
-                    className={`relative p-5 sm:p-6 transition-all duration-300 ${
-                      hoveredNotice === index ? 'bg-slate-50' : 'bg-white'
-                    }`}
-                    onMouseEnter={() => setHoveredNotice(index)}
-                    onMouseLeave={() => setHoveredNotice(null)}
-                  >
-                    <div className="flex flex-col sm:flex-row gap-5">
-                      {/* DATE BOX */}
-                      <div className="flex-shrink-0">
-                        <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex flex-col items-center justify-center text-white shadow-lg">
-                          <span className="text-xs font-semibold uppercase">
-                            {item.month}
-                          </span>
-                          <span className="text-2xl font-bold leading-tight">
-                            {item.date}
-                          </span>
-                          <span className="text-xs opacity-80">
-                            {item.year}
-                          </span>
-                        </div>
-                      </div>
+              {/* CATEGORY FILTERS */}
+              <div className="px-5 sm:px-6 pt-5 pb-2 border-b border-slate-100 overflow-x-auto">
+                <div className="flex flex-nowrap sm:flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap ${
+                        activeCategory === category
+                          ? "bg-primary text-white shadow-md"
+                          : "bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary"
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                      {/* CONTENT */}
+              {/* FAQ LIST */}
+              <div className="divide-y divide-slate-100">
+                {filteredFAQs.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`transition-all duration-300 ${
+                      hoveredFAQ === item.id ? 'bg-slate-50' : 'bg-white'
+                    }`}
+                    onMouseEnter={() => setHoveredFAQ(item.id)}
+                    onMouseLeave={() => setHoveredFAQ(null)}
+                  >
+                    <button
+                      onClick={() => toggleFAQ(item.id)}
+                      className="w-full text-left p-5 sm:p-6 flex justify-between items-start gap-4 group"
+                    >
                       <div className="flex-1">
-                        {/* CATEGORY & NEW BADGE */}
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                             <Calendar size={10} />
                             {item.category}
                           </span>
-                          {item.isNew && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                          {item.isPopular && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
                               <Sparkles size={10} />
-                              New
-                            </span>
-                          )}
-                          {item.isImportant && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
-                              Important
+                              Popular
                             </span>
                           )}
                         </div>
-
-                        {/* TITLE */}
-                        <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-2 leading-relaxed">
-                          {item.title}
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800 leading-relaxed pr-6">
+                          {item.question}
                         </h3>
-
-                        {/* DESCRIPTION */}
-                        <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                          {item.description}
-                        </p>
-
-                        {/* DOWNLOAD BUTTON */}
-                        <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 text-primary rounded-lg text-sm font-semibold hover:bg-primary hover:text-white transition-all duration-300 group">
-                          <Download size={14} className="group-hover:animate-bounce" />
-                          Download PDF
-                        </button>
                       </div>
-
-                      {/* DECORATIVE ELEMENT */}
-                      {item.isImportant && (
-                        <div className="absolute top-4 right-4">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                      <div className="flex-shrink-0 mt-1">
+                        {openFAQ === item.id ? (
+                          <ChevronUp size={20} className="text-primary transition-transform" />
+                        ) : (
+                          <ChevronDown size={20} className="text-slate-400 group-hover:text-primary transition-colors" />
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* ANSWER - Expandable */}
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        openFAQ === item.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
+                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5">
+                          <p className="text-slate-700 text-sm leading-relaxed">
+                            {item.answer}
+                          </p>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* EMPTY STATE */}
+              {filteredFAQs.length === 0 && (
+                <div className="py-12 text-center">
+                  <HelpCircle size={48} className="text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500">No FAQs found in this category.</p>
+                  <button 
+                    onClick={() => setActiveCategory("All")}
+                    className="mt-3 text-primary text-sm font-semibold hover:underline"
+                  >
+                    View all questions
+                  </button>
+                </div>
+              )}
+
+              {/* HELP FOOTER */}
+              <div className="bg-slate-50 px-5 sm:px-6 py-4 border-t border-slate-100">
+                <p className="text-slate-600 text-xs sm:text-sm text-center">
+                  Can't find your question?{" "}
+                  <button className="text-primary font-semibold hover:underline">
+                    Contact our support team
+                  </button>
+                </p>
               </div>
             </div>
           </div>
@@ -206,30 +253,30 @@ export default function NoticeSection() {
               </div>
             </div>
 
-            {/* APPLICATION GUIDE CARD */}
+            {/* QUICK CONTACT CARD */}
             <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
               <div className="p-6">
                 <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
-                  <PlayCircle size={28} className="text-white" />
+                  <Phone size={28} className="text-white" />
                 </div>
                 
                 <h3 className="text-white text-xl font-bold mb-3">
-                  Application Guide
+                  Quick Support
                 </h3>
                 
                 <p className="text-text-secondary text-sm leading-relaxed mb-6">
-                  Watch our official video tutorial on how to fill out the technical graduate examination form correctly.
+                  Having trouble finding answers? Connect with our support team for personalized assistance.
                 </p>
                 
                 <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-primary rounded-xl font-semibold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group">
-                  <PlayCircle size={16} className="group-hover:scale-110 transition-transform" />
-                  Watch Tutorial
+                  <MessageCircle size={16} className="group-hover:scale-110 transition-transform" />
+                  Raise a Ticket
                 </button>
               </div>
               
               <div className="bg-primary-dark px-6 py-4">
                 <p className="text-text-secondary text-xs text-center">
-                  Step-by-step guide for successful application
+                  Average response time: 24-48 hours
                 </p>
               </div>
             </div>

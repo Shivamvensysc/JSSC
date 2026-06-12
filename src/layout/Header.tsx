@@ -13,14 +13,14 @@ const navLinks = [
     title: "Apply Now",
     href: "/apply-now",
   },
-  {
-    title: "Notices",
-    href: "/notices",
-  },
-  {
-    title: "Help Desk",
-    href: "/help-desk",
-  },
+  // {
+  //   title: "Notices",
+  //   href: "/notices",
+  // },
+  // {
+  //   title: "Help Desk",
+  //   href: "/help-desk",
+  // },
 ];
 
 export default function Header() {

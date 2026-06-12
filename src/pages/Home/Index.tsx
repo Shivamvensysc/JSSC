@@ -1,5 +1,5 @@
 import HeroSection from "./Components/HeroSection";
-import ModernJharkhandSection from "./Components/ModernJharkhandSection";
+// import ModernJharkhandSection from "./Components/ModernJharkhandSection";
 import NoticeSection from "./Components/NoticeSection";
 
 const Index = () => {
@@ -7,7 +7,7 @@ const Index = () => {
     <>
       <HeroSection />
       <NoticeSection />
-      <ModernJharkhandSection />
+      {/* <ModernJharkhandSection /> */}
     </>
   );
 };

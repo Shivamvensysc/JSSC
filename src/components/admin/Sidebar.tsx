@@ -1,8 +1,8 @@
 
 import {
   LayoutDashboard,
-  Users,
-  Settings,
+  // Users,
+  // Settings,
   LifeBuoy,
   ShieldCheck,
   Database,
@@ -35,11 +35,11 @@ export default function Sidebar({
       label: "Monitoring",
       path: "/admin/live",
     },
-    {
-      icon: <Users size={20} />,
-      label: "Application Management",
-      path: "/admin/verify",
-    },
+    // {
+    //   icon: <Users size={20} />,
+    //   label: "Application Management",
+    //   path: "/admin/verify",
+    // },
     {
       icon: <Database size={20} />,
       label: "System Control",
@@ -103,7 +103,7 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="space-y-2 border-t border-[#E1E5E3] p-4">
-        <button className="flex w-full items-center gap-4 rounded-lg p-3 text-[#4B5563] hover:bg-gray-50">
+        {/* <button className="flex w-full items-center gap-4 rounded-lg p-3 text-[#4B5563] hover:bg-gray-50">
           <Settings size={20} />
 
           {!isCollapsed && (
@@ -111,7 +111,7 @@ export default function Sidebar({
               Settings
             </span>
           )}
-        </button>
+        </button> */}
 
         <button className="flex w-full items-center gap-4 rounded-lg p-3 text-[#4B5563] hover:bg-gray-50">
           <LifeBuoy size={20} />

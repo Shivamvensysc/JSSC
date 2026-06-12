@@ -1,4 +1,4 @@
-import {  Menu, ChevronLeft, Search, Bell, Settings, LogOut, User } from "lucide-react";
+import {  Menu, ChevronLeft, Search, Bell,  LogOut, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -162,17 +162,6 @@ export default function Header({ isCollapsed, onToggle }: { isCollapsed: boolean
                   >
                     <User size={18} className="text-[#5F6368]" />
                     <span className="text-sm text-[#111827]">My Profile</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      console.log("Settings");
-                      setIsProfileOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <Settings size={18} className="text-[#5F6368]" />
-                    <span className="text-sm text-[#111827]">Settings</span>
                   </button>
                   
                   <div className="border-t border-[#E1E5E3] my-1"></div>

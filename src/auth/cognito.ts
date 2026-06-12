@@ -173,10 +173,46 @@ export interface VerifyOtpResponse {
   message: string;
 }
 
-export const sendOtp = async (
-  email: string,
-  password: string
-): Promise<SendOtpResponse> => {
+// export const sendOtp = async (
+//   email: string,
+//   password: string
+// ): Promise<SendOtpResponse> => {
+//   return new Promise((resolve, reject) => {
+//     const attributeList: CognitoUserAttribute[] = [
+//       new CognitoUserAttribute({
+//         Name: "email",
+//         Value: email,
+//       }),
+//     ];
+
+//     userPool.signUp(
+//       email,
+//       password,
+//       attributeList,
+//       [],
+//       (err, result) => {
+//         if (err) {
+//           reject(err);
+//           return;
+//         }
+
+//         if (!result) {
+//           reject(new Error("Signup failed"));
+//           return;
+//         }
+
+//         resolve({
+//           userSub: result.userSub,
+//           username: result.user?.getUsername?.() || email,
+//           codeDeliveryDetails: result.codeDeliveryDetails,
+//           rawResult: result,
+//         });
+//       }
+//     );
+//   });
+// };
+
+export const sendOtp = async (email: string): Promise<SendOtpResponse> => {
   return new Promise((resolve, reject) => {
     const attributeList: CognitoUserAttribute[] = [
       new CognitoUserAttribute({
@@ -185,9 +221,12 @@ export const sendOtp = async (
       }),
     ];
 
+    // Generate a temporary password for Cognito signup
+    const temporaryPassword = Math.random().toString(36).slice(-16) + "@Temp123";
+
     userPool.signUp(
       email,
-      password,
+      temporaryPassword,  // Use temporary password instead of user's password
       attributeList,
       [],
       (err, result) => {
