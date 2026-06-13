@@ -2178,6 +2178,11 @@ const sendEmailOtp = () => {
   // Save Step 1 API call
   const saveStep1 = async () => {
     setSavingStep(true);
+    const formatDateToDDMMYYYY = (dateString: string): string => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`;
+  };
 
     const fullName = `${personalInfo.firstName} ${personalInfo.lastName}`.trim();
 
@@ -2186,10 +2191,10 @@ const sendEmailOtp = () => {
         fullName,
         fathersName: personalInfo.fathersName,
         motherName: personalInfo.motherName,
-        dob: personalInfo.dob,
-        age: Number(personalInfo.age),
+        dob: formatDateToDDMMYYYY(personalInfo.dob),
         gender: personalInfo.gender,
         nationality: personalInfo.nationality,
+        maritalStatus: personalInfo.maritalStatus,
         aadharNumber: personalInfo.aadharNumber,
         identificationMark1: personalInfo.identificationMark1,
         identificationMark2: personalInfo.identificationMark2,
