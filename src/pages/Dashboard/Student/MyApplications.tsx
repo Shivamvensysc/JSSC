@@ -570,6 +570,7 @@ useEffect(() => {
 
   
 // Validation for Step 0 - Personal Info
+// Validation for Step 0 - Personal Info
 const validateStep0 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
@@ -587,6 +588,15 @@ const validateStep0 = (): boolean => {
     errors.mobileNumber = "Mobile number is required";
   } else if (personalInfo.mobileNumber.length !== 10) {
     errors.mobileNumber = "Mobile number must be 10 digits";
+  }
+  
+  // Aadhar Card Validation - Required and exactly 12 digits
+  if (!personalInfo.aadharNumber) {
+    errors.aadharNumber = "Aadhar card number is required";
+  } else if (personalInfo.aadharNumber.length !== 12) {
+    errors.aadharNumber = "Aadhar card number must be exactly 12 digits";
+  } else if (!/^\d+$/.test(personalInfo.aadharNumber)) {
+    errors.aadharNumber = "Aadhar card number must contain only digits";
   }
   
   if (!personalInfo.emailId) {
@@ -1052,8 +1062,11 @@ const validateStep5 = (): boolean => {
     requiredDocs.push({ key: "ewsCertificate", label: "EWS Certificate" });
   }
   
-  if (reservationCategory.mainCategory && 
-      !["unreserved", "unreserved_(ur)", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+  // Caste Certificate - Only required for reserved categories (NOT for Unreserved/UR/EWS)
+  const isReservedCategory = reservationCategory.mainCategory && 
+    !["unreserved", "unreserved_(ur)", "ur", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory);
+  
+  if (isReservedCategory) {
     requiredDocs.push({ key: "castCertificate", label: "Caste Certificate" });
   }
   
@@ -2589,7 +2602,7 @@ useEffect(() => {
 
 
 
-// Add this useEffect in the main component body (where other useEffects are)
+
 // Add this useEffect in the main component body (where other useEffects are)
 useEffect(() => {
   // Auto-select language options based on post
@@ -3253,22 +3266,49 @@ const renderPersonalInfo = () => {
           </div>
 
           {/* Aadhar Number */}
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Aadhar Card Number (Preferred)
-            </label>
-            <input
-              type="text"
-              maxLength={12}
-              value={personalInfo.aadharNumber}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                setPersonalInfo({ ...personalInfo, aadharNumber: value });
-              }}
-              onKeyDown={validateNumberInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-            />
-          </div>
+          {/* Aadhar Number */}
+<div>
+  <label className="block text-slate-700 text-sm font-medium mb-2">
+    Aadhar Card Number <span className="text-red-600">*</span>
+  </label>
+  <input
+    type="text"
+    maxLength={12}
+    value={personalInfo.aadharNumber}
+    onChange={(e) => {
+      const value = e.target.value.replace(/\D/g, '');
+      setPersonalInfo({ ...personalInfo, aadharNumber: value });
+      // Validate on change
+      if (value) {
+        if (value.length !== 12) {
+          setStepErrors(prev => ({
+            ...prev,
+            [0]: { ...prev[0], aadharNumber: "Aadhar card number must be exactly 12 digits" }
+          }));
+        } else {
+          setStepErrors(prev => ({
+            ...prev,
+            [0]: { ...prev[0], aadharNumber: "" }
+          }));
+        }
+      } else {
+        setStepErrors(prev => ({
+          ...prev,
+          [0]: { ...prev[0], aadharNumber: "Aadhar card number is required" }
+        }));
+      }
+    }}
+    onKeyDown={validateNumberInput}
+    placeholder="Enter 12 digit Aadhar number"
+    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+      errors.aadharNumber ? 'border-red-500' : 'border-slate-300'
+    }`}
+  />
+  {errors.aadharNumber && <p className="text-red-500 text-xs mt-1">{errors.aadharNumber}</p>}
+  <p className="text-xs text-slate-500 mt-1">
+    Aadhar card is mandatory. Please enter valid 12-digit number.
+  </p>
+</div>
 
           {/* Email ID */}
           <div>
@@ -3777,16 +3817,25 @@ const renderReservationCategory = () => {
         }
         break;
       case 'categoryCertificateNumber':
-        if (reservationCategory.mainCategoryId && 
-            reservationCategory.mainCategory !== "UR (Unreserved)" && 
-            reservationCategory.mainCategory !== "Unreserved" && 
-            reservationCategory.mainCategory !== "Unreserved (UR)" &&
-            reservationCategory.mainCategory !== "EWS" && 
-            !value.trim()) {
-          newErrors.categoryCertificateNumber = "Category certificate number is required";
-        } else {
-          delete newErrors.categoryCertificateNumber;
-        }
+        // Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) AND domicile is Yes
+if (reservationCategory.isJharkhandDomicile === "yes" && 
+    reservationCategory.mainCategoryId && 
+    reservationCategory.mainCategory !== "UR (Unreserved)" && 
+    reservationCategory.mainCategory !== "Unreserved" && 
+    reservationCategory.mainCategory !== "Unreserved (UR)" &&
+    reservationCategory.mainCategory !== "EWS") {
+  if (!reservationCategory.categoryCertificateNumber.trim()) {
+    errors.categoryCertificateNumber = "Category certificate number is required";
+  }
+  if (!reservationCategory.categoryCertificateAuthority.trim()) {
+    errors.categoryCertificateAuthority = "Category certificate issuing authority is required";
+  }
+  if (!reservationCategory.categoryCertificateIssueDate) {
+    errors.categoryCertificateIssueDate = "Category certificate issue date is required";
+  } else if (isFutureDate(reservationCategory.categoryCertificateIssueDate)) {
+    errors.categoryCertificateIssueDate = "Issue date cannot be in the future";
+  }
+}
         break;
       case 'categoryCertificateAuthority':
         if (reservationCategory.mainCategoryId && 
@@ -3942,34 +3991,78 @@ const renderReservationCategory = () => {
     setStepErrors(prev => ({ ...prev, [1]: newErrors }));
   };
 
-  // Handle Jharkhand Domicile change
-  const handleDomicileChange = (value: string) => {
-    setReservationCategory({ 
-      ...reservationCategory, 
-      isJharkhandDomicile: value 
-    });
-    validateReservationField('isJharkhandDomicile', value);
+  // // Handle Jharkhand Domicile change
+  // const handleDomicileChange = (value: string) => {
+  //   setReservationCategory({ 
+  //     ...reservationCategory, 
+  //     isJharkhandDomicile: value 
+  //   });
+  //   validateReservationField('isJharkhandDomicile', value);
     
-    if (value === "no") {
-      const unreservedCategory = mainCategories.find((cat: any) => 
-        cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "UR"
-      );
-      if (unreservedCategory) {
-        setReservationCategory((prev: any) => ({
-          ...prev,
-          isJharkhandDomicile: value,
-          mainCategory: unreservedCategory.label,
-          mainCategoryId: unreservedCategory.value,
-          subCategory: "",
-          subCategoryId: undefined,
-        }));
-        setSelectedPrimitiveTribeId(undefined);
-        validateReservationField('mainCategoryId', unreservedCategory.value);
-        const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
-        setFeePayment({ ...feePayment, applicationFee: fee });
-      }
+  //   if (value === "no") {
+  //     const unreservedCategory = mainCategories.find((cat: any) => 
+  //       cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "UR"
+  //     );
+  //     if (unreservedCategory) {
+  //       setReservationCategory((prev: any) => ({
+  //         ...prev,
+  //         isJharkhandDomicile: value,
+  //         mainCategory: unreservedCategory.label,
+  //         mainCategoryId: unreservedCategory.value,
+  //         subCategory: "",
+  //         subCategoryId: undefined,
+  //       }));
+  //       setSelectedPrimitiveTribeId(undefined);
+  //       validateReservationField('mainCategoryId', unreservedCategory.value);
+  //       const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
+  //       setFeePayment({ ...feePayment, applicationFee: fee });
+  //     }
+  //   }
+  // };
+
+  // Handle Jharkhand Domicile change - Updated
+const handleDomicileChange = (value: string) => {
+  setReservationCategory({ 
+    ...reservationCategory, 
+    isJharkhandDomicile: value 
+  });
+  validateReservationField('isJharkhandDomicile', value);
+  
+  if (value === "no") {
+    // Find the Unreserved (UR) category
+    const unreservedCategory = mainCategories.find((cat: any) => 
+      cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "Unreserved" || cat.label === "UR"
+    );
+    if (unreservedCategory) {
+      setReservationCategory((prev: any) => ({
+        ...prev,
+        isJharkhandDomicile: value,
+        mainCategory: unreservedCategory.label,
+        mainCategoryId: unreservedCategory.value,
+        subCategory: "",
+        subCategoryId: undefined,
+        subSubCategoryId: undefined,
+      }));
+      setSelectedPrimitiveTribeId(undefined);
+      validateReservationField('mainCategoryId', unreservedCategory.value);
+      const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
+      setFeePayment({ ...feePayment, applicationFee: fee });
     }
-  };
+  } else if (value === "yes") {
+    // Reset category when domicile changes to Yes
+    setReservationCategory((prev: any) => ({
+      ...prev,
+      isJharkhandDomicile: value,
+      mainCategory: "",
+      mainCategoryId: undefined,
+      subCategory: "",
+      subCategoryId: undefined,
+      subSubCategoryId: undefined,
+    }));
+  }
+};
+
+
 
   // Handle category change
   const handleCategoryChange = (selectedValue: number) => {
@@ -4083,7 +4176,7 @@ const renderReservationCategory = () => {
             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
               Reservation Category <span className="text-red-600">*</span>
             </label>
@@ -4100,7 +4193,35 @@ const renderReservationCategory = () => {
               ))}
             </select>
             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
-          </div>
+          </div> */}
+
+          <div>
+  <label className="block text-sm font-semibold text-slate-800 mb-2">
+    Reservation Category <span className="text-red-600">*</span>
+  </label>
+  <select
+    value={reservationCategory.mainCategoryId || ""}
+    onChange={(e) => handleCategoryChange(Number(e.target.value))}
+    disabled={reservationCategory.isJharkhandDomicile === "no"}
+    className={`w-full h-12 border rounded-lg px-4 ${
+      reservationCategory.isJharkhandDomicile === "no" ? "bg-slate-100 cursor-not-allowed" : "bg-white"
+    } ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
+  >
+    <option value="">Select Category</option>
+    {mainCategories.map((cat: any) => (
+      <option key={cat.value} value={cat.value}>
+        {cat.label}
+      </option>
+    ))}
+  </select>
+  {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
+  {reservationCategory.isJharkhandDomicile === "no" && (
+    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+      <Info size={12} />
+      Category is automatically set to Unreserved (UR) when Domicile is No.
+    </p>
+  )}
+</div>
           
           {/* ST Sub Category - Only show when ST is selected */}
           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
@@ -4198,65 +4319,67 @@ const renderReservationCategory = () => {
         )}
         
         {/* Category Certificate Fields */}
-        {reservationCategory.mainCategoryId && 
-         reservationCategory.mainCategory && 
-         reservationCategory.mainCategory !== "UR (Unreserved)" && 
-         reservationCategory.mainCategory !== "Unreserved" && 
-         reservationCategory.mainCategory !== "Unreserved (UR)" &&
-         reservationCategory.mainCategory !== "EWS" && (
-          <>
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Caste/Category Certificate Number <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={reservationCategory.categoryCertificateNumber}
-                onChange={(e) => {
-                  setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
-                  validateReservationField('categoryCertificateNumber', e.target.value);
-                }}
-                placeholder="Enter Category Certificate Number"
-                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-              />
-              {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
-            </div>
-            
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Caste/Category Certificate Date Of Issue <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="date"
-                value={reservationCategory.categoryCertificateIssueDate}
-                onChange={(e) => {
-                  setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
-                  validateReservationField('categoryCertificateIssueDate', e.target.value);
-                }}
-                max={new Date().toISOString().split('T')[0]}
-                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-              />
-              {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
-            </div>
-            
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Certificate Issued Authority <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={reservationCategory.categoryCertificateAuthority}
-                onChange={(e) => {
-                  setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
-                  validateReservationField('categoryCertificateAuthority', e.target.value);
-                }}
-                placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
-                className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-              />
-              {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
-            </div>
-          </>
-        )}
+        {/* Category Certificate Fields - Only show for reserved categories and when domicile is Yes */}
+{reservationCategory.isJharkhandDomicile === "yes" && 
+ reservationCategory.mainCategoryId && 
+ reservationCategory.mainCategory && 
+ reservationCategory.mainCategory !== "UR (Unreserved)" && 
+ reservationCategory.mainCategory !== "Unreserved" && 
+ reservationCategory.mainCategory !== "Unreserved (UR)" &&
+ reservationCategory.mainCategory !== "EWS" && (
+  <>
+    <div className="mt-4">
+      <label className="block text-sm font-semibold text-slate-800 mb-2">
+        Caste/Category Certificate Number <span className="text-red-600">*</span>
+      </label>
+      <input
+        type="text"
+        value={reservationCategory.categoryCertificateNumber}
+        onChange={(e) => {
+          setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
+          validateReservationField('categoryCertificateNumber', e.target.value);
+        }}
+        placeholder="Enter Category Certificate Number"
+        className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+      />
+      {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
+    </div>
+    
+    <div className="mt-4">
+      <label className="block text-sm font-semibold text-slate-800 mb-2">
+        Caste/Category Certificate Date Of Issue <span className="text-red-600">*</span>
+      </label>
+      <input
+        type="date"
+        value={reservationCategory.categoryCertificateIssueDate}
+        onChange={(e) => {
+          setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
+          validateReservationField('categoryCertificateIssueDate', e.target.value);
+        }}
+        max={new Date().toISOString().split('T')[0]}
+        className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+      />
+      {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
+    </div>
+    
+    <div className="mt-4">
+      <label className="block text-sm font-semibold text-slate-800 mb-2">
+        Certificate Issued Authority <span className="text-red-600">*</span>
+      </label>
+      <input
+        type="text"
+        value={reservationCategory.categoryCertificateAuthority}
+        onChange={(e) => {
+          setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
+          validateReservationField('categoryCertificateAuthority', e.target.value);
+        }}
+        placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
+        className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+      />
+      {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
+    </div>
+  </>
+)}
         
         {/* Domicile Certificate Fields */}
         {reservationCategory.isJharkhandDomicile === "yes" && (
@@ -5762,7 +5885,7 @@ const renderLanguageSelection = () => {
     "Sanskrit Language & Literature",
   ];
   
-  // Paper III options based on post ID (conditional)
+  // Paper III options based on post ID
   const getPaperThreeOptions = () => {
     if (postCode === "4") {
       return ["Mathematics", "Statistics", "Economics"];
@@ -5918,7 +6041,6 @@ const renderLanguageSelection = () => {
     </div>
   );
 };
-
 const renderFeePayment = () => {
   const totalFee = calculateTotalFee();
   
@@ -6226,9 +6348,15 @@ const renderDocuments = () => {
     if (reservationCategory.mainCategory === "ews" || reservationCategory.mainCategory === "economically_weaker_section_(ews)") {
       baseFields.push({ key: "ewsCertificate", label: "EWS Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
-    if (reservationCategory.mainCategory && !["unreserved", "unreserved_(ur)", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory)) {
+    
+    // Caste Certificate - Only show for reserved categories (NOT for Unreserved/UR)
+    const isReservedCategory = reservationCategory.mainCategory && 
+      !["unreserved", "unreserved_(ur)", "ur", "ews", "economically_weaker_section_(ews)"].includes(reservationCategory.mainCategory);
+    
+    if (isReservedCategory) {
       baseFields.push({ key: "castCertificate", label: "Caste Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
+    
     if (education.postGraduation.hasPostGraduation) {
       baseFields.push({ key: "postGraduationCertificate", label: "Post-Graduation Certificate", required: true, type: "pdf", size: "Max 500KB", accept: ".pdf" });
     }
