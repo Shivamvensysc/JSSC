@@ -38,3 +38,7 @@ jobs:
       - name: Verify Deployment
         run: |
           aws s3 ls s3://${{ vars.S3_BUCKET_NAME }}
+
+      - name: Invalidate CloudFront Cache
+         # Forces CloudFront to clear out older cached versions instantly
+        run: aws cloudfront create-invalidation --distribution-id E2YUC66YTFONOG --paths "/*"

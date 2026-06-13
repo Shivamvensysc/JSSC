@@ -89,8 +89,7 @@ interface SearchableDropdownProps {
 }
 
 interface PersonalInfo {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   fathersName: string;
   motherName: string;
    maritalStatus: string;
@@ -187,6 +186,9 @@ interface LanguageSelection {
   paperOneLanguage: string;
   paperTwoLanguage: string;
   paperThreeLanguage: string;
+  paperThreeForPost4?: string; 
+  paperThreeForPost6?: string; 
+  paperThreeForPost7?: string;
 }
 
 interface ReservationCategory {
@@ -462,8 +464,7 @@ useEffect(() => {
         // Auto-fill personal info from registration data
         setPersonalInfo(prev => ({
           ...prev,
-          firstName: data.firstName || "",
-          lastName: data.lastName || "",
+          fullName: data.fulltName || "",
           mobileNumber: data.mobileNumber || "",
           emailId: data.email || "",
           dob: data.dateOfBirth || "",
@@ -482,7 +483,7 @@ useEffect(() => {
       }
     } catch (error) {
       console.error("Error fetching registration data:", error);
-      // Don't show error toast as this is not critical
+      
     }
   };
   
@@ -575,7 +576,7 @@ const validateStep0 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
   // Basic Information
-  if (!personalInfo.firstName.trim()) errors.firstName = "First name is required";
+  if (!personalInfo.fullName.trim()) errors.fullName = "Full name is required";
   
   if (!personalInfo.fathersName.trim()) errors.fathersName = "Father's name is required";
   if (!personalInfo.motherName.trim()) errors.motherName = "Mother's name is required";
@@ -1011,12 +1012,40 @@ const validateStep3 = (): boolean => {
 
 // Validation for Step 4 - Language Selection
 // Validation for Step 4 - Language Selection
+// const validateStep4 = (): boolean => {
+//   const errors: { [field: string]: string } = {};
+  
+//   const selectedPost = postsList.length > 0 ? postsList[0] : null;
+//   const postCode = selectedPost?.postCode?.toString() || "";
+//   const showPaperThree = postCode === "4" || postCode === "7";
+  
+//   // Paper I is auto-filled (always "Hindi, English")
+//   if (!languageSelection.paperOneLanguage) {
+//     errors.paperOneLanguage = "Paper I language is required";
+//   }
+  
+//   // Paper II is always required for all posts
+//   if (!languageSelection.paperTwoLanguage) {
+//     errors.paperTwoLanguage = "Paper II language is required";
+//   }
+  
+//   // Paper III is required only for posts 4 and 7
+//   if (showPaperThree && !languageSelection.paperThreeLanguage) {
+//     errors.paperThreeLanguage = "Paper III subject is required";
+//   }
+  
+//   setStepErrors(prev => ({ ...prev, [4]: errors }));
+//   return Object.keys(errors).length === 0;
+// };
+
+// Validation for Step 4 - Language Selection
 const validateStep4 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  const selectedPost = postsList.length > 0 ? postsList[0] : null;
-  const postCode = selectedPost?.postCode?.toString() || "";
-  const showPaperThree = postCode === "4" || postCode === "7";
+  const selectedPosts = postsList;
+  const hasPost4 = selectedPosts.some((post: any) => post?.postCode?.toString() === "4");
+  const hasPost6 = selectedPosts.some((post: any) => post?.postCode?.toString() === "6");
+  const hasPost7 = selectedPosts.some((post: any) => post?.postCode?.toString() === "7");
   
   // Paper I is auto-filled (always "Hindi, English")
   if (!languageSelection.paperOneLanguage) {
@@ -1028,9 +1057,19 @@ const validateStep4 = (): boolean => {
     errors.paperTwoLanguage = "Paper II language is required";
   }
   
-  // Paper III is required only for posts 4 and 7
-  if (showPaperThree && !languageSelection.paperThreeLanguage) {
-    errors.paperThreeLanguage = "Paper III subject is required";
+  // Paper III validation for Post 4
+  if (hasPost4 && !languageSelection.paperThreeForPost4) {
+    errors.paperThreeForPost4 = "Paper III subject for Post 4 is required";
+  }
+  
+  // Paper III validation for Post 6
+  if (hasPost6 && !languageSelection.paperThreeForPost6) {
+    errors.paperThreeForPost6 = "Paper III subject for Post 6 is required";
+  }
+  
+  // Paper III validation for Post 7
+  if (hasPost7 && !languageSelection.paperThreeForPost7) {
+    errors.paperThreeForPost7 = "Paper III subject for Post 7 is required";
   }
   
   setStepErrors(prev => ({ ...prev, [4]: errors }));
@@ -1198,8 +1237,7 @@ const validateCurrentStep = (): boolean => {
   
 
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     fathersName: "",
     motherName: "",
     dob: "",
@@ -1238,7 +1276,10 @@ const validateCurrentStep = (): boolean => {
 
 
 const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
-  
+// Add these with your other state declarations
+const [paperThreeForPost4, setPaperThreeForPost4] = useState("");
+const [paperThreeForPost6, setPaperThreeForPost6] = useState("");
+const [paperThreeForPost7, setPaperThreeForPost7] = useState("");  
 
   const [education, setEducation] = useState<Education>({
   tenth: {
@@ -1299,7 +1340,10 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   const [languageSelection, setLanguageSelection] = useState<LanguageSelection>({
     paperOneLanguage: "",
     paperTwoLanguage: "",
-    paperThreeLanguage: "Technical / Specialized Subject and General Knowledge",
+    paperThreeLanguage: "",
+    paperThreeForPost4: "",
+    paperThreeForPost6: "",
+    paperThreeForPost7: "",
   });
   
  const [reservationCategory, setReservationCategory] = useState<ReservationCategory>({
@@ -1393,6 +1437,29 @@ const calculateTotalFee = () => {
     pwdCertificate: null,
   });
 
+  useEffect(() => {
+  // Initialize Paper-III selections when posts are loaded
+  if (postsList.length > 0) {
+    const hasPost4Loaded = postsList.some((post: any) => post?.postCode?.toString() === "4");
+    const hasPost6Loaded = postsList.some((post: any) => post?.postCode?.toString() === "6");
+    const hasPost7Loaded = postsList.some((post: any) => post?.postCode?.toString() === "7");
+    
+    // Set default values if needed (only if not already set)
+    if (hasPost4Loaded && !paperThreeForPost4) {
+      setPaperThreeForPost4("Mathematics");
+      setLanguageSelection(prev => ({ ...prev, paperThreeForPost4: "Mathematics" }));
+    }
+    if (hasPost6Loaded && !paperThreeForPost6) {
+      setPaperThreeForPost6("Zoology");
+      setLanguageSelection(prev => ({ ...prev, paperThreeForPost6: "Zoology" }));
+    }
+    if (hasPost7Loaded && !paperThreeForPost7) {
+      setPaperThreeForPost7("Mathematics");
+      setLanguageSelection(prev => ({ ...prev, paperThreeForPost7: "Mathematics" }));
+    }
+  }
+}, [postsList]);
+
   const steps = [
     { id: 0, title: "Personal Info", icon: User },
     { id: 1, title: "Reservation & Category", icon: Shield },
@@ -1477,8 +1544,7 @@ const fetchAndAutoFillData = async () => {
         
         setPersonalInfo({
           ...personalInfo,
-          firstName: pi.firstName || "",
-          lastName: pi.lastName || "",
+          fullName: pi.fullName || "",
           fathersName: pi.fatherName || "",
           motherName: pi.motherName || "",
           dob: pi.dateOfBirth ? pi.dateOfBirth.split('T')[0] : "",
@@ -2262,11 +2328,10 @@ const sendEmailOtp = () => {
     return `${day}-${month}-${year}`;
   };
 
-    const fullName = `${personalInfo.firstName} ${personalInfo.lastName}`.trim();
 
     const payload = {
       personalInfo: {
-        fullName,
+        fullName :personalInfo.fullName,
         fathersName: personalInfo.fathersName,
         motherName: personalInfo.motherName,
         dob: formatDateToDDMMYYYY(personalInfo.dob),
@@ -2477,23 +2542,88 @@ const saveStep3 = async () => {
 
   // Save Step 4 API call (Language Selection)
 // Save Step 4 API call (Language Selection)
+// const saveStep4 = async () => {
+//   setSavingStep(true);
+  
+//   const selectedPost = postsList.length > 0 ? postsList[0] : null;
+//   const postCode = selectedPost?.postCode?.toString() || "";
+//   const isPostId4And7 = postCode === "4" || postCode === "7";
+  
+//   // Prepare payload in the required format
+//   const payload = {
+//     subjects: {
+//       paperOne: "Hindi, English",
+//       paperTwo: languageSelection.paperTwoLanguage,
+//       ...(postCode === "4" && { paperThreeForPost4: languageSelection.paperThreeLanguage }),
+//       ...(postCode === "7" && { paperThreeForPost7: languageSelection.paperThreeLanguage }),
+//       isPostId4And7: isPostId4And7
+//     }
+//   };
+
+//   try {
+//     const response = await apiService.saveStep4(payload);
+//     if (response.data.success) {
+//       toast.success(response.data.message);
+//       setCurrentStep(currentStep + 1);
+//     }
+//   } catch (error: any) {
+//     console.error("Error saving step 4:", error);
+//     toast.error(error.response?.data?.message || "Failed to save language selection");
+//   } finally {
+//     setSavingStep(false);
+//   }
+// };
+
+// Save Step 4 API call (Language Selection)
 const saveStep4 = async () => {
   setSavingStep(true);
   
-  const selectedPost = postsList.length > 0 ? postsList[0] : null;
-  const postCode = selectedPost?.postCode?.toString() || "";
-  const isPostId4And7 = postCode === "4" || postCode === "7";
+  const selectedPosts = postsList;
+  const hasPost4 = selectedPosts.some((post: any) => post?.postCode?.toString() === "4");
+  const hasPost6 = selectedPosts.some((post: any) => post?.postCode?.toString() === "6");
+  const hasPost7 = selectedPosts.some((post: any) => post?.postCode?.toString() === "7");
   
   // Prepare payload in the required format
-  const payload = {
+  const payload: any = {
     subjects: {
       paperOne: "Hindi, English",
       paperTwo: languageSelection.paperTwoLanguage,
-      ...(postCode === "4" && { paperThreeForPost4: languageSelection.paperThreeLanguage }),
-      ...(postCode === "7" && { paperThreeForPost7: languageSelection.paperThreeLanguage }),
-      isPostId4And7: isPostId4And7
     }
   };
+  
+  // Add Paper III for Post 4 if present
+  if (hasPost4) {
+    payload.subjects.paperThreeForPost4 = languageSelection.paperThreeForPost4 || "";
+  }
+  
+  // Add Paper III for Post 6 if present
+  if (hasPost6) {
+    payload.subjects.paperThreeForPost6 = languageSelection.paperThreeForPost6 || "";
+  }
+  
+  // Add Paper III for Post 7 if present
+  if (hasPost7) {
+    payload.subjects.paperThreeForPost7 = languageSelection.paperThreeForPost7 || "";
+  }
+  
+  // For backward compatibility with existing API
+  // If only one post with Paper III is present, also set the old field
+  const postsWithPaperIII = [hasPost4, hasPost6, hasPost7].filter(Boolean).length;
+  if (postsWithPaperIII === 1) {
+    if (hasPost4) {
+      payload.subjects.paperThreeLanguage = languageSelection.paperThreeForPost4 || "";
+    } else if (hasPost6) {
+      payload.subjects.paperThreeLanguage = languageSelection.paperThreeForPost6 || "";
+    } else if (hasPost7) {
+      payload.subjects.paperThreeLanguage = languageSelection.paperThreeForPost7 || "";
+    }
+  }
+  
+  // Add flags for which posts are present
+  payload.subjects.hasPost4 = hasPost4;
+  payload.subjects.hasPost6 = hasPost6;
+  payload.subjects.hasPost7 = hasPost7;
+  payload.subjects.isPostId4And7 = hasPost4 || hasPost7;
 
   try {
     const response = await apiService.saveStep4(payload);
@@ -2810,11 +2940,11 @@ const renderPersonalInfo = () => {
     const newErrors = { ...errors };
     
     switch (field) {
-      case 'firstName':
+      case 'fullName':
         if (!value.trim()) {
-          newErrors.firstName = "First name is required";
+          newErrors.fullName = "Full name is required";
         } else {
-          delete newErrors.firstName;
+          delete newErrors.fullName;
         }
         break;
       case 'fathersName':
@@ -2987,16 +3117,16 @@ const renderPersonalInfo = () => {
             </label>
             <input
               type="text"
-              value={personalInfo.firstName}
+              value={personalInfo.fullName}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                setPersonalInfo({ ...personalInfo, firstName: value });
-                validateField('firstName', value);
+                setPersonalInfo({ ...personalInfo, fullName: value });
+                validateField('fullName', value);
               }}
               onKeyDown={validateTextInput}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.firstName ? 'border-red-500' : 'border-slate-300'}`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.fullName ? 'border-red-500' : 'border-slate-300'}`}
             />
-            {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
+            {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
           </div>
           
           {/* Father's Name */}
@@ -5854,15 +5984,199 @@ const renderPostPreference = () => {
 };
 
 
+// const renderLanguageSelection = () => {
+//   const errors = stepErrors[4] || {};
+  
+//   // Get the posts from postsList
+//   const hasPost4 = postsList.some((post: any) => post?.postCode?.toString() === "4");
+//   const hasPost7 = postsList.some((post: any) => post?.postCode?.toString() === "7");
+  
+
+//   // Paper I - Both languages combined (read-only)
+//   const paperOneCombined = "Hindi, English";
+  
+//   // Paper II - All 15 languages (always shown, user selectable)
+//   const paperTwoOptions = [
+//     "Hindi Language & Literature",
+//     "English Language & Literature",
+//     "Urdu Language & Literature",
+//     "Santali Language & Literature",
+//     "Bengali Language & Literature",
+//     "Mundari Language & Literature",
+//     "Ho Language & Literature",
+//     "Kharia Language & Literature",
+//     "Kudukh (Oraon) Language & Literature",
+//     "Kurmali Language & Literature",
+//     "Khortha Language & Literature",
+//     "Nagpuri Language & Literature",
+//     "Panchpargania Language & Literature",
+//     "Odia Language & Literature",
+//     "Sanskrit Language & Literature",
+//   ];
+  
+//   // Paper III options based on post ID
+//   const getPaperThreeOptions = () => {
+//     // If post 7 is present (either alone or with post 4), show all 4 subjects
+//     if (hasPost7) {
+//       return ["Mathematics", "Statistics", "Economics", "Commerce"];
+//     }
+//     // If only post 4 is present
+//     if (hasPost4) {
+//       return ["Mathematics", "Statistics", "Economics"];
+//     }
+//     return [];
+//   };
+
+//   const paperThreeOptions = getPaperThreeOptions();
+  
+//   // Determine if Paper III should be shown (if either post 4 or post 7 is present)
+//   const showPaperThree = hasPost4 || hasPost7;
+
+//   // Handle Paper II change
+//   const handlePaperTwoChange = (value: string) => {
+//     setLanguageSelection({ ...languageSelection, paperTwoLanguage: value });
+//     if (value) {
+//       setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperTwoLanguage: "" } }));
+//     }
+//   };
+
+//   // Handle Paper III change
+//   const handlePaperThreeChange = (value: string) => {
+//     setLanguageSelection({ ...languageSelection, paperThreeLanguage: value });
+//     if (value) {
+//       setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeLanguage: "" } }));
+//     }
+//   };
+
+//   // If no post selected yet, show loading or message
+//   if (postsList.length === 0) {
+//     return (
+//       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//         <div className="absolute -top-4 left-5 bg-white px-3">
+//           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//             <Languages className="w-5 h-5 text-primary" />
+//             Language Selection for Examination
+//           </h3>
+//         </div>
+//         <div className="text-center py-8">
+//           <p className="text-slate-500">Loading post information...</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+//       <div className="absolute -top-4 left-5 bg-white px-3">
+//         <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+//           <Languages className="w-5 h-5 text-primary" />
+//           Language Selection for Examination
+//         </h3>
+//       </div>
+//       <div className="space-y-6 mt-4">
+//         {/* Paper I - Read-only input with both Hindi and English */}
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Paper-I Subject/Language <span className="text-red-600">*</span>
+//           </label>
+//           <input
+//             type="text"
+//             value={paperOneCombined}
+//             readOnly
+//             disabled
+//             className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
+//           />
+//           <p className="text-xs text-slate-500 mt-1">
+//             Paper I includes both Hindi and English languages
+//           </p>
+//         </div>
+        
+//         {/* Paper II - User selectable dropdown with all 15 languages */}
+//         <div>
+//           <label className="block text-slate-700 text-sm font-medium mb-2">
+//             Paper-II Language/Subject <span className="text-red-600">*</span>
+//           </label>
+//           <select
+//             value={languageSelection.paperTwoLanguage}
+//             onChange={(e) => handlePaperTwoChange(e.target.value)}
+//             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+//               errors.paperTwoLanguage ? 'border-red-500' : 'border-slate-300'
+//             }`}
+//           >
+//             <option value="">Select Language</option>
+//             {paperTwoOptions.map((lang) => (
+//               <option key={lang} value={lang}>{lang}</option>
+//             ))}
+//           </select>
+//           {errors.paperTwoLanguage && <p className="text-red-500 text-xs mt-1">{errors.paperTwoLanguage}</p>}
+          
+          
+//         </div>
+        
+//         {/* Paper III - Conditional dropdown based on posts */}
+//         {showPaperThree ? (
+//           <div>
+//             <label className="block text-slate-700 text-sm font-medium mb-2">
+//               Paper-III Subject Selection <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={languageSelection.paperThreeLanguage}
+//               onChange={(e) => handlePaperThreeChange(e.target.value)}
+//               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+//                 errors.paperThreeLanguage ? 'border-red-500' : 'border-slate-300'
+//               }`}
+//             >
+//               <option value="">Select Subject</option>
+//               {paperThreeOptions.map((subject) => (
+//                 <option key={subject} value={subject}>{subject}</option>
+//               ))}
+//             </select>
+//             {errors.paperThreeLanguage && (
+//               <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>
+//             )}
+            
+//           </div>
+//         ) : (
+//           <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+//             <p className="text-sm text-slate-600 flex items-center gap-2">
+//               <Info className="w-4 h-4 text-primary" />
+//               Paper-III is not applicable for this post.
+//             </p>
+//           </div>
+//         )}
+        
+//         {/* Info box showing current post and Paper III options if applicable */}
+//         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+//           <p className="text-sm text-blue-800 flex items-center gap-2">
+//             <Info className="w-4 h-4" />
+//             {hasPost4 && hasPost7 && (
+//               <span>Posts: Both Post 4 and Post 7 - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
+//             )}
+//             {hasPost4 && !hasPost7 && (
+//               <span>Post: Block Statics Supervisor - Paper III subjects: Mathematics, Statistics, Economics</span>
+//             )}
+//             {hasPost7 && !hasPost4 && (
+//               <span>Post: [Post 7] - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
+//             )}
+//           </p>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
 const renderLanguageSelection = () => {
   const errors = stepErrors[4] || {};
   
   // Get the posts from postsList
   const hasPost4 = postsList.some((post: any) => post?.postCode?.toString() === "4");
+  const hasPost6 = postsList.some((post: any) => post?.postCode?.toString() === "6");
   const hasPost7 = postsList.some((post: any) => post?.postCode?.toString() === "7");
   
-  // Get the first post to determine which post code to display in info box
-  // const selectedPost = postsList.length > 0 ? postsList[0] : null;
+  // Paper III options for different posts
+  const paperThreeOptionsForPost4 = ["Mathematics", "Statistics", "Economics"];
+  const paperThreeOptionsForPost6 = ["Zoology", "Physics"];
+  const paperThreeOptionsForPost7 = ["Mathematics", "Statistics", "Economics", "Commerce"];
   
   // Paper I - Both languages combined (read-only)
   const paperOneCombined = "Hindi, English";
@@ -5886,40 +6200,62 @@ const renderLanguageSelection = () => {
     "Sanskrit Language & Literature",
   ];
   
-  // Paper III options based on post ID
-  const getPaperThreeOptions = () => {
-    // If post 7 is present (either alone or with post 4), show all 4 subjects
-    if (hasPost7) {
-      return ["Mathematics", "Statistics", "Economics", "Commerce"];
-    }
-    // If only post 4 is present
-    if (hasPost4) {
-      return ["Mathematics", "Statistics", "Economics"];
-    }
-    return [];
-  };
-
-  const paperThreeOptions = getPaperThreeOptions();
-  
-  // Determine if Paper III should be shown (if either post 4 or post 7 is present)
-  const showPaperThree = hasPost4 || hasPost7;
-
   // Handle Paper II change
   const handlePaperTwoChange = (value: string) => {
-    setLanguageSelection({ ...languageSelection, paperTwoLanguage: value });
+    setLanguageSelection({ 
+      ...languageSelection, 
+      paperTwoLanguage: value 
+    });
     if (value) {
       setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperTwoLanguage: "" } }));
     }
   };
-
-  // Handle Paper III change
-  const handlePaperThreeChange = (value: string) => {
-    setLanguageSelection({ ...languageSelection, paperThreeLanguage: value });
+  
+  // Handle Paper III changes for different posts
+  const handlePaperThreeForPost4Change = (value: string) => {
+    setPaperThreeForPost4(value);
+    setLanguageSelection({ 
+      ...languageSelection, 
+      paperThreeForPost4: value 
+    });
     if (value) {
-      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeLanguage: "" } }));
+      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeForPost4: "" } }));
     }
   };
-
+  
+  const handlePaperThreeForPost6Change = (value: string) => {
+    setPaperThreeForPost6(value);
+    setLanguageSelection({ 
+      ...languageSelection, 
+      paperThreeForPost6: value 
+    });
+    if (value) {
+      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeForPost6: "" } }));
+    }
+  };
+  
+  const handlePaperThreeForPost7Change = (value: string) => {
+    setPaperThreeForPost7(value);
+    setLanguageSelection({ 
+      ...languageSelection, 
+      paperThreeForPost7: value 
+    });
+    if (value) {
+      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeForPost7: "" } }));
+    }
+  };
+  
+  // Determine which Paper-III sections to show
+  const showPaperThreeForPost4 = hasPost4;
+  const showPaperThreeForPost6 = hasPost6;
+  const showPaperThreeForPost7 = hasPost7;
+  const showAnyPaperThree = showPaperThreeForPost4 || showPaperThreeForPost6 || showPaperThreeForPost7;
+  
+  // Get error messages
+  const paperThreeForPost4Error = errors.paperThreeForPost4;
+  const paperThreeForPost6Error = errors.paperThreeForPost6;
+  const paperThreeForPost7Error = errors.paperThreeForPost7;
+  
   // If no post selected yet, show loading or message
   if (postsList.length === 0) {
     return (
@@ -5936,7 +6272,7 @@ const renderLanguageSelection = () => {
       </div>
     );
   }
-
+  
   return (
     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
       <div className="absolute -top-4 left-5 bg-white px-3">
@@ -5981,66 +6317,123 @@ const renderLanguageSelection = () => {
             ))}
           </select>
           {errors.paperTwoLanguage && <p className="text-red-500 text-xs mt-1">{errors.paperTwoLanguage}</p>}
-          {languageSelection.paperTwoLanguage && (
-            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <CheckCircle size={12} />
-              Selected: {languageSelection.paperTwoLanguage}
-            </p>
-          )}
         </div>
         
-        {/* Paper III - Conditional dropdown based on posts */}
-        {showPaperThree ? (
-          <div>
-            <label className="block text-slate-700 text-sm font-medium mb-2">
-              Paper-III Subject Selection <span className="text-red-600">*</span>
-            </label>
-            <select
-              value={languageSelection.paperThreeLanguage}
-              onChange={(e) => handlePaperThreeChange(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
-                errors.paperThreeLanguage ? 'border-red-500' : 'border-slate-300'
-              }`}
-            >
-              <option value="">Select Subject</option>
-              {paperThreeOptions.map((subject) => (
-                <option key={subject} value={subject}>{subject}</option>
-              ))}
-            </select>
-            {errors.paperThreeLanguage && (
-              <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>
+        {/* Paper III - Conditional dropdowns based on posts */}
+        {showAnyPaperThree ? (
+          <div className="space-y-4">
+            {/* Paper III for Post 4 */}
+            {showPaperThreeForPost4 && (
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-2">
+                  Paper-III Subject Selection for Post 4 <span className="text-red-600">*</span>
+                </label>
+                <select
+                  value={paperThreeForPost4}
+                  onChange={(e) => handlePaperThreeForPost4Change(e.target.value)}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                    paperThreeForPost4Error ? 'border-red-500' : 'border-slate-300'
+                  }`}
+                >
+                  <option value="">Select Subject for Post 4</option>
+                  {paperThreeOptionsForPost4.map((subject) => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+                {paperThreeForPost4Error && (
+                  <p className="text-red-500 text-xs mt-1">{paperThreeForPost4Error}</p>
+                )}
+              </div>
             )}
-            {languageSelection.paperThreeLanguage && (
-              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                <CheckCircle size={12} />
-                Selected: {languageSelection.paperThreeLanguage}
-              </p>
+            
+            {/* Paper III for Post 6 */}
+            {showPaperThreeForPost6 && (
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-2">
+                  Paper-III Subject Selection for Post 6 <span className="text-red-600">*</span>
+                </label>
+                <select
+                  value={paperThreeForPost6}
+                  onChange={(e) => handlePaperThreeForPost6Change(e.target.value)}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                    paperThreeForPost6Error ? 'border-red-500' : 'border-slate-300'
+                  }`}
+                >
+                  <option value="">Select Subject for Post 6</option>
+                  {paperThreeOptionsForPost6.map((subject) => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+                {paperThreeForPost6Error && (
+                  <p className="text-red-500 text-xs mt-1">{paperThreeForPost6Error}</p>
+                )}
+              </div>
+            )}
+            
+            {/* Paper III for Post 7 */}
+            {showPaperThreeForPost7 && (
+              <div>
+                <label className="block text-slate-700 text-sm font-medium mb-2">
+                  Paper-III Subject Selection for Post 7 <span className="text-red-600">*</span>
+                </label>
+                <select
+                  value={paperThreeForPost7}
+                  onChange={(e) => handlePaperThreeForPost7Change(e.target.value)}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                    paperThreeForPost7Error ? 'border-red-500' : 'border-slate-300'
+                  }`}
+                >
+                  <option value="">Select Subject for Post 7</option>
+                  {paperThreeOptionsForPost7.map((subject) => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+                {paperThreeForPost7Error && (
+                  <p className="text-red-500 text-xs mt-1">{paperThreeForPost7Error}</p>
+                )}
+              </div>
             )}
           </div>
         ) : (
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
             <p className="text-sm text-slate-600 flex items-center gap-2">
               <Info className="w-4 h-4 text-primary" />
-              Paper-III is not applicable for this post.
+              Paper-III is not applicable for the selected post(s).
             </p>
           </div>
         )}
         
-        {/* Info box showing current post and Paper III options if applicable */}
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800 flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            {hasPost4 && hasPost7 && (
-              <span>Posts: Both Post 4 and Post 7 - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
-            )}
-            {hasPost4 && !hasPost7 && (
-              <span>Post: Block Statics Supervisor - Paper III subjects: Mathematics, Statistics, Economics</span>
-            )}
-            {hasPost7 && !hasPost4 && (
-              <span>Post: [Post 7] - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
-            )}
-          </p>
-        </div>
+        {/* Info box showing current posts and Paper III options if applicable */}
+        {showAnyPaperThree && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              <span>
+                {hasPost4 && hasPost7 && hasPost6 && (
+                  <>Posts: Post 4, Post 6, and Post 7 - Please select Paper-III subjects for each post.</>
+                )}
+                {hasPost4 && hasPost7 && !hasPost6 && (
+                  <>Posts: Post 4 and Post 7 - Please select Paper-III subjects for both posts.</>
+                )}
+                {hasPost4 && !hasPost7 && !hasPost6 && (
+                  <>Post: Block Statistics Supervisor (Post 4) - Paper-III subjects: Mathematics, Statistics, Economics</>
+                )}
+                {hasPost7 && !hasPost4 && !hasPost6 && (
+                  <>Post: [Post 7] - Paper-III subjects: Mathematics, Statistics, Economics, Commerce</>
+                )}
+                {hasPost6 && !hasPost4 && !hasPost7 && (
+                  <>Post: [Post 6] - Paper-III subjects: Zoology, Physics</>
+                )}
+                {hasPost4 && hasPost6 && !hasPost7 && (
+                  <>Posts: Post 4 and Post 6 - Please select Paper-III subjects for both posts.</>
+                )}
+                {hasPost6 && hasPost7 && !hasPost4 && (
+                  <>Posts: Post 6 and Post 7 - Please select Paper-III subjects for both posts.</>
+                )}
+              </span>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -6136,7 +6529,7 @@ const renderFeePayment = () => {
             }
           },
           prefill: orderData.prefill || {
-            name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+            name: `${personalInfo.fullName}`,
             contact: personalInfo.mobileNumber,
             email: personalInfo.emailId
           },
