@@ -1,30 +1,9 @@
-// src/components/Header.tsx
-
-import { Link, useLocation } from "react-router-dom";
+import { Link,} from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const navLinks = [
-  {
-    title: "Home",
-    href: "/",
-  },
-  {
-    title: "Apply Now",
-    href: "/apply-now",
-  },
-  // {
-  //   title: "Notices",
-  //   href: "/notices",
-  // },
-  // {
-  //   title: "Help Desk",
-  //   href: "/help-desk",
-  // },
-];
 
 export default function Header() {
-  const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -54,13 +33,7 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
-  const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
 
-    return location.pathname.startsWith(path);
-  };
 
   return (
     <>
@@ -141,49 +114,8 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* DESKTOP NAVIGATION */}
-          <nav className="hidden lg:flex items-center gap-2">
-            {navLinks.map((item) => (
-              <Link
-                key={item.title}
-                to={item.href}
-                className={`
-                  relative
-                  px-6
-                  py-2.5
-                  rounded-xl
-                  text-[13px]
-                  font-semibold
-                  tracking-wide
-                  transition-all
-                  duration-300
-                  ${
-                    isActive(item.href)
-                      ? "text-primary bg-primary/10 shadow-sm"
-                      : "text-slate-600 hover:text-primary hover:bg-slate-50"
-                  }
-                `}
-              >
-                {item.title}
-
-                {isActive(item.href) && (
-                  <span
-                    className="
-                      absolute
-                      bottom-0
-                      left-1/2
-                      -translate-x-1/2
-                      w-8
-                      h-[2px]
-                      rounded-full
-                      bg-primary
-                    "
-                  />
-                )}
-              </Link>
-            ))}
-          </nav>
-
+        
+  
           {/* RIGHT SECTION */}
           <div className="flex items-center gap-3">
             {/* DESKTOP BUTTONS */}
@@ -354,32 +286,7 @@ export default function Header() {
 
           {/* NAVIGATION */}
           <div className="flex-1 overflow-y-auto px-4 py-5">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((item) => (
-                <Link
-                  key={item.title}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`
-                    px-5
-                    py-3.5
-                    rounded-2xl
-                    text-[15px]
-                    font-semibold
-                    transition-all
-                    duration-300
-                    ${
-                      isActive(item.href)
-                        ? "bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }
-                  `}
-                >
-                  {item.title}
-                </Link>
-              ))}
-            </div>
-
+            
             {/* DIVIDER */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">

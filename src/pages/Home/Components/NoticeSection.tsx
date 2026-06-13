@@ -225,7 +225,7 @@ export default function FAQSection() {
                   <div className="flex items-center gap-2">
                     <Mail size={16} className="text-primary" />
                     <span className="text-sm font-medium text-primary break-all">
-                      support.jtglcce2026@jssc.in
+                      help.jtglcce@gmail.com
                     </span>
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export default function FAQSection() {
                     <span className="text-slate-700 text-sm">10:00 AM - 6:00 PM (Mon-Fri)</span>
                   </div>
                   <p className="text-xl font-bold text-primary mt-2">
-                    +91 651 222-4455 / 6677
+                    +91 9311063696
                   </p>
                 </div>
 

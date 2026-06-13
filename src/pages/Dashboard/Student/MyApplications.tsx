@@ -127,45 +127,6 @@ interface PersonalInfo {
   sameAsPermanent: boolean;
 }
 
-// interface Education {
-//   tenth: {
-//     board: string;
-//     percentage: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//     passingCertificateNo: string;
-//   };
-//   twelfth: {
-//     board: string;
-//     percentage: string;
-//     passingCertificateNo: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//   };
-//   graduation: {
-//     graduationCourse: string;
-//     graduationCourseId?: number;
-//     university: string;
-//     percentage: string;
-//     specialization: string;
-//     specializationIds?: number[];
-//     passingCertificateNo: string;
-//     totalMarks: string;
-//     marksObtained: string;
-//   };
-//   postGraduation: {
-//     hasPostGraduation: boolean;
-//     university: string;
-//     percentage: string;
-//     subject: string[];
-//     subjectIds?: number[];
-//     totalMarks: string;
-//     marksObtained: string;
-//     passingCertificateNo: string;
-//   };
-
-// }
-
 interface Education {
   tenth: {
     board: string;
@@ -473,6 +434,9 @@ useEffect(() => {
   fetchApiData();
 }, []);
 
+
+
+
 // Add this useEffect with your other useEffects
 // Fetch candidate registration data on component mount
 useEffect(() => {
@@ -611,20 +575,27 @@ const validateStep0 = (): boolean => {
   
   // Basic Information
   if (!personalInfo.firstName.trim()) errors.firstName = "First name is required";
- 
   
   if (!personalInfo.fathersName.trim()) errors.fathersName = "Father's name is required";
   if (!personalInfo.motherName.trim()) errors.motherName = "Mother's name is required";
   if (!personalInfo.gender) errors.gender = "Gender is required";
   if (!personalInfo.nationality) errors.nationality = "Nationality is required";
+  if (!personalInfo.maritalStatus) errors.maritalStatus = "Marital status is required";
   
   // Contact Details
-  if (!personalInfo.mobileNumber) errors.mobileNumber = "Mobile number is required";
-  if (personalInfo.mobileNumber && personalInfo.mobileNumber.length !== 10) errors.mobileNumber = "Mobile number must be 10 digits";
-  if (!personalInfo.emailId) errors.emailId = "Email ID is required";
-  if (personalInfo.emailId && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.emailId)) errors.emailId = "Invalid email format";
+  if (!personalInfo.mobileNumber) {
+    errors.mobileNumber = "Mobile number is required";
+  } else if (personalInfo.mobileNumber.length !== 10) {
+    errors.mobileNumber = "Mobile number must be 10 digits";
+  }
   
-// Date of Birth Validation - ADD THIS SECTION
+  if (!personalInfo.emailId) {
+    errors.emailId = "Email ID is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.emailId)) {
+    errors.emailId = "Invalid email format";
+  }
+  
+  // Date of Birth Validation
   if (!personalInfo.dob) {
     errors.dob = "Date of birth is required";
   } else {
@@ -641,7 +612,9 @@ const validateStep0 = (): boolean => {
   }
   
   // Identification Marks
-  if (!personalInfo.identificationMark1.trim()) errors.identificationMark1 = "Identification mark is required";
+  if (!personalInfo.identificationMark1.trim()) {
+    errors.identificationMark1 = "Identification mark is required";
+  }
   
   // Permanent Address
   if (!personalInfo.permanentAddress.street.trim()) errors.permanentStreet = "Street address is required";
@@ -649,8 +622,11 @@ const validateStep0 = (): boolean => {
   if (!personalInfo.permanentAddress.post.trim()) errors.permanentPost = "Post office is required";
   if (!personalInfo.permanentAddress.state) errors.permanentState = "State is required";
   if (!personalInfo.permanentAddress.district) errors.permanentDistrict = "District is required";
-  if (!personalInfo.permanentAddress.pincode) errors.permanentPincode = "Pincode is required";
-  if (personalInfo.permanentAddress.pincode && personalInfo.permanentAddress.pincode.length !== 6) errors.permanentPincode = "Pincode must be 6 digits";
+  if (!personalInfo.permanentAddress.pincode) {
+    errors.permanentPincode = "Pincode is required";
+  } else if (personalInfo.permanentAddress.pincode.length !== 6) {
+    errors.permanentPincode = "Pincode must be 6 digits";
+  }
   
   // Correspondence Address (if not same as permanent)
   if (!personalInfo.sameAsPermanent) {
@@ -659,8 +635,11 @@ const validateStep0 = (): boolean => {
     if (!personalInfo.correspondenceAddress.post.trim()) errors.correspondencePost = "Post office is required";
     if (!personalInfo.correspondenceAddress.state) errors.correspondenceState = "State is required";
     if (!personalInfo.correspondenceAddress.district) errors.correspondenceDistrict = "District is required";
-    if (!personalInfo.correspondenceAddress.pincode) errors.correspondencePincode = "Pincode is required";
-    if (personalInfo.correspondenceAddress.pincode && personalInfo.correspondenceAddress.pincode.length !== 6) errors.correspondencePincode = "Pincode must be 6 digits";
+    if (!personalInfo.correspondenceAddress.pincode) {
+      errors.correspondencePincode = "Pincode is required";
+    } else if (personalInfo.correspondenceAddress.pincode.length !== 6) {
+      errors.correspondencePincode = "Pincode must be 6 digits";
+    }
   }
   
   setStepErrors(prev => ({ ...prev, [0]: errors }));
@@ -669,30 +648,43 @@ const validateStep0 = (): boolean => {
 
 
 
+const isFutureDate = (dateString: string): boolean => {
+  if (!dateString) return false;
+  const selectedDate = new Date(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return selectedDate > today;
+};
 
-
-
+// Complete updated validateStep1 function
 const validateStep1 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  // Only require main category if Jharkhand Domicile is Yes OR if user manually selected a category
-  if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.mainCategoryId) {
-    errors.mainCategory = "Please select a category";
-  } else if (reservationCategory.isJharkhandDomicile === "no" && !reservationCategory.mainCategoryId) {
-    // If domicile is No, category should be auto-set to Unreserved (UR)
-    // But still check if it's set
-    if (!reservationCategory.mainCategoryId) {
-      errors.mainCategory = "Please select a category";
-    }
+  // Validate Locally Resident
+  if (!reservationCategory.isLocallyResident) {
+    errors.isLocallyResident = "Please select an option";
   }
-  
-  if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
   
   // Validate local district if local resident is Yes
   if (reservationCategory.isLocallyResident === "yes" && !reservationCategory.localDistrictId) {
     errors.localDistrictName = "Please select your district of local residence";
   }
   
+  // Validate Jharkhand Domicile
+  if (!reservationCategory.isJharkhandDomicile) {
+    errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
+  }
+  
+  // Validate main category
+  if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.mainCategoryId) {
+    errors.mainCategory = "Please select a category";
+  } else if (reservationCategory.isJharkhandDomicile === "no" && !reservationCategory.mainCategoryId) {
+    if (!reservationCategory.mainCategoryId) {
+      errors.mainCategory = "Please select a category";
+    }
+  }
+  
+  // Domicile Certificate Fields - Shows when Domicile is Yes
   if (reservationCategory.isJharkhandDomicile === "yes") {
     if (!reservationCategory.domicileCertificateNumber.trim()) {
       errors.domicileCertificateNumber = "Domicile certificate number is required";
@@ -702,13 +694,16 @@ const validateStep1 = (): boolean => {
     }
     if (!reservationCategory.domicileCertificateIssueDate) {
       errors.domicileCertificateIssueDate = "Domicile certificate issue date is required";
+    } else if (isFutureDate(reservationCategory.domicileCertificateIssueDate)) {
+      errors.domicileCertificateIssueDate = "Issue date cannot be in the future";
     }
   }
   
   // Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS)
   if (reservationCategory.mainCategoryId && 
-      reservationCategory.mainCategory !== "Unreserved (UR)" && 
+      reservationCategory.mainCategory !== "UR (Unreserved)" && 
       reservationCategory.mainCategory !== "Unreserved" && 
+      reservationCategory.mainCategory !== "Unreserved (UR)" &&
       reservationCategory.mainCategory !== "EWS") {
     if (!reservationCategory.categoryCertificateNumber.trim()) {
       errors.categoryCertificateNumber = "Category certificate number is required";
@@ -718,70 +713,205 @@ const validateStep1 = (): boolean => {
     }
     if (!reservationCategory.categoryCertificateIssueDate) {
       errors.categoryCertificateIssueDate = "Category certificate issue date is required";
+    } else if (isFutureDate(reservationCategory.categoryCertificateIssueDate)) {
+      errors.categoryCertificateIssueDate = "Issue date cannot be in the future";
     }
   }
   
+  // PwD Fields
   if (reservationCategory.isPwd === "yes") {
-    if (!reservationCategory.pwdTypeId) errors.pwdType = "Please select disability type";
-    if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
-    const pwdPercent = parseInt(reservationCategory.pwdPercentage);
-    if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
-    if (!reservationCategory.pwdCertificateNumber.trim()) errors.pwdCertificateNumber = "PwD certificate number is required";
-    if (!reservationCategory.pwdCertificateAuthority.trim()) errors.pwdCertificateAuthority = "PwD certificate issuing authority is required";
-    if (!reservationCategory.pwdCertificateIssueDate) errors.pwdCertificateIssueDate = "PwD certificate issue date is required";
+    if (!reservationCategory.pwdTypeId) {
+      errors.pwdType = "Please select disability type";
+    }
+    if (!reservationCategory.pwdPercentage) {
+      errors.pwdPercentage = "Please enter disability percentage";
+    } else {
+      const pwdPercent = parseInt(reservationCategory.pwdPercentage);
+      if (isNaN(pwdPercent)) {
+        errors.pwdPercentage = "Please enter a valid number";
+      } else if (pwdPercent < 40) {
+        errors.pwdPercentage = "Disability percentage must be at least 40%";
+      } else if (pwdPercent > 100) {
+        errors.pwdPercentage = "Disability percentage cannot exceed 100%";
+      }
+    }
+    if (!reservationCategory.pwdCertificateNumber.trim()) {
+      errors.pwdCertificateNumber = "PwD certificate number is required";
+    }
+    if (!reservationCategory.pwdCertificateAuthority.trim()) {
+      errors.pwdCertificateAuthority = "PwD certificate issuing authority is required";
+    }
+    if (!reservationCategory.pwdCertificateIssueDate) {
+      errors.pwdCertificateIssueDate = "PwD certificate issue date is required";
+    } else if (isFutureDate(reservationCategory.pwdCertificateIssueDate)) {
+      errors.pwdCertificateIssueDate = "Issue date cannot be in the future";
+    }
   }
   
+  // Ex-Serviceman Fields
   if (reservationCategory.isExServiceman === "yes") {
-    if (!reservationCategory.exServicemanYears) errors.exServicemanYears = "Please enter years of service";
-    const years = parseInt(reservationCategory.exServicemanYears);
-    if (years < 0 || years > 30) errors.exServicemanYears = "Years of service must be between 0 and 30";
+    if (!reservationCategory.exServicemanYears) {
+      errors.exServicemanYears = "Please enter years of service";
+    } else {
+      const years = parseInt(reservationCategory.exServicemanYears);
+      if (isNaN(years)) {
+        errors.exServicemanYears = "Please enter a valid number";
+      } else if (years < 0 || years > 30) {
+        errors.exServicemanYears = "Years of service must be between 0 and 30";
+      }
+    }
   }
   
+  // Sports Quota Fields
   if (reservationCategory.isSportsQuota === "yes") {
-    if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
-    if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
-    if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
-    if (!reservationCategory.sportsCertificateAuthority.trim()) errors.sportsCertificateAuthority = "Sports certificate issuing authority is required";
-    if (!reservationCategory.sportsCertificateIssueDate) errors.sportsCertificateIssueDate = "Sports certificate issue date is required";
+    if (!reservationCategory.sportsLevel) {
+      errors.sportsLevel = "Please select sports level";
+    }
+    if (!reservationCategory.sportsAchievement.trim()) {
+      errors.sportsAchievement = "Please describe your achievements";
+    }
+    if (!reservationCategory.sportsCertificateNumber.trim()) {
+      errors.sportsCertificateNumber = "Sports certificate number is required";
+    }
+    if (!reservationCategory.sportsCertificateAuthority.trim()) {
+      errors.sportsCertificateAuthority = "Sports certificate issuing authority is required";
+    }
+    if (!reservationCategory.sportsCertificateIssueDate) {
+      errors.sportsCertificateIssueDate = "Sports certificate issue date is required";
+    } else if (isFutureDate(reservationCategory.sportsCertificateIssueDate)) {
+      errors.sportsCertificateIssueDate = "Issue date cannot be in the future";
+    }
   }
   
-  // Declaration is now required - Next button will be disabled if not checked
-  if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
+  // Declaration
+  if (!reservationCategory.declaration) {
+    errors.declaration = "Please accept the declaration";
+  }
   
   setStepErrors(prev => ({ ...prev, [1]: errors }));
   return Object.keys(errors).length === 0;
 };
 
-
+// Updated validateStep2 function with proper validation
 const validateStep2 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  // 10th validation
+  // 10th validation - Always required
   const tenthIsValid = (education.tenth.percentage && education.tenth.percentage !== "") || 
                        (education.tenth.totalMarks && education.tenth.marksObtained);
   
-  if (!education.tenth.board) errors.tenthBoard = "10th board is required";
-  if (!tenthIsValid) errors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  if (!education.tenth.passingCertificateNo) errors.tenthCertificate = "10th certificate number is required";
+  if (!education.tenth.board) {
+    errors.tenthBoard = "10th board is required";
+  }
+  if (!tenthIsValid) {
+    errors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+  }
+  if (!education.tenth.passingCertificateNo) {
+    errors.tenthCertificate = "10th certificate number is required";
+  }
   
-
+  // Percentage validation for 10th (if entered)
+  if (education.tenth.percentage && education.tenth.percentage !== "") {
+    const percentage = parseFloat(education.tenth.percentage);
+    if (isNaN(percentage)) {
+      errors.tenthPercentage = "Please enter a valid percentage";
+    } else if (percentage < 0 || percentage > 100) {
+      errors.tenthPercentage = "Percentage must be between 0 and 100";
+    }
+  }
   
- 
+  // Total Marks and Marks Obtained validation for 10th
+  if (education.tenth.totalMarks && education.tenth.totalMarks !== "") {
+    const totalMarks = parseFloat(education.tenth.totalMarks);
+    if (isNaN(totalMarks) || totalMarks <= 0) {
+      errors.tenthTotalMarks = "Total marks must be a valid positive number";
+    }
+  }
+  if (education.tenth.marksObtained && education.tenth.marksObtained !== "") {
+    const marksObtained = parseFloat(education.tenth.marksObtained);
+    if (isNaN(marksObtained) || marksObtained < 0) {
+      errors.tenthMarksObtained = "Marks obtained must be a valid positive number";
+    }
+    if (education.tenth.totalMarks && education.tenth.totalMarks !== "") {
+      const totalMarks = parseFloat(education.tenth.totalMarks);
+      if (!isNaN(totalMarks) && marksObtained > totalMarks) {
+        errors.tenthMarksObtained = "Marks obtained cannot exceed total marks";
+      }
+    }
+  }
   
+  // 12th validation (Optional - only validate if user has entered data)
+  const twelfthIsValid = (education.twelfth.percentage && education.twelfth.percentage !== "") || 
+                         (education.twelfth.totalMarks && education.twelfth.marksObtained);
   
+  // Only validate 12th if user has entered some data OR if board is selected
+  if (education.twelfth.board || twelfthIsValid || education.twelfth.passingCertificateNo) {
+    if (!education.twelfth.board) {
+      errors.twelfthBoard = "12th board is required";
+    }
+    if (!twelfthIsValid && (education.twelfth.totalMarks || education.twelfth.marksObtained || education.twelfth.percentage)) {
+      errors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+    }
+  }
   
+  // Percentage validation for 12th (if entered)
+  if (education.twelfth.percentage && education.twelfth.percentage !== "") {
+    const percentage = parseFloat(education.twelfth.percentage);
+    if (isNaN(percentage)) {
+      errors.twelfthPercentage = "Please enter a valid percentage";
+    } else if (percentage < 0 || percentage > 100) {
+      errors.twelfthPercentage = "Percentage must be between 0 and 100";
+    }
+  }
   
+  // Total Marks and Marks Obtained validation for 12th
+  if (education.twelfth.totalMarks && education.twelfth.totalMarks !== "") {
+    const totalMarks = parseFloat(education.twelfth.totalMarks);
+    if (isNaN(totalMarks) || totalMarks <= 0) {
+      errors.twelfthTotalMarks = "Total marks must be a valid positive number";
+    }
+  }
+  if (education.twelfth.marksObtained && education.twelfth.marksObtained !== "") {
+    const marksObtained = parseFloat(education.twelfth.marksObtained);
+    if (isNaN(marksObtained) || marksObtained < 0) {
+      errors.twelfthMarksObtained = "Marks obtained must be a valid positive number";
+    }
+    if (education.twelfth.totalMarks && education.twelfth.totalMarks !== "") {
+      const totalMarks = parseFloat(education.twelfth.totalMarks);
+      if (!isNaN(totalMarks) && marksObtained > totalMarks) {
+        errors.twelfthMarksObtained = "Marks obtained cannot exceed total marks";
+      }
+    }
+  }
   
-  // Graduation validation
+  // Graduation validation - Always required
   const gradIsValid = (education.graduation.percentage && education.graduation.percentage !== "") || 
                       (education.graduation.totalMarks && education.graduation.marksObtained);
   
-  if (!education.graduation.graduationCourse) errors.graduationCourse = "Graduation course is required";
-  if (!education.graduation.university) errors.graduationUniversity = "University name is required";
-  if (!gradIsValid) errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
-  if (!education.graduation.passingCertificateNo) errors.graduationCertificate = "Certificate number is required";
+  if (!education.graduation.graduationCourse) {
+    errors.graduationCourse = "Graduation course is required";
+  }
+  if (!education.graduation.university) {
+    errors.graduationUniversity = "University name is required";
+  }
+  if (!gradIsValid) {
+    errors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+  }
+  if (!education.graduation.passingCertificateNo) {
+    errors.graduationCertificate = "Certificate number is required";
+  }
   
-  // Graduation Total Marks validation - Only validate if user entered total marks
+  // Graduation Percentage validation
+  if (education.graduation.percentage && education.graduation.percentage !== "") {
+    const percentage = parseFloat(education.graduation.percentage);
+    if (isNaN(percentage)) {
+      errors.graduationPercentage = "Please enter a valid percentage";
+    } else if (percentage < 0 || percentage > 100) {
+      errors.graduationPercentage = "Percentage must be between 0 and 100";
+    }
+  }
+  
+  // Graduation Total Marks validation
   if (education.graduation.totalMarks && education.graduation.totalMarks !== "") {
     const totalMarks = parseFloat(education.graduation.totalMarks);
     if (isNaN(totalMarks) || totalMarks <= 0) {
@@ -789,14 +919,13 @@ const validateStep2 = (): boolean => {
     }
   }
   
-  // Graduation Marks Obtained validation - Only validate if user entered marks obtained
+  // Graduation Marks Obtained validation
   if (education.graduation.marksObtained && education.graduation.marksObtained !== "") {
     const marksObtained = parseFloat(education.graduation.marksObtained);
     if (isNaN(marksObtained) || marksObtained < 0) {
       errors.graduationMarksObtained = "Marks obtained must be a valid positive number";
     }
-    // Check if marks obtained exceeds total marks (only if both are provided)
-    if (education.graduation.totalMarks && education.graduation.totalMarks !== "" && !isNaN(marksObtained)) {
+    if (education.graduation.totalMarks && education.graduation.totalMarks !== "") {
       const totalMarks = parseFloat(education.graduation.totalMarks);
       if (!isNaN(totalMarks) && marksObtained > totalMarks) {
         errors.graduationMarksObtained = "Marks obtained cannot exceed total marks";
@@ -804,11 +933,51 @@ const validateStep2 = (): boolean => {
     }
   }
   
-  // Graduation Percentage validation - must be between 0 and 100
-  if (education.graduation.percentage && education.graduation.percentage !== "") {
-    const percentage = parseFloat(education.graduation.percentage);
-    if (isNaN(percentage) || percentage < 0 || percentage > 100) {
-      errors.graduationPercentage = "Percentage must be between 0 and 100";
+  // Post-Graduation validation - Only required if hasPostGraduation is true
+  if (education.postGraduation.hasPostGraduation) {
+    const pgIsValid = (education.postGraduation.percentage && education.postGraduation.percentage !== "") || 
+                      (education.postGraduation.totalMarks && education.postGraduation.marksObtained);
+    
+    if (!education.postGraduation.degreeName && !education.postGraduation.degreeId) {
+      errors.postGraduationDegree = "Post-graduation degree name is required";
+    }
+    if (!education.postGraduation.university) {
+      errors.postGraduationUniversity = "University name is required";
+    }
+    if (!pgIsValid) {
+      errors.postGraduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+    }
+    
+    // Post-Graduation Percentage validation
+    if (education.postGraduation.percentage && education.postGraduation.percentage !== "") {
+      const percentage = parseFloat(education.postGraduation.percentage);
+      if (isNaN(percentage)) {
+        errors.postGraduationPercentage = "Please enter a valid percentage";
+      } else if (percentage < 0 || percentage > 100) {
+        errors.postGraduationPercentage = "Percentage must be between 0 and 100";
+      }
+    }
+    
+    // Post-Graduation Total Marks validation
+    if (education.postGraduation.totalMarks && education.postGraduation.totalMarks !== "") {
+      const totalMarks = parseFloat(education.postGraduation.totalMarks);
+      if (isNaN(totalMarks) || totalMarks <= 0) {
+        errors.postGraduationTotalMarks = "Total marks must be a valid positive number";
+      }
+    }
+    
+    // Post-Graduation Marks Obtained validation
+    if (education.postGraduation.marksObtained && education.postGraduation.marksObtained !== "") {
+      const marksObtained = parseFloat(education.postGraduation.marksObtained);
+      if (isNaN(marksObtained) || marksObtained < 0) {
+        errors.postGraduationMarksObtained = "Marks obtained must be a valid positive number";
+      }
+      if (education.postGraduation.totalMarks && education.postGraduation.totalMarks !== "") {
+        const totalMarks = parseFloat(education.postGraduation.totalMarks);
+        if (!isNaN(totalMarks) && marksObtained > totalMarks) {
+          errors.postGraduationMarksObtained = "Marks obtained cannot exceed total marks";
+        }
+      }
     }
   }
   
@@ -818,7 +987,7 @@ const validateStep2 = (): boolean => {
 
 
 
-// Validation for Step 3 - Post Preferences (skipped as it has its own validation)
+
 const validateStep3 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
@@ -831,12 +1000,28 @@ const validateStep3 = (): boolean => {
 };
 
 // Validation for Step 4 - Language Selection
+// Validation for Step 4 - Language Selection
 const validateStep4 = (): boolean => {
   const errors: { [field: string]: string } = {};
   
-  if (!languageSelection.paperOneLanguage) errors.paperOneLanguage = "Paper I language is required";
-  if (!languageSelection.paperTwoLanguage) errors.paperTwoLanguage = "Paper II language is required";
-  if (!languageSelection.paperThreeLanguage) errors.paperThreeLanguage = "Paper III subject is required";
+  const selectedPost = postsList.length > 0 ? postsList[0] : null;
+  const postCode = selectedPost?.postCode?.toString() || "";
+  const showPaperThree = postCode === "4" || postCode === "7";
+  
+  // Paper I is auto-filled (always "Hindi, English")
+  if (!languageSelection.paperOneLanguage) {
+    errors.paperOneLanguage = "Paper I language is required";
+  }
+  
+  // Paper II is always required for all posts
+  if (!languageSelection.paperTwoLanguage) {
+    errors.paperTwoLanguage = "Paper II language is required";
+  }
+  
+  // Paper III is required only for posts 4 and 7
+  if (showPaperThree && !languageSelection.paperThreeLanguage) {
+    errors.paperThreeLanguage = "Paper III subject is required";
+  }
   
   setStepErrors(prev => ({ ...prev, [4]: errors }));
   return Object.keys(errors).length === 0;
@@ -1040,41 +1225,7 @@ const validateCurrentStep = (): boolean => {
 
 
 const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
-  // const [education, setEducation] = useState<Education>({
-  //   tenth: {
-  //     board: "",
-  //     percentage: "",
-  //     totalMarks: "",
-  //     marksObtained: "",
-  //     passingCertificateNo: "",
-  //   },
-  //   twelfth: {
-  //     board: "",
-  //     percentage: "",
-  //     passingCertificateNo: "",
-  //     totalMarks: "",
-  //     marksObtained: "",
-  //   },
-  //   graduation: {
-  //     graduationCourse: "",
-  //     university: "",
-  //     percentage: "",
-  //     specialization: "",
-  //     passingCertificateNo: "",
-  //     totalMarks: "",
-  //     marksObtained: "",
-  //   },
-  //   postGraduation: {
-  //     hasPostGraduation: false,
-  //     university: "",
-  //     percentage: "",
-  //     subject: [],
-  //     totalMarks: "",
-  //     marksObtained: "",
-  //     passingCertificateNo: "",
-  //   },
-
-  // });
+  
 
   const [education, setEducation] = useState<Education>({
   tenth: {
@@ -1753,7 +1904,7 @@ useEffect(() => {
     return age;
   };
 
-  
+
 const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const dob = e.target.value;
   const age = calculateAge(dob);
@@ -2309,31 +2460,41 @@ const saveStep3 = async () => {
   }
 };
 
+
+
   // Save Step 4 API call (Language Selection)
-  const saveStep4 = async () => {
-    setSavingStep(true);
-
-    const payload = {
-      languageSelection: {
-        paperOneLanguage: languageSelection.paperOneLanguage,
-        paperTwoLanguage: languageSelection.paperTwoLanguage,
-        paperThreeLanguage: languageSelection.paperThreeLanguage,
-      },
-    };
-
-    try {
-      const response = await apiService.saveStep4(payload);
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setCurrentStep(currentStep + 1);
-      }
-    } catch (error: any) {
-      console.error("Error saving step 4:", error);
-      toast.error(error.response?.data?.message || "Failed to save language selection");
-    } finally {
-      setSavingStep(false);
+// Save Step 4 API call (Language Selection)
+const saveStep4 = async () => {
+  setSavingStep(true);
+  
+  const selectedPost = postsList.length > 0 ? postsList[0] : null;
+  const postCode = selectedPost?.postCode?.toString() || "";
+  const isPostId4And7 = postCode === "4" || postCode === "7";
+  
+  // Prepare payload in the required format
+  const payload = {
+    subjects: {
+      paperOne: "Hindi, English",
+      paperTwo: languageSelection.paperTwoLanguage,
+      ...(postCode === "4" && { paperThreeForPost4: languageSelection.paperThreeLanguage }),
+      ...(postCode === "7" && { paperThreeForPost7: languageSelection.paperThreeLanguage }),
+      isPostId4And7: isPostId4And7
     }
   };
+
+  try {
+    const response = await apiService.saveStep4(payload);
+    if (response.data.success) {
+      toast.success(response.data.message);
+      setCurrentStep(currentStep + 1);
+    }
+  } catch (error: any) {
+    console.error("Error saving step 4:", error);
+    toast.error(error.response?.data?.message || "Failed to save language selection");
+  } finally {
+    setSavingStep(false);
+  }
+};
 
   // Save Step 5 API call (Documents)
   const saveStep5 = async () => {
@@ -2427,6 +2588,35 @@ useEffect(() => {
 }, []);
 
 
+
+// Add this useEffect in the main component body (where other useEffects are)
+// Add this useEffect in the main component body (where other useEffects are)
+useEffect(() => {
+  // Auto-select language options based on post
+  const selectedPost = postsList.length > 0 ? postsList[0] : null;
+  const postCode = selectedPost?.postCode?.toString() || "";
+  
+  // Auto-select Paper One language - fixed value
+  if (!languageSelection.paperOneLanguage) {
+    setLanguageSelection(prev => ({ ...prev, paperOneLanguage: "Hindi, English" }));
+  }
+  
+  // Auto-select Paper Two - default to "English Language & Literature" for all posts
+  if (!languageSelection.paperTwoLanguage) {
+    setLanguageSelection(prev => ({ ...prev, paperTwoLanguage: "English Language & Literature" }));
+  }
+  
+  // Auto-select Paper Three for post 4 - default to "Technical Subject"
+  if (postCode === "4" && !languageSelection.paperThreeLanguage) {
+    setLanguageSelection(prev => ({ ...prev, paperThreeLanguage: "Technical Subject" }));
+  }
+  
+  // Auto-select Paper Three for post 7 - default to "General Studies"
+  if (postCode === "7" && !languageSelection.paperThreeLanguage) {
+    setLanguageSelection(prev => ({ ...prev, paperThreeLanguage: "General Studies" }));
+  }
+}, [postsList, languageSelection.paperOneLanguage, languageSelection.paperTwoLanguage, languageSelection.paperThreeLanguage]);
+
   // Updated saveStep6 function
 const saveStep6 = async () => {
   setSavingStep(true);
@@ -2491,91 +2681,6 @@ const saveStep6 = async () => {
     }
   };
 
-//   const handleFinalSubmit = async () => {
-//   if (!applicationId) {
-//     toast.error("Application ID not found. Please save your progress first.");
-//     return;
-//   }
-
-//   setSavingStep(true);
-
-//   try {
-//     const response = await apiService.submitApplicationFinal(applicationId);
-
-//     if (response.data.success) {
-//       toast.success("Application submitted successfully!");
-
-//       setApplicationStatus({
-//         isSubmitted: true,
-//         registrationNumber:
-//           response.data.data?.applicationReferenceNumber ||
-//           "Application Submitted",
-//         submissionDate: new Date().toLocaleDateString(),
-//       });
-
-//       setIsSubmitted(true);
-
-//       setTimeout(() => {
-//         navigate("/dashboard");
-//       }, 2000);
-//     } else {
-//       toast.error(response.data.message || "Failed to submit application");
-//     }
-//   } catch (error: any) {
-//     console.error("Error submitting application:", error);
-//     toast.error(
-//       error.response?.data?.message || "Failed to submit application"
-//     );
-//   } finally {
-//     setSavingStep(false);
-//   }
-// };
-
-// const handleFinalSubmit = async () => {
-//   if (!applicationId) {
-//     toast.error("Application ID not found. Please save your progress first.");
-//     return;
-//   }
-
-//   // Check if payment is completed
-//   if (feePayment.paymentStatus !== "completed") {
-//     toast.error("Please complete the payment before submitting the application.");
-//     return;
-//   }
-
-//   setSavingStep(true);
-
-//   try {
-//     const response = await apiService.submitApplicationFinal(applicationId);
-
-//     if (response.data.success) {
-//       toast.success("Application submitted successfully!");
-
-//       setApplicationStatus({
-//         isSubmitted: true,
-//         registrationNumber:
-//           response.data.data?.applicationReferenceNumber ||
-//           "Application Submitted",
-//         submissionDate: new Date().toLocaleDateString(),
-//       });
-
-//       setIsSubmitted(true);
-
-//       setTimeout(() => {
-//         navigate("/dashboard");
-//       }, 2000);
-//     } else {
-//       toast.error(response.data.message || "Failed to submit application");
-//     }
-//   } catch (error: any) {
-//     console.error("Error submitting application:", error);
-//     toast.error(
-//       error.response?.data?.message || "Failed to submit application"
-//     );
-//   } finally {
-//     setSavingStep(false);
-//   }
-// };
 
 
 const handleFinalSubmit = async () => {
@@ -2683,9 +2788,176 @@ const handleFinalSubmit = async () => {
     }
   };
 
-  const renderPersonalInfo = () => {
-    const errors = stepErrors[0] || {};
-    return (
+
+const renderPersonalInfo = () => {
+  const errors = stepErrors[0] || {};
+  
+  // Helper function to validate field on change
+  const validateField = (field: string, value: any) => {
+    const newErrors = { ...errors };
+    
+    switch (field) {
+      case 'firstName':
+        if (!value.trim()) {
+          newErrors.firstName = "First name is required";
+        } else {
+          delete newErrors.firstName;
+        }
+        break;
+      case 'fathersName':
+        if (!value.trim()) {
+          newErrors.fathersName = "Father's name is required";
+        } else {
+          delete newErrors.fathersName;
+        }
+        break;
+      case 'motherName':
+        if (!value.trim()) {
+          newErrors.motherName = "Mother's name is required";
+        } else {
+          delete newErrors.motherName;
+        }
+        break;
+      case 'gender':
+        if (!value) {
+          newErrors.gender = "Gender is required";
+        } else {
+          delete newErrors.gender;
+        }
+        break;
+      case 'nationality':
+        if (!value) {
+          newErrors.nationality = "Nationality is required";
+        } else {
+          delete newErrors.nationality;
+        }
+        break;
+      case 'maritalStatus':
+        if (!value) {
+          newErrors.maritalStatus = "Marital status is required";
+        } else {
+          delete newErrors.maritalStatus;
+        }
+        break;
+      case 'mobileNumber':
+        if (!value) {
+          newErrors.mobileNumber = "Mobile number is required";
+        } else if (value.length !== 10) {
+          newErrors.mobileNumber = "Mobile number must be 10 digits";
+        } else {
+          delete newErrors.mobileNumber;
+        }
+        break;
+      case 'emailId':
+        if (!value) {
+          newErrors.emailId = "Email ID is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          newErrors.emailId = "Invalid email format";
+        } else {
+          delete newErrors.emailId;
+        }
+        break;
+      case 'identificationMark1':
+        if (!value.trim()) {
+          newErrors.identificationMark1 = "Identification mark is required";
+        } else {
+          delete newErrors.identificationMark1;
+        }
+        break;
+      case 'permanentStreet':
+        if (!value.trim()) {
+          newErrors.permanentStreet = "Street address is required";
+        } else {
+          delete newErrors.permanentStreet;
+        }
+        break;
+      case 'permanentCity':
+        if (!value.trim()) {
+          newErrors.permanentCity = "City/Village is required";
+        } else {
+          delete newErrors.permanentCity;
+        }
+        break;
+      case 'permanentPost':
+        if (!value.trim()) {
+          newErrors.permanentPost = "Post office is required";
+        } else {
+          delete newErrors.permanentPost;
+        }
+        break;
+      case 'permanentState':
+        if (!value) {
+          newErrors.permanentState = "State is required";
+        } else {
+          delete newErrors.permanentState;
+        }
+        break;
+      case 'permanentDistrict':
+        if (!value) {
+          newErrors.permanentDistrict = "District is required";
+        } else {
+          delete newErrors.permanentDistrict;
+        }
+        break;
+      case 'permanentPincode':
+        if (!value) {
+          newErrors.permanentPincode = "Pincode is required";
+        } else if (value.length !== 6) {
+          newErrors.permanentPincode = "Pincode must be 6 digits";
+        } else {
+          delete newErrors.permanentPincode;
+        }
+        break;
+      case 'correspondenceStreet':
+        if (!personalInfo.sameAsPermanent && !value.trim()) {
+          newErrors.correspondenceStreet = "Street address is required";
+        } else {
+          delete newErrors.correspondenceStreet;
+        }
+        break;
+      case 'correspondenceCity':
+        if (!personalInfo.sameAsPermanent && !value.trim()) {
+          newErrors.correspondenceCity = "City/Village is required";
+        } else {
+          delete newErrors.correspondenceCity;
+        }
+        break;
+      case 'correspondencePost':
+        if (!personalInfo.sameAsPermanent && !value.trim()) {
+          newErrors.correspondencePost = "Post office is required";
+        } else {
+          delete newErrors.correspondencePost;
+        }
+        break;
+      case 'correspondenceState':
+        if (!personalInfo.sameAsPermanent && !value) {
+          newErrors.correspondenceState = "State is required";
+        } else {
+          delete newErrors.correspondenceState;
+        }
+        break;
+      case 'correspondenceDistrict':
+        if (!personalInfo.sameAsPermanent && !value) {
+          newErrors.correspondenceDistrict = "District is required";
+        } else {
+          delete newErrors.correspondenceDistrict;
+        }
+        break;
+      case 'correspondencePincode':
+        if (!personalInfo.sameAsPermanent && !value) {
+          newErrors.correspondencePincode = "Pincode is required";
+        } else if (!personalInfo.sameAsPermanent && value.length !== 6) {
+          newErrors.correspondencePincode = "Pincode must be 6 digits";
+        } else {
+          delete newErrors.correspondencePincode;
+        }
+        break;
+    }
+    
+    setStepErrors(prev => ({ ...prev, [0]: newErrors }));
+  };
+
+  return (
     <div className="space-y-8">
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
@@ -2695,6 +2967,7 @@ const handleFinalSubmit = async () => {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* Full Name */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Full Name (as per Matriculation Certificate)<span className="text-red-600">*</span>
@@ -2705,19 +2978,15 @@ const handleFinalSubmit = async () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                 setPersonalInfo({ ...personalInfo, firstName: value });
-                // Clear error when user types
-      if (value.trim()) {
-        setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], firstName: "" } }));
-      }
+                validateField('firstName', value);
               }}
               onKeyDown={validateTextInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.firstName ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
           </div>
           
-          
-        
+          {/* Father's Name */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Father's Name <span className="text-red-600">*</span>
@@ -2728,15 +2997,15 @@ const handleFinalSubmit = async () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                 setPersonalInfo({ ...personalInfo, fathersName: value });
-                if (value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], fathersName: "" } }));
-                }
+                validateField('fathersName', value);
               }}
               onKeyDown={validateTextInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.fathersName ? 'border-red-500' : 'border-slate-300'}`}
             />
-              {errors.fathersName && <p className="text-red-500 text-xs mt-1">{errors.fathersName}</p>}
+            {errors.fathersName && <p className="text-red-500 text-xs mt-1">{errors.fathersName}</p>}
           </div>
+          
+          {/* Mother's Name */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Mother's Name <span className="text-red-600">*</span>
@@ -2747,51 +3016,49 @@ const handleFinalSubmit = async () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                 setPersonalInfo({ ...personalInfo, motherName: value });
-                if (value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], motherName: "" } }));
-                }
+                validateField('motherName', value);
               }}
               onKeyDown={validateTextInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.motherName ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.motherName && <p className="text-red-500 text-xs mt-1">{errors.motherName}</p>}
           </div>
+          
+          {/* Date of Birth */}
           <div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Date of Birth <span className="text-red-600">*</span>
-  </label>
-  <div className="flex gap-2">
-    <input
-      type="date"
-      value={personalInfo.dob}
-      min="1900-01-01"
-      max="2026-12-31"
-      onChange={handleDateOfBirthChange}
-      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
-        errors.dob ? 'border-red-500' : 'border-slate-300'
-      }`}
-    />
-    {personalInfo.age > 0 && (
-      <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${
-        personalInfo.age >= 21 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-      }`}>
-        <Calendar size={16} />
-        <span className="text-sm font-medium">Age: {personalInfo.age} years</span>
-      </div>
-    )}
-  </div>
-  {errors.dob && (
-    <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
-  )}
-  {personalInfo.dob && personalInfo.age > 0 && personalInfo.age < 21 && (
-    <p className="text-red-500 text-xs mt-1">
-      ⚠️ You must be at least 21 years old to apply. Current age: {personalInfo.age} years
-    </p>
-  )}
-  <p className="text-xs text-slate-500">
-   Age must be 21 years or above as of 01.08.2025.
-  </p>
-</div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Date of Birth <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={personalInfo.dob}
+                min="1900-01-01"
+                max="2026-12-31"
+                onChange={handleDateOfBirthChange}
+                className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.dob ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {personalInfo.age > 0 && (
+                <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${
+                  personalInfo.age >= 21 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  <Calendar size={16} />
+                  <span className="text-sm font-medium">Age: {personalInfo.age} years</span>
+                </div>
+              )}
+            </div>
+            {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
+            {personalInfo.dob && personalInfo.age > 0 && personalInfo.age < 21 && (
+              <p className="text-red-500 text-xs mt-1">
+                ⚠️ You must be at least 21 years old to apply. Current age: {personalInfo.age} years
+              </p>
+            )}
+            <p className="text-xs text-slate-500 mt-1">
+              Age must be 21 years or above as of 01.08.2025.
+            </p>
+          </div>
+          
+          {/* Gender */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Gender<span className="text-red-600">*</span>
@@ -2800,19 +3067,19 @@ const handleFinalSubmit = async () => {
               value={personalInfo.gender}
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, gender: e.target.value });
-                if (e.target.value) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], gender: "" } }));
-                }
+                validateField('gender', e.target.value);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.gender ? 'border-red-500' : 'border-slate-300'}`}
             >
               <option value="">Select</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Thirdgender</option>
             </select>
-             {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
+            {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
           </div>
+          
+          {/* Nationality */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Nationality <span className="text-red-600">*</span>
@@ -2821,11 +3088,9 @@ const handleFinalSubmit = async () => {
               value={personalInfo.nationality}
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, nationality: e.target.value });
-                if (e.target.value) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], nationality: "" } }));
-                }
+                validateField('nationality', e.target.value);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.nationality ? 'border-red-500' : 'border-slate-300'}`}
             >
               {countriesList.map((country) => (
                 <option key={country.countryId} value={country.countryName}>
@@ -2836,22 +3101,21 @@ const handleFinalSubmit = async () => {
                 <option value="Indian">--select Country--</option>
               )}
             </select>
-             {errors.nationality && <p className="text-red-500 text-xs mt-1">{errors.nationality}</p>}
+            {errors.nationality && <p className="text-red-500 text-xs mt-1">{errors.nationality}</p>}
           </div>
+          
+          {/* Marital Status */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
-              Marital Status 
-              
+              Marital Status <span className="text-red-600">*</span>
             </label>
             <select
               value={personalInfo.maritalStatus}
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, maritalStatus: e.target.value });
-                if (e.target.value) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], maritalStatus: "" } }));
-                }
+                validateField('maritalStatus', e.target.value);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.maritalStatus ? 'border-red-500' : 'border-slate-300'}`}
             >
               <option value="">Select Marital Status</option>
               <option value="unmarried">Unmarried</option>
@@ -2859,13 +3123,12 @@ const handleFinalSubmit = async () => {
               <option value="divorced">Divorced</option>
               <option value="widowed">Widowed</option>
             </select>
-            
-            
+            {errors.maritalStatus && <p className="text-red-500 text-xs mt-1">{errors.maritalStatus}</p>}
           </div>
-
         </div>
       </div>
 
+      {/* Identification Details Section - Same as before with added validation */}
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
@@ -2883,12 +3146,10 @@ const handleFinalSubmit = async () => {
               value={personalInfo.identificationMark1}
               onChange={(e) => {
                 setPersonalInfo({ ...personalInfo, identificationMark1: e.target.value });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], identificationMark1: "" } }));
-                }
+                validateField('identificationMark1', e.target.value);
               }}
               placeholder="e.g., Mole on left cheek"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.identificationMark1 ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.identificationMark1 && <p className="text-red-500 text-xs mt-1">{errors.identificationMark1}</p>}
             <p className="text-xs text-slate-500 mt-1">
@@ -2924,6 +3185,7 @@ const handleFinalSubmit = async () => {
         </div>
       </div>
 
+      {/* Contact Details Section */}
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
@@ -2932,68 +3194,65 @@ const handleFinalSubmit = async () => {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          
-          
-<div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Mobile Number <span className="text-red-600">*</span>
-  </label>
-  <div className="flex gap-2">
-    <input
-      type="tel"
-      maxLength={10}
-      value={personalInfo.mobileNumber}
-      onChange={(e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        setPersonalInfo({ ...personalInfo, mobileNumber: value });
-        if (value.length === 10) {
-          setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], mobileNumber: "" } }));
-        }
-        // Reset verification when mobile number changes
-        if (mobileOtpVerified) {
-          setMobileOtpVerified(false);
-          setMobileOtpSent(false);
-        }
-      }}
-      onKeyDown={validateNumberInput}
-      placeholder="9876543210"
-      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-      disabled={mobileOtpVerified}
-    />
-    {!mobileOtpVerified ? (
-      <button
-        onClick={sendMobileOtp}
-        disabled={mobileOtpSent}
-        className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
-          mobileOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
-        }`}
-      >
-        {mobileOtpSent ? "OTP Sent" : "Send OTP"}
-      </button>
-    ) : (
-      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
-        <CheckCircle size={16} /> Verified
-      </span>
-    )}
-  </div>
-  {errors.mobileNumber && <p className="text-red-500 text-xs mt-1">{errors.mobileNumber}</p>}
-  {mobileOtpSent && !mobileOtpVerified && (
-    <div className="flex gap-2 mt-2">
-      <input
-        type="text"
-        placeholder="Enter OTP"
-        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
-      />
-      <button
-        onClick={verifyMobileOtp}
-        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
-      >
-        Verify
-      </button>
-    </div>
-  )}
-</div>
+          {/* Mobile Number */}
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Mobile Number <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                maxLength={10}
+                value={personalInfo.mobileNumber}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setPersonalInfo({ ...personalInfo, mobileNumber: value });
+                  validateField('mobileNumber', value);
+                  if (mobileOtpVerified) {
+                    setMobileOtpVerified(false);
+                    setMobileOtpSent(false);
+                  }
+                }}
+                onKeyDown={validateNumberInput}
+                placeholder="9876543210"
+                className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.mobileNumber ? 'border-red-500' : 'border-slate-300'}`}
+                disabled={mobileOtpVerified}
+              />
+              {!mobileOtpVerified ? (
+                <button
+                  onClick={sendMobileOtp}
+                  disabled={mobileOtpSent}
+                  className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
+                    mobileOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
+                  }`}
+                >
+                  {mobileOtpSent ? "OTP Sent" : "Send OTP"}
+                </button>
+              ) : (
+                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+                  <CheckCircle size={16} /> Verified
+                </span>
+              )}
+            </div>
+            {errors.mobileNumber && <p className="text-red-500 text-xs mt-1">{errors.mobileNumber}</p>}
+            {mobileOtpSent && !mobileOtpVerified && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  className="flex-1 px-4 py-2 border border-slate-300 rounded-lg"
+                />
+                <button
+                  onClick={verifyMobileOtp}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+          </div>
 
+          {/* Aadhar Number */}
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Aadhar Card Number (Preferred)
@@ -3011,55 +3270,49 @@ const handleFinalSubmit = async () => {
             />
           </div>
 
-
-         
-         
-<div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Email ID <span className="text-red-600">*</span>
-  </label>
-  <div className="flex gap-2">
-    <input
-      type="email"
-      value={personalInfo.emailId}
-      onChange={(e) => {
-        setPersonalInfo({ ...personalInfo, emailId: e.target.value });
-        if (e.target.value && e.target.value.includes('@')) {
-          setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], emailId: "" } }));
-        }
-        // Reset verification when email changes
-        if (emailOtpVerified) {
-          setEmailOtpVerified(false);
-          setEmailOtpSent(false);
-        }
-      }}
-      placeholder="example@domain.com"
-      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
-      disabled={emailOtpVerified}
-    />
-    {!emailOtpVerified ? (
-      <button
-        onClick={sendEmailOtp}
-        disabled={emailOtpSent}
-        className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
-          emailOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
-        }`}
-      >
-        {emailOtpSent ? "OTP Sent" : "Send OTP"}
-      </button>
-    ) : (
-      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
-        <CheckCircle size={16} /> Verified
-      </span>
-    )}
-  </div>
-  {errors.emailId && <p className="text-red-500 text-xs mt-1">{errors.emailId}</p>}
-</div>
-
-
+          {/* Email ID */}
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Email ID <span className="text-red-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={personalInfo.emailId}
+                onChange={(e) => {
+                  setPersonalInfo({ ...personalInfo, emailId: e.target.value });
+                  validateField('emailId', e.target.value);
+                  if (emailOtpVerified) {
+                    setEmailOtpVerified(false);
+                    setEmailOtpSent(false);
+                  }
+                }}
+                placeholder="example@domain.com"
+                className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.emailId ? 'border-red-500' : 'border-slate-300'}`}
+                disabled={emailOtpVerified}
+              />
+              {!emailOtpVerified ? (
+                <button
+                  onClick={sendEmailOtp}
+                  disabled={emailOtpSent}
+                  className={`px-4 py-2 text-white rounded-lg text-sm whitespace-nowrap transition-all ${
+                    emailOtpSent ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/80'
+                  }`}
+                >
+                  {emailOtpSent ? "OTP Sent" : "Send OTP"}
+                </button>
+              ) : (
+                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+                  <CheckCircle size={16} /> Verified
+                </span>
+              )}
+            </div>
+            {errors.emailId && <p className="text-red-500 text-xs mt-1">{errors.emailId}</p>}
+          </div>
         </div>
       </div>
 
+      {/* Permanent Address Section */}
       <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
@@ -3073,27 +3326,25 @@ const handleFinalSubmit = async () => {
               House No./Street <span className="text-red-600">*</span>
             </label>
             <input
-  type="text"
-  value={personalInfo.permanentAddress.street}
-  onChange={(e) => {
-    const newStreet = e.target.value;
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: { ...personalInfo.permanentAddress, street: newStreet },
-    });
-    if (e.target.value.trim()) {
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentStreet: "" } }));
-    }
-    // If sameAsPermanent is true, also update correspondence address
-    if (personalInfo.sameAsPermanent) {
-      setPersonalInfo(prev => ({
-        ...prev,
-        correspondenceAddress: { ...prev.correspondenceAddress, street: newStreet },
-      }));
-    }
-  }}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-/>
+              type="text"
+              value={personalInfo.permanentAddress.street}
+              onChange={(e) => {
+                const newStreet = e.target.value;
+                setPersonalInfo({
+                  ...personalInfo,
+                  permanentAddress: { ...personalInfo.permanentAddress, street: newStreet },
+                });
+                validateField('permanentStreet', newStreet);
+                if (personalInfo.sameAsPermanent) {
+                  setPersonalInfo(prev => ({
+                    ...prev,
+                    correspondenceAddress: { ...prev.correspondenceAddress, street: newStreet },
+                  }));
+                  validateField('correspondenceStreet', newStreet);
+                }
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${errors.permanentStreet ? 'border-red-500' : 'border-slate-300'}`}
+            />
             {errors.permanentStreet && <p className="text-red-500 text-xs mt-1">{errors.permanentStreet}</p>}
           </div>
 
@@ -3102,72 +3353,70 @@ const handleFinalSubmit = async () => {
               Village/City/Town <span className="text-red-600">*</span>
             </label>
             <input
-  type="text"
-  value={personalInfo.permanentAddress.cityOrVillage}
-  onChange={(e) => {
-    const newCity = e.target.value;
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: { ...personalInfo.permanentAddress, cityOrVillage: newCity },
-    });
-    if (e.target.value.trim()) {
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentCity: "" } }));
-    }
-    // If sameAsPermanent is true, also update correspondence address
-    if (personalInfo.sameAsPermanent) {
-      setPersonalInfo(prev => ({
-        ...prev,
-        correspondenceAddress: { ...prev.correspondenceAddress, cityOrVillage: newCity },
-      }));
-    }
-  }}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-/>
+              type="text"
+              value={personalInfo.permanentAddress.cityOrVillage}
+              onChange={(e) => {
+                const newCity = e.target.value;
+                setPersonalInfo({
+                  ...personalInfo,
+                  permanentAddress: { ...personalInfo.permanentAddress, cityOrVillage: newCity },
+                });
+                validateField('permanentCity', newCity);
+                if (personalInfo.sameAsPermanent) {
+                  setPersonalInfo(prev => ({
+                    ...prev,
+                    correspondenceAddress: { ...prev.correspondenceAddress, cityOrVillage: newCity },
+                  }));
+                  validateField('correspondenceCity', newCity);
+                }
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${errors.permanentCity ? 'border-red-500' : 'border-slate-300'}`}
+            />
             {errors.permanentCity && <p className="text-red-500 text-xs mt-1">{errors.permanentCity}</p>}
           </div>
+          
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Post Office <span className="text-red-600">*</span>
             </label>
             <input
-  type="text"
-  value={personalInfo.permanentAddress.post}
-  onChange={(e) => {
-    const newPost = e.target.value;
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: { ...personalInfo.permanentAddress, post: newPost },
-    });
-    if (e.target.value.trim()) {
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPost: "" } }));
-    }
-    // If sameAsPermanent is true, also update correspondence address
-    if (personalInfo.sameAsPermanent) {
-      setPersonalInfo(prev => ({
-        ...prev,
-        correspondenceAddress: { ...prev.correspondenceAddress, post: newPost },
-      }));
-    }
-  }}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-/>
+              type="text"
+              value={personalInfo.permanentAddress.post}
+              onChange={(e) => {
+                const newPost = e.target.value;
+                setPersonalInfo({
+                  ...personalInfo,
+                  permanentAddress: { ...personalInfo.permanentAddress, post: newPost },
+                });
+                validateField('permanentPost', newPost);
+                if (personalInfo.sameAsPermanent) {
+                  setPersonalInfo(prev => ({
+                    ...prev,
+                    correspondenceAddress: { ...prev.correspondenceAddress, post: newPost },
+                  }));
+                  validateField('correspondencePost', newPost);
+                }
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${errors.permanentPost ? 'border-red-500' : 'border-slate-300'}`}
+            />
             {errors.permanentPost && <p className="text-red-500 text-xs mt-1">{errors.permanentPost}</p>}
           </div>
+          
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               State <span className="text-red-600">*</span>
             </label>
             <select
-  value={personalInfo.permanentAddress.stateId || ""}
-  onChange={(e) => {
-    const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
-    if (selectedState) {
-      handlePermanentStateChange(selectedState.stateId, selectedState.stateName);
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentState: "" } }));
-    }
-  }}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary"
->
+              value={personalInfo.permanentAddress.stateId || ""}
+              onChange={(e) => {
+                const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
+                if (selectedState) {
+                  handlePermanentStateChange(selectedState.stateId, selectedState.stateName);
+                  validateField('permanentState', selectedState.stateName);
+                }
+              }}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${errors.permanentState ? 'border-red-500' : 'border-slate-300'}`}
+            >
               <option value="">Select State</option>
               {getStateOptions().map((state) => (
                 <option key={state.id} value={state.id}>
@@ -3177,22 +3426,23 @@ const handleFinalSubmit = async () => {
             </select>
             {errors.permanentState && <p className="text-red-500 text-xs mt-1">{errors.permanentState}</p>}
           </div>
+          
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               District <span className="text-red-600">*</span>
             </label>
             <select
-  value={personalInfo.permanentAddress.districtId || ""}
-  onChange={(e) => {
-    const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
-    if (selectedDistrict) {
-      handlePermanentDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentDistrict: "" } }));
-    }
-  }}
-  disabled={!personalInfo.permanentAddress.stateId}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100"
->
+              value={personalInfo.permanentAddress.districtId || ""}
+              onChange={(e) => {
+                const selectedDistrict = permanentDistricts.find(d => d.districtId === Number(e.target.value));
+                if (selectedDistrict) {
+                  handlePermanentDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
+                  validateField('permanentDistrict', selectedDistrict.districtName);
+                }
+              }}
+              disabled={!personalInfo.permanentAddress.stateId}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100 ${errors.permanentDistrict ? 'border-red-500' : 'border-slate-300'}`}
+            >
               <option value="">Select District</option>
               {getPermanentDistrictOptions().map((district) => (
                 <option key={district.id} value={district.id}>
@@ -3202,40 +3452,40 @@ const handleFinalSubmit = async () => {
             </select>
             {errors.permanentDistrict && <p className="text-red-500 text-xs mt-1">{errors.permanentDistrict}</p>}
           </div>
+          
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Pincode <span className="text-red-600">*</span>
             </label>
             <input
-  type="text"
-  maxLength={6}
-  value={personalInfo.permanentAddress.pincode}
-  onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, '');
-    setPersonalInfo({
-      ...personalInfo,
-      permanentAddress: { ...personalInfo.permanentAddress, pincode: value },
-    });
-    if (value.length === 6) {
-      setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], permanentPincode: "" } }));
-    }
-    // If sameAsPermanent is true, also update correspondence address
-    if (personalInfo.sameAsPermanent) {
-      setPersonalInfo(prev => ({
-        ...prev,
-        correspondenceAddress: { ...prev.correspondenceAddress, pincode: value },
-      }));
-    }
-  }}
-  onKeyDown={validateNumberInput}
-  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
-/>
-             {errors.permanentPincode && <p className="text-red-500 text-xs mt-1">{errors.permanentPincode}</p>}
+              type="text"
+              maxLength={6}
+              value={personalInfo.permanentAddress.pincode}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '');
+                setPersonalInfo({
+                  ...personalInfo,
+                  permanentAddress: { ...personalInfo.permanentAddress, pincode: value },
+                });
+                validateField('permanentPincode', value);
+                if (personalInfo.sameAsPermanent) {
+                  setPersonalInfo(prev => ({
+                    ...prev,
+                    correspondenceAddress: { ...prev.correspondenceAddress, pincode: value },
+                  }));
+                  validateField('correspondencePincode', value);
+                }
+              }}
+              onKeyDown={validateNumberInput}
+              className={`w-full px-4 py-2 border rounded-lg ${errors.permanentPincode ? 'border-red-500' : 'border-slate-300'}`}
+            />
+            {errors.permanentPincode && <p className="text-red-500 text-xs mt-1">{errors.permanentPincode}</p>}
           </div>
         </div>
       </div>
 
-            <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+      {/* Correspondence Address Section */}
+      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
         <div className="absolute -top-4 left-5 bg-white px-3">
           <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary" />
@@ -3244,51 +3494,56 @@ const handleFinalSubmit = async () => {
         </div>
         <div className="flex items-center gap-3 mb-4">
           <input
-  type="checkbox"
-  id="sameAsPermanent"
-  checked={personalInfo.sameAsPermanent}
-  onChange={(e) => {
-    const isChecked = e.target.checked;
-    if (isChecked) {
-      // When checking, copy all permanent address values to correspondence
-      setPersonalInfo({
-        ...personalInfo,
-        sameAsPermanent: true,
-        correspondenceAddress: {
-          street: personalInfo.permanentAddress.street,
-          post: personalInfo.permanentAddress.post,
-          district: personalInfo.permanentAddress.district,
-          districtId: personalInfo.permanentAddress.districtId,
-          state: personalInfo.permanentAddress.state,
-          stateId: personalInfo.permanentAddress.stateId,
-          pincode: personalInfo.permanentAddress.pincode,
-          cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
-        },
-      });
-      // Also fetch districts for the copied state
-      if (personalInfo.permanentAddress.stateId) {
-        const fetchCopiedDistricts = async () => {
-          try {
-            const response = await apiService.getDistrictsByState(personalInfo.permanentAddress.stateId!);
-            if (response.data.success) {
-              setCorrespondenceDistricts(response.data.data);
-            }
-          } catch (error) {
-            console.error("Error fetching districts for copied address:", error);
-          }
-        };
-        fetchCopiedDistricts();
-      }
-    } else {
-      // When unchecking, just set sameAsPermanent to false without copying
-      setPersonalInfo({
-        ...personalInfo,
-        sameAsPermanent: false,
-      });
-    }
-  }}
-  className="w-4 h-4 text-primary rounded"
-/>
+            type="checkbox"
+            id="sameAsPermanent"
+            checked={personalInfo.sameAsPermanent}
+            onChange={(e) => {
+              const isChecked = e.target.checked;
+              if (isChecked) {
+                setPersonalInfo({
+                  ...personalInfo,
+                  sameAsPermanent: true,
+                  correspondenceAddress: {
+                    street: personalInfo.permanentAddress.street,
+                    post: personalInfo.permanentAddress.post,
+                    district: personalInfo.permanentAddress.district,
+                    districtId: personalInfo.permanentAddress.districtId,
+                    state: personalInfo.permanentAddress.state,
+                    stateId: personalInfo.permanentAddress.stateId,
+                    pincode: personalInfo.permanentAddress.pincode,
+                    cityOrVillage: personalInfo.permanentAddress.cityOrVillage,
+                  },
+                });
+                // Clear correspondence errors when same as permanent
+                validateField('correspondenceStreet', personalInfo.permanentAddress.street);
+                validateField('correspondenceCity', personalInfo.permanentAddress.cityOrVillage);
+                validateField('correspondencePost', personalInfo.permanentAddress.post);
+                validateField('correspondenceState', personalInfo.permanentAddress.state);
+                validateField('correspondenceDistrict', personalInfo.permanentAddress.district);
+                validateField('correspondencePincode', personalInfo.permanentAddress.pincode);
+                
+                if (personalInfo.permanentAddress.stateId) {
+                  const fetchCopiedDistricts = async () => {
+                    try {
+                      const response = await apiService.getDistrictsByState(personalInfo.permanentAddress.stateId!);
+                      if (response.data.success) {
+                        setCorrespondenceDistricts(response.data.data);
+                      }
+                    } catch (error) {
+                      console.error("Error fetching districts for copied address:", error);
+                    }
+                  };
+                  fetchCopiedDistricts();
+                }
+              } else {
+                setPersonalInfo({
+                  ...personalInfo,
+                  sameAsPermanent: false,
+                });
+              }
+            }}
+            className="w-4 h-4 text-primary rounded"
+          />
           <label htmlFor="sameAsPermanent" className="text-slate-700 font-medium cursor-pointer">
             Same as Permanent Address
           </label>
@@ -3307,9 +3562,7 @@ const handleFinalSubmit = async () => {
                   ...personalInfo,
                   correspondenceAddress: { ...personalInfo.correspondenceAddress, street: e.target.value },
                 });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondenceStreet: "" } }));
-                }
+                validateField('correspondenceStreet', e.target.value);
               }}
               disabled={personalInfo.sameAsPermanent}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100 ${!personalInfo.sameAsPermanent && errors.correspondenceStreet ? 'border-red-500' : 'border-slate-300'}`}
@@ -3329,9 +3582,7 @@ const handleFinalSubmit = async () => {
                   ...personalInfo,
                   correspondenceAddress: { ...personalInfo.correspondenceAddress, cityOrVillage: e.target.value },
                 });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondenceCity: "" } }));
-                }
+                validateField('correspondenceCity', e.target.value);
               }}
               disabled={personalInfo.sameAsPermanent}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100 ${!personalInfo.sameAsPermanent && errors.correspondenceCity ? 'border-red-500' : 'border-slate-300'}`}
@@ -3351,9 +3602,7 @@ const handleFinalSubmit = async () => {
                   ...personalInfo,
                   correspondenceAddress: { ...personalInfo.correspondenceAddress, post: e.target.value },
                 });
-                if (e.target.value.trim()) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondencePost: "" } }));
-                }
+                validateField('correspondencePost', e.target.value);
               }}
               disabled={personalInfo.sameAsPermanent}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary disabled:bg-slate-100 ${!personalInfo.sameAsPermanent && errors.correspondencePost ? 'border-red-500' : 'border-slate-300'}`}
@@ -3371,7 +3620,7 @@ const handleFinalSubmit = async () => {
                 const selectedState = statesList.find(s => s.stateId === Number(e.target.value));
                 if (selectedState) {
                   handleCorrespondenceStateChange(selectedState.stateId, selectedState.stateName);
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondenceState: "" } }));
+                  validateField('correspondenceState', selectedState.stateName);
                 }
               }}
               disabled={personalInfo.sameAsPermanent}
@@ -3397,7 +3646,7 @@ const handleFinalSubmit = async () => {
                 const selectedDistrict = correspondenceDistricts.find(d => d.districtId === Number(e.target.value));
                 if (selectedDistrict) {
                   handleCorrespondenceDistrictChange(selectedDistrict.districtId, selectedDistrict.districtName);
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondenceDistrict: "" } }));
+                  validateField('correspondenceDistrict', selectedDistrict.districtName);
                 }
               }}
               disabled={personalInfo.sameAsPermanent || !personalInfo.correspondenceAddress.stateId}
@@ -3427,9 +3676,7 @@ const handleFinalSubmit = async () => {
                   ...personalInfo,
                   correspondenceAddress: { ...personalInfo.correspondenceAddress, pincode: value },
                 });
-                if (value.length === 6) {
-                  setStepErrors(prev => ({ ...prev, [0]: { ...prev[0], correspondencePincode: "" } }));
-                }
+                validateField('correspondencePincode', value);
               }}
               onKeyDown={validateNumberInput}
               disabled={personalInfo.sameAsPermanent}
@@ -3443,857 +3690,11 @@ const handleFinalSubmit = async () => {
   );
 };
 
-
-
-// const renderReservationCategory = () => {
-//   const errors = stepErrors[1] || {};
-  
-//   // Get main categories from API - all top-level categories
-//   const mainCategories = categoriesList;
-  
-//   // State for selected primitive tribe category
-//   // const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
-  
-//   // Find the Scheduled Tribe (ST) category
-//   const stCategory = categoriesList.find(cat => 
-//     cat.label === "Scheduled Tribe (ST)" || 
-//     cat.label === "Scheduled Tribe" ||
-//     (cat.label && cat.label.toLowerCase().includes("scheduled tribe"))
-//   );
-  
-//   // Get subcategories from the ST category (Primitive Tribe and Other ST)
-//   const stSubCategories = stCategory?.subCategories || [];
-  
-//   // Get Primitive Tribe category
-//   const primitiveTribeCategory = stSubCategories.find((sub: any) => 
-//     sub.label === "Primitive Tribe" || sub.label === "Primitive Tribe "
-//   );
-  
-//   // Get primitive tribe subcategories (actual tribes like Asur, Birhor, etc.)
-//   const primitiveTribeSubCategories = primitiveTribeCategory?.subCategories || [];
-  
-//   // Debug logging
-//   console.log("Categories List:", categoriesList);
-//   console.log("Main Categories:", mainCategories);
-//   console.log("ST Category:", stCategory);
-//   console.log("ST SubCategories:", stSubCategories);
-//   console.log("Primitive Tribe Category:", primitiveTribeCategory);
-//   console.log("Primitive Tribe SubCategories:", primitiveTribeSubCategories);
-//   console.log("Current reservationCategory:", reservationCategory);
-
-//   // Handle Jharkhand Domicile change
-//   const handleDomicileChange = (value: string) => {
-//     setReservationCategory({ 
-//       ...reservationCategory, 
-//       isJharkhandDomicile: value 
-//     });
-    
-//     if (value === "no") {
-//       const unreservedCategory = mainCategories.find(cat => 
-//         cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "UR"
-//       );
-//       if (unreservedCategory) {
-//         setReservationCategory(prev => ({
-//           ...prev,
-//           isJharkhandDomicile: value,
-//           mainCategory: unreservedCategory.label,
-//           mainCategoryId: unreservedCategory.value,
-//           subCategory: "",
-//           subCategoryId: undefined,
-//         }));
-//         setSelectedPrimitiveTribeId(undefined);
-//         const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
-//         setFeePayment({ ...feePayment, applicationFee: fee });
-//       }
-//     }
-    
-//     if (value) {
-//       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
-//     }
-//   };
-
-//   // Handle category change
-//   const handleCategoryChange = (selectedValue: number) => {
-//     const selected = mainCategories.find(cat => cat.value === selectedValue);
-//     if (selected) {
-//       setReservationCategory({
-//         ...reservationCategory,
-//         mainCategory: selected.label,
-//         mainCategoryId: selected.value,
-//         subCategory: "",
-//         subCategoryId: undefined,
-//       });
-//       setSelectedPrimitiveTribeId(undefined);
-//       const fee = selected.label === "Scheduled Caste (SC)" || selected.label === "Scheduled Tribe (ST)" ? "50" : "100";
-//       setFeePayment({ ...feePayment, applicationFee: fee });
-//       if (selectedValue) {
-//         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
-//       }
-//     }
-//   };
-
-//   // Handle ST SubCategory change (Primitive Tribe or Other ST)
-//   const handleStSubCategoryChange = (selectedValue: number) => {
-//     // Check if it's "Primitive Tribe"
-//     if (selectedValue === primitiveTribeCategory?.value) {
-//       // If Primitive Tribe is selected, we need to show the next level dropdown
-//       setSelectedPrimitiveTribeId(selectedValue);
-//       setReservationCategory({
-//         ...reservationCategory,
-//         subCategory: primitiveTribeCategory.label,
-//         subCategoryId: primitiveTribeCategory.value,
-//       });
-//     } else {
-//       // Check if it's "Other ST"
-//       const otherStCategory = stSubCategories.find((sub: any) => sub.value === selectedValue);
-//       if (otherStCategory) {
-//         setSelectedPrimitiveTribeId(undefined);
-//         setReservationCategory({
-//           ...reservationCategory,
-//           subCategory: otherStCategory.label,
-//           subCategoryId: otherStCategory.value,
-//         });
-//       }
-//     }
-//   };
-
-//   // Handle actual tribe selection (from primitive tribe subcategories)
-//   const handleTribeSelection = (selectedValue: number) => {
-//   const selectedTribe = primitiveTribeSubCategories.find((sub: any) => sub.value === selectedValue);
-//   if (selectedTribe) {
-//     setReservationCategory({
-//       ...reservationCategory,
-//       subCategory: selectedTribe.label,
-//       subCategoryId: selectedTribe.value,
-//       subSubCategoryId: selectedTribe.value, // Set subSubCategoryId as well
-//     });
-//   }
-// };
-
-//   return (
-//     <div className="space-y-6">
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Category Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-//           {/* Locally Resident of Jharkhand - Dropdown Field */}
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Are you Local Resident of Jharkhand? <span className="text-red-600">*</span>
-//             </label>
-//             <select
-//               value={reservationCategory.isLocallyResident || ""}
-//               onChange={(e) => {
-//                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
-//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
-//               }}
-//               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
-//             >
-//               <option value="">Select Option</option>
-//               <option value="yes">Yes</option>
-//               <option value="no">No</option>
-//             </select>
-//             {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Jharkhand Domicile Claim <span className="text-red-600">*</span>
-//             </label>
-//             <div className="flex gap-6 mt-2">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="domicile"
-//                   value="yes"
-//                   checked={reservationCategory.isJharkhandDomicile === "yes"}
-//                   onChange={(e) => handleDomicileChange(e.target.value)}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="domicile"
-//                   value="no"
-//                   checked={reservationCategory.isJharkhandDomicile === "no"}
-//                   onChange={(e) => handleDomicileChange(e.target.value)}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Reservation Category <span className="text-red-600">*</span>
-//             </label>
-//             <select
-//               value={reservationCategory.mainCategoryId || ""}
-//               onChange={(e) => handleCategoryChange(Number(e.target.value))}
-//               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
-//             >
-//               <option value="">Select Category</option>
-//               {mainCategories.map((cat) => (
-//                 <option key={cat.value} value={cat.value}>
-//                   {cat.label}
-//                 </option>
-//               ))}
-//             </select>
-//             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
-//           </div>
-          
-//           {/* ST Sub Category - Only show when ST is selected */}
-//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
-//             <div>
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 ST Category Type <span className="text-red-600">*</span>
-//               </label>
-//               <select
-//                 value={(() => {
-//                   // Check if currently selected is primitive tribe category or other ST
-//                   if (reservationCategory.subCategoryId === primitiveTribeCategory?.value) {
-//                     return primitiveTribeCategory?.value;
-//                   }
-//                   // Check if selected is Other ST
-//                   const otherSt = stSubCategories.find((sub: any) => sub.value === reservationCategory.subCategoryId);
-//                   if (otherSt && otherSt.label === "Other ST") {
-//                     return otherSt.value;
-//                   }
-//                   return "";
-//                 })()}
-//                 onChange={(e) => handleStSubCategoryChange(Number(e.target.value))}
-//                 className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
-//               >
-//                 <option value="">Select ST Category Type</option>
-//                 {primitiveTribeCategory && (
-//                   <option key={primitiveTribeCategory.value} value={primitiveTribeCategory.value}>
-//                     {primitiveTribeCategory.label}
-//                   </option>
-//                 )}
-//                 {stSubCategories.filter((sub: any) => sub.label === "Other ST").map((sub: any) => (
-//                   <option key={sub.value} value={sub.value}>
-//                     {sub.label}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           )}
-
-//           {/* Third level dropdown - Show actual tribes when Primitive Tribe is selected */}
-//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && 
-//            selectedPrimitiveTribeId === primitiveTribeCategory?.value && 
-//            primitiveTribeSubCategories.length > 0 && (
-//             <div>
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Select Primitive Tribe <span className="text-red-600">*</span>
-//               </label>
-//               <select
-//                 value={(() => {
-//                   // Check if current selection is a tribe (not the primitive tribe category)
-//                   const isTribeSelected = primitiveTribeSubCategories.some((sub: any) => sub.value === reservationCategory.subCategoryId);
-//                   return isTribeSelected ? reservationCategory.subCategoryId : "";
-//                 })()}
-//                 onChange={(e) => handleTribeSelection(Number(e.target.value))}
-//                 className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
-//               >
-//                 <option value="">Select Tribe</option>
-//                 {primitiveTribeSubCategories.map((sub: any) => (
-//                   <option key={sub.value} value={sub.value}>
-//                     {sub.label}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* District of Local Residence - Dropdown Field (Shows when Locally Resident is Yes) */}
-//         {reservationCategory.isLocallyResident === "yes" && (
-//           <div className="mt-4">
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Your District of Local Residence <span className="text-red-600">*</span>
-//             </label>
-//             <select
-//               value={reservationCategory.localDistrictId || ""}
-//               onChange={(e) => {
-//                 const selectedId = Number(e.target.value);
-//                 const selectedDistrict = localDistricts.find(d => d.districtId === selectedId);
-//                 if (selectedDistrict) {
-//                   setReservationCategory({
-//                     ...reservationCategory,
-//                     localDistrictId: selectedId,
-//                     localDistrictName: selectedDistrict.districtName,
-//                   });
-//                   if (selectedId) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
-//                   }
-//                 }
-//               }}
-//               className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
-//             >
-//               <option value="">Select District</option>
-//               {localDistricts.map((district) => (
-//                 <option key={district.districtId} value={district.districtId}>
-//                   {district.districtName}
-//                 </option>
-//               ))}
-//             </select>
-//             {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
-//           </div>
-//         )}
-        
-//         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
-//         {reservationCategory.mainCategoryId && 
-//          reservationCategory.mainCategory && 
-//          reservationCategory.mainCategory !== "UR (Unreserved)" && 
-//          reservationCategory.mainCategory !== "Unreserved" && 
-//          reservationCategory.mainCategory !== "Unreserved (UR)" &&
-//          reservationCategory.mainCategory !== "EWS" && (
-//           <>
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Caste/Category Certificate Number <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.categoryCertificateNumber}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Category Certificate Number"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Caste/Category Certificate Date Of Issue <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="date"
-//                 value={reservationCategory.categoryCertificateIssueDate}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
-//                   }
-//                 }}
-//                 max={new Date().toISOString().split('T')[0]}
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Certificate Issued Authority <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.categoryCertificateAuthority}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
-//             </div>
-//           </>
-//         )}
-        
-//         {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
-//         {reservationCategory.isJharkhandDomicile === "yes" && (
-//           <>
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Residential / Domicile Certificate Number <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.domicileCertificateNumber}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Domicile Certificate Number"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Certificate Date Of Issue <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="date"
-//                 value={reservationCategory.domicileCertificateIssueDate}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
-//                   }
-//                 }}
-//                 max={new Date().toISOString().split('T')[0]}
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateIssueDate}</p>}
-//             </div>
-            
-//             <div className="mt-4">
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Certificate Issued Authority <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 value={reservationCategory.domicileCertificateAuthority}
-//                 onChange={(e) => {
-//                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
-//                   if (e.target.value) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
-//                   }
-//                 }}
-//                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.domicileCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateAuthority}</p>}
-//             </div>
-//           </>
-//         )}
-//       </div>
-
-//       {/* Physical Handicap (PwD) Details */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Physical Handicap (PwD) Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Physically Handicapped?
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="pwd"
-//                   value="yes"
-//                   checked={reservationCategory.isPwd === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({
-//                       ...reservationCategory,
-//                       isPwd: e.target.value,
-//                     });
-//                     if (e.target.value === "yes") {
-//                       setFeePayment({ ...feePayment, applicationFee: "0" });
-//                     } else {
-//                       const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
-//                       setFeePayment({ ...feePayment, applicationFee: fee });
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="pwd"
-//                   value="no"
-//                   checked={reservationCategory.isPwd === "no"}
-//                   onChange={(e) => {
-//                     setReservationCategory({
-//                       ...reservationCategory,
-//                       isPwd: e.target.value,
-//                     });
-//                     const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
-//                     setFeePayment({ ...feePayment, applicationFee: fee });
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isPwd === "yes" && (
-//             <>
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Type of Disability <span className="text-red-600">*</span>
-//                 </label>
-//                 <select
-//                   value={reservationCategory.pwdTypeId || ""}
-//                   onChange={(e) => {
-//                     const selectedId = Number(e.target.value);
-//                     const selected = disabilitiesList.find((d: any) => d.id === selectedId);
-//                     if (selected) {
-//                       setReservationCategory({ 
-//                         ...reservationCategory, 
-//                         pwdTypeId: selectedId,
-//                         pwdType: selected.name
-//                       });
-//                       if (selectedId) {
-//                         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
-//                       }
-//                     }
-//                   }}
-//                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
-//                 >
-//                   <option value="">Select Type</option>
-//                   {disabilitiesList.map((disability: any) => (
-//                     <option key={disability.id} value={disability.id}>
-//                       {disability.name}
-//                     </option>
-//                   ))}
-//                 </select>
-//                 {errors.pwdType && <p className="text-red-500 text-xs mt-1">{errors.pwdType}</p>}
-//               </div>
-              
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Disability Percentage (%) <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdPercentage}
-//                   onChange={(e) => {
-//                     const value = e.target.value.replace(/\D/g, '');
-//                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
-//                     if (value && parseInt(value) >= 40) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
-//                     }
-//                   }}
-//                   onKeyDown={validateNumberInput}
-//                   maxLength={2}
-//                   placeholder="Should be ≥ 40% to claim benefit"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdPercentage ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdPercentage && <p className="text-red-500 text-xs mt-1">{errors.pwdPercentage}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   PwD Certificate Number <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdCertificateNumber}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter PwD Certificate Number"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Certificate Date Of Issue <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="date"
-//                   value={reservationCategory.pwdCertificateIssueDate}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
-//                     }
-//                   }}
-//                   max={new Date().toISOString().split('T')[0]}
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateIssueDate}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Certificate Issued Authority <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.pwdCertificateAuthority}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.pwdCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateAuthority}</p>}
-//               </div>
-//             </>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Ex-Serviceman Details */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Ex-Serviceman Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Ex-Serviceman?
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="exService"
-//                   value="yes"
-//                   checked={reservationCategory.isExServiceman === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
-//                     if (e.target.value === "yes") {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="exService"
-//                   value="no"
-//                   checked={reservationCategory.isExServiceman === "no"}
-//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value })}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isExServiceman === "yes" && (
-//             <div>
-//               <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                 Years of Service (0-30) <span className="text-red-600">*</span>
-//               </label>
-//               <input
-//                 type="number"
-//                 min={0}
-//                 max={30}
-//                 value={reservationCategory.exServicemanYears}
-//                 onChange={(e) => {
-//                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
-//                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
-//                   if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
-//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-//                   }
-//                 }}
-//                 placeholder="0-30"
-//                 className={`w-full px-4 py-2 border rounded-lg ${errors.exServicemanYears ? 'border-red-500' : 'border-slate-300'}`}
-//               />
-//               {errors.exServicemanYears && <p className="text-red-500 text-xs mt-1">{errors.exServicemanYears}</p>}
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Sports Quota Details */}
-//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
-//           Sports Quota Details
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-slate-800 mb-2">
-//               Claim Sports Quota? *
-//             </label>
-//             <div className="flex gap-6">
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="sports"
-//                   value="yes"
-//                   checked={reservationCategory.isSportsQuota === "yes"}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
-//                     if (e.target.value === "yes") {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
-//                     }
-//                   }}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 Yes
-//               </label>
-//               <label className="flex items-center gap-2">
-//                 <input
-//                   type="radio"
-//                   name="sports"
-//                   value="no"
-//                   checked={reservationCategory.isSportsQuota === "no"}
-//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value })}
-//                   className="w-4 h-4 text-primary"
-//                 />
-//                 No
-//               </label>
-//             </div>
-//           </div>
-          
-//           {reservationCategory.isSportsQuota === "yes" && (
-//             <>
-//               <div>
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Sports Level <span className="text-red-600">*</span>
-//                 </label>
-//                 <select
-//                   value={reservationCategory.sportsLevel}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
-//                     }
-//                   }}
-//                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
-//                 >
-//                   <option value="">Select Level</option>
-//                   <option value="international">Medal or Participation in International Level Competition organized by IOC/International Paralympic Committee or its affiliated federations.</option>
-//                   <option value="national">Medal or Participation in National Level Competition organized by IOA/Indian Paralympic Committee or its affiliated National Sports federations.</option>
-//                 </select>
-//                 {errors.sportsLevel && <p className="text-red-500 text-xs mt-1">{errors.sportsLevel}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Achievement Details <span className="text-red-600">*</span>
-//                 </label>
-//                 <textarea
-//                   value={reservationCategory.sportsAchievement}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
-//                     if (e.target.value.trim()) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
-//                     }
-//                   }}
-//                   rows={2}
-//                   placeholder="Describe your achievements..."
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsAchievement ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsAchievement && <p className="text-red-500 text-xs mt-1">{errors.sportsAchievement}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Sports Certificate Number <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.sportsCertificateNumber}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Sports Certificate Number"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Certificate Date Of Issue <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="date"
-//                   value={reservationCategory.sportsCertificateIssueDate}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
-//                     }
-//                   }}
-//                   max={new Date().toISOString().split('T')[0]}
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateIssueDate}</p>}
-//               </div>
-              
-//               <div className="md:col-span-2">
-//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-//                   Certificate Issued Authority <span className="text-red-600">*</span>
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={reservationCategory.sportsCertificateAuthority}
-//                   onChange={(e) => {
-//                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
-//                     if (e.target.value) {
-//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
-//                     }
-//                   }}
-//                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
-//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
-//                 />
-//                 {errors.sportsCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateAuthority}</p>}
-//               </div>
-//             </>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Declaration */}
-//       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-//         <label className="flex items-start gap-4 cursor-pointer">
-//           <input
-//             type="checkbox"
-//             checked={reservationCategory.declaration}
-//             onChange={(e) => {
-//               const isChecked = e.target.checked;
-//               setReservationCategory({ ...reservationCategory, declaration: isChecked });
-//               if (isChecked) {
-//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
-//               }
-//             }}
-//             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
-//           />
-//           <span className="text-sm font-medium text-slate-700 leading-6">
-//             I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that providing false information may lead to cancellation of my application.{" "}
-//             <span className="text-red-500 font-bold">*</span>
-//           </span>
-//         </label>
-//         {errors.declaration && <p className="text-red-500 text-xs mt-2 ml-9">{errors.declaration}</p>}
-//       </div>
-//     </div>
-//   );
-// };
-
 const renderReservationCategory = () => {
   const errors = stepErrors[1] || {};
   
   // Get main categories from API - all top-level categories
   const mainCategories = categoriesList;
-  
-  // State for selected primitive tribe category - moved inside component
-  // const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
   
   // Find the Scheduled Tribe (ST) category
   const stCategory = categoriesList.find((cat: any) => 
@@ -4312,15 +3713,234 @@ const renderReservationCategory = () => {
   
   // Get primitive tribe subcategories (actual tribes like Asur, Birhor, etc.)
   const primitiveTribeSubCategories = primitiveTribeCategory?.subCategories || [];
-  
-  // Debug logging
-  console.log("Categories List:", categoriesList);
-  console.log("Main Categories:", mainCategories);
-  console.log("ST Category:", stCategory);
-  console.log("ST SubCategories:", stSubCategories);
-  console.log("Primitive Tribe Category:", primitiveTribeCategory);
-  console.log("Primitive Tribe SubCategories:", primitiveTribeSubCategories);
-  console.log("Current reservationCategory:", reservationCategory);
+
+  // Helper function to validate field on change
+  const validateReservationField = (field: string, value: any) => {
+    const newErrors = { ...stepErrors[1] || {} };
+    
+    switch (field) {
+      case 'isLocallyResident':
+        if (!value) {
+          newErrors.isLocallyResident = "Please select an option";
+        } else {
+          delete newErrors.isLocallyResident;
+        }
+        break;
+      case 'localDistrictId':
+        if (reservationCategory.isLocallyResident === "yes" && !value) {
+          newErrors.localDistrictName = "Please select your district of local residence";
+        } else {
+          delete newErrors.localDistrictName;
+        }
+        break;
+      case 'isJharkhandDomicile':
+        if (!value) {
+          newErrors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
+        } else {
+          delete newErrors.isJharkhandDomicile;
+        }
+        break;
+      case 'mainCategoryId':
+        if (!value && reservationCategory.isJharkhandDomicile === "yes") {
+          newErrors.mainCategory = "Please select a category";
+        } else if (!value && reservationCategory.isJharkhandDomicile === "no") {
+          newErrors.mainCategory = "Please select a category";
+        } else {
+          delete newErrors.mainCategory;
+        }
+        break;
+      case 'domicileCertificateNumber':
+        if (reservationCategory.isJharkhandDomicile === "yes" && !value.trim()) {
+          newErrors.domicileCertificateNumber = "Domicile certificate number is required";
+        } else {
+          delete newErrors.domicileCertificateNumber;
+        }
+        break;
+      case 'domicileCertificateAuthority':
+        if (reservationCategory.isJharkhandDomicile === "yes" && !value.trim()) {
+          newErrors.domicileCertificateAuthority = "Domicile certificate issuing authority is required";
+        } else {
+          delete newErrors.domicileCertificateAuthority;
+        }
+        break;
+      case 'domicileCertificateIssueDate':
+        if (reservationCategory.isJharkhandDomicile === "yes") {
+          if (!value) {
+            newErrors.domicileCertificateIssueDate = "Domicile certificate issue date is required";
+          } else if (isFutureDate(value)) {
+            newErrors.domicileCertificateIssueDate = "Issue date cannot be in the future";
+          } else {
+            delete newErrors.domicileCertificateIssueDate;
+          }
+        } else {
+          delete newErrors.domicileCertificateIssueDate;
+        }
+        break;
+      case 'categoryCertificateNumber':
+        if (reservationCategory.mainCategoryId && 
+            reservationCategory.mainCategory !== "UR (Unreserved)" && 
+            reservationCategory.mainCategory !== "Unreserved" && 
+            reservationCategory.mainCategory !== "Unreserved (UR)" &&
+            reservationCategory.mainCategory !== "EWS" && 
+            !value.trim()) {
+          newErrors.categoryCertificateNumber = "Category certificate number is required";
+        } else {
+          delete newErrors.categoryCertificateNumber;
+        }
+        break;
+      case 'categoryCertificateAuthority':
+        if (reservationCategory.mainCategoryId && 
+            reservationCategory.mainCategory !== "UR (Unreserved)" && 
+            reservationCategory.mainCategory !== "Unreserved" && 
+            reservationCategory.mainCategory !== "Unreserved (UR)" &&
+            reservationCategory.mainCategory !== "EWS" && 
+            !value.trim()) {
+          newErrors.categoryCertificateAuthority = "Category certificate issuing authority is required";
+        } else {
+          delete newErrors.categoryCertificateAuthority;
+        }
+        break;
+      case 'categoryCertificateIssueDate':
+        if (reservationCategory.mainCategoryId && 
+            reservationCategory.mainCategory !== "UR (Unreserved)" && 
+            reservationCategory.mainCategory !== "Unreserved" && 
+            reservationCategory.mainCategory !== "Unreserved (UR)" &&
+            reservationCategory.mainCategory !== "EWS") {
+          if (!value) {
+            newErrors.categoryCertificateIssueDate = "Category certificate issue date is required";
+          } else if (isFutureDate(value)) {
+            newErrors.categoryCertificateIssueDate = "Issue date cannot be in the future";
+          } else {
+            delete newErrors.categoryCertificateIssueDate;
+          }
+        } else {
+          delete newErrors.categoryCertificateIssueDate;
+        }
+        break;
+      case 'pwdTypeId':
+        if (reservationCategory.isPwd === "yes" && !value) {
+          newErrors.pwdType = "Please select disability type";
+        } else {
+          delete newErrors.pwdType;
+        }
+        break;
+      case 'pwdPercentage':
+        if (reservationCategory.isPwd === "yes") {
+          if (!value) {
+            newErrors.pwdPercentage = "Please enter disability percentage";
+          } else {
+            const percent = parseInt(value);
+            if (isNaN(percent)) {
+              newErrors.pwdPercentage = "Please enter a valid number";
+            } else if (percent < 40) {
+              newErrors.pwdPercentage = "Disability percentage must be at least 40%";
+            } else if (percent > 100) {
+              newErrors.pwdPercentage = "Disability percentage cannot exceed 100%";
+            } else {
+              delete newErrors.pwdPercentage;
+            }
+          }
+        } else {
+          delete newErrors.pwdPercentage;
+        }
+        break;
+      case 'pwdCertificateNumber':
+        if (reservationCategory.isPwd === "yes" && !value.trim()) {
+          newErrors.pwdCertificateNumber = "PwD certificate number is required";
+        } else {
+          delete newErrors.pwdCertificateNumber;
+        }
+        break;
+      case 'pwdCertificateAuthority':
+        if (reservationCategory.isPwd === "yes" && !value.trim()) {
+          newErrors.pwdCertificateAuthority = "PwD certificate issuing authority is required";
+        } else {
+          delete newErrors.pwdCertificateAuthority;
+        }
+        break;
+      case 'pwdCertificateIssueDate':
+        if (reservationCategory.isPwd === "yes") {
+          if (!value) {
+            newErrors.pwdCertificateIssueDate = "PwD certificate issue date is required";
+          } else if (isFutureDate(value)) {
+            newErrors.pwdCertificateIssueDate = "Issue date cannot be in the future";
+          } else {
+            delete newErrors.pwdCertificateIssueDate;
+          }
+        } else {
+          delete newErrors.pwdCertificateIssueDate;
+        }
+        break;
+      case 'exServicemanYears':
+        if (reservationCategory.isExServiceman === "yes") {
+          if (!value) {
+            newErrors.exServicemanYears = "Please enter years of service";
+          } else {
+            const years = parseInt(value);
+            if (isNaN(years)) {
+              newErrors.exServicemanYears = "Please enter a valid number";
+            } else if (years < 0 || years > 30) {
+              newErrors.exServicemanYears = "Years of service must be between 0 and 30";
+            } else {
+              delete newErrors.exServicemanYears;
+            }
+          }
+        } else {
+          delete newErrors.exServicemanYears;
+        }
+        break;
+      case 'sportsLevel':
+        if (reservationCategory.isSportsQuota === "yes" && !value) {
+          newErrors.sportsLevel = "Please select sports level";
+        } else {
+          delete newErrors.sportsLevel;
+        }
+        break;
+      case 'sportsAchievement':
+        if (reservationCategory.isSportsQuota === "yes" && !value.trim()) {
+          newErrors.sportsAchievement = "Please describe your achievements";
+        } else {
+          delete newErrors.sportsAchievement;
+        }
+        break;
+      case 'sportsCertificateNumber':
+        if (reservationCategory.isSportsQuota === "yes" && !value.trim()) {
+          newErrors.sportsCertificateNumber = "Sports certificate number is required";
+        } else {
+          delete newErrors.sportsCertificateNumber;
+        }
+        break;
+      case 'sportsCertificateAuthority':
+        if (reservationCategory.isSportsQuota === "yes" && !value.trim()) {
+          newErrors.sportsCertificateAuthority = "Sports certificate issuing authority is required";
+        } else {
+          delete newErrors.sportsCertificateAuthority;
+        }
+        break;
+      case 'sportsCertificateIssueDate':
+        if (reservationCategory.isSportsQuota === "yes") {
+          if (!value) {
+            newErrors.sportsCertificateIssueDate = "Sports certificate issue date is required";
+          } else if (isFutureDate(value)) {
+            newErrors.sportsCertificateIssueDate = "Issue date cannot be in the future";
+          } else {
+            delete newErrors.sportsCertificateIssueDate;
+          }
+        } else {
+          delete newErrors.sportsCertificateIssueDate;
+        }
+        break;
+      case 'declaration':
+        if (!value) {
+          newErrors.declaration = "Please accept the declaration";
+        } else {
+          delete newErrors.declaration;
+        }
+        break;
+    }
+    
+    setStepErrors(prev => ({ ...prev, [1]: newErrors }));
+  };
 
   // Handle Jharkhand Domicile change
   const handleDomicileChange = (value: string) => {
@@ -4328,6 +3948,7 @@ const renderReservationCategory = () => {
       ...reservationCategory, 
       isJharkhandDomicile: value 
     });
+    validateReservationField('isJharkhandDomicile', value);
     
     if (value === "no") {
       const unreservedCategory = mainCategories.find((cat: any) => 
@@ -4343,13 +3964,10 @@ const renderReservationCategory = () => {
           subCategoryId: undefined,
         }));
         setSelectedPrimitiveTribeId(undefined);
+        validateReservationField('mainCategoryId', unreservedCategory.value);
         const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
         setFeePayment({ ...feePayment, applicationFee: fee });
       }
-    }
-    
-    if (value) {
-      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
     }
   };
 
@@ -4365,19 +3983,15 @@ const renderReservationCategory = () => {
         subCategoryId: undefined,
       });
       setSelectedPrimitiveTribeId(undefined);
+      validateReservationField('mainCategoryId', selectedValue);
       const fee = selected.label === "Scheduled Caste (SC)" || selected.label === "Scheduled Tribe (ST)" ? "50" : "100";
       setFeePayment({ ...feePayment, applicationFee: fee });
-      if (selectedValue) {
-        setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
-      }
     }
   };
 
   // Handle ST SubCategory change (Primitive Tribe or Other ST)
   const handleStSubCategoryChange = (selectedValue: number) => {
-    // Check if it's "Primitive Tribe"
     if (selectedValue === primitiveTribeCategory?.value) {
-      // If Primitive Tribe is selected, we need to show the next level dropdown
       setSelectedPrimitiveTribeId(selectedValue);
       setReservationCategory({
         ...reservationCategory,
@@ -4385,7 +3999,6 @@ const renderReservationCategory = () => {
         subCategoryId: primitiveTribeCategory.value,
       });
     } else {
-      // Check if it's "Other ST"
       const otherStCategory = stSubCategories.find((sub: any) => sub.value === selectedValue);
       if (otherStCategory) {
         setSelectedPrimitiveTribeId(undefined);
@@ -4428,7 +4041,7 @@ const renderReservationCategory = () => {
               value={reservationCategory.isLocallyResident || ""}
               onChange={(e) => {
                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
-                setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
+                validateReservationField('isLocallyResident', e.target.value);
               }}
               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
             >
@@ -4497,11 +4110,9 @@ const renderReservationCategory = () => {
               </label>
               <select
                 value={(() => {
-                  // Check if currently selected is primitive tribe category or other ST
                   if (reservationCategory.subCategoryId === primitiveTribeCategory?.value) {
                     return primitiveTribeCategory?.value;
                   }
-                  // Check if selected is Other ST
                   const otherSt = stSubCategories.find((sub: any) => sub.value === reservationCategory.subCategoryId);
                   if (otherSt && otherSt.label === "Other ST") {
                     return otherSt.value;
@@ -4536,7 +4147,6 @@ const renderReservationCategory = () => {
               </label>
               <select
                 value={(() => {
-                  // Check if current selection is a tribe (not the primitive tribe category)
                   const isTribeSelected = primitiveTribeSubCategories.some((sub: any) => sub.value === reservationCategory.subCategoryId);
                   return isTribeSelected ? reservationCategory.subCategoryId : "";
                 })()}
@@ -4554,7 +4164,7 @@ const renderReservationCategory = () => {
           )}
         </div>
 
-        {/* District of Local Residence - Dropdown Field (Shows when Locally Resident is Yes) */}
+        {/* District of Local Residence - Dropdown Field */}
         {reservationCategory.isLocallyResident === "yes" && (
           <div className="mt-4">
             <label className="block text-sm font-semibold text-slate-800 mb-2">
@@ -4571,9 +4181,7 @@ const renderReservationCategory = () => {
                     localDistrictId: selectedId,
                     localDistrictName: selectedDistrict.districtName,
                   });
-                  if (selectedId) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
-                  }
+                  validateReservationField('localDistrictId', selectedId);
                 }
               }}
               className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
@@ -4589,7 +4197,7 @@ const renderReservationCategory = () => {
           </div>
         )}
         
-        {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
+        {/* Category Certificate Fields */}
         {reservationCategory.mainCategoryId && 
          reservationCategory.mainCategory && 
          reservationCategory.mainCategory !== "UR (Unreserved)" && 
@@ -4606,9 +4214,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.categoryCertificateNumber}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
-                  }
+                  validateReservationField('categoryCertificateNumber', e.target.value);
                 }}
                 placeholder="Enter Category Certificate Number"
                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
@@ -4625,9 +4231,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.categoryCertificateIssueDate}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
-                  }
+                  validateReservationField('categoryCertificateIssueDate', e.target.value);
                 }}
                 max={new Date().toISOString().split('T')[0]}
                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
@@ -4644,9 +4248,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.categoryCertificateAuthority}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
-                  }
+                  validateReservationField('categoryCertificateAuthority', e.target.value);
                 }}
                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
@@ -4656,7 +4258,7 @@ const renderReservationCategory = () => {
           </>
         )}
         
-        {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
+        {/* Domicile Certificate Fields */}
         {reservationCategory.isJharkhandDomicile === "yes" && (
           <>
             <div className="mt-4">
@@ -4668,9 +4270,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.domicileCertificateNumber}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
-                  }
+                  validateReservationField('domicileCertificateNumber', e.target.value);
                 }}
                 placeholder="Enter Domicile Certificate Number"
                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
@@ -4687,9 +4287,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.domicileCertificateIssueDate}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
-                  }
+                  validateReservationField('domicileCertificateIssueDate', e.target.value);
                 }}
                 max={new Date().toISOString().split('T')[0]}
                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
@@ -4706,9 +4304,7 @@ const renderReservationCategory = () => {
                 value={reservationCategory.domicileCertificateAuthority}
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
-                  if (e.target.value) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
-                  }
+                  validateReservationField('domicileCertificateAuthority', e.target.value);
                 }}
                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
@@ -4741,6 +4337,8 @@ const renderReservationCategory = () => {
                       ...reservationCategory,
                       isPwd: e.target.value,
                     });
+                    validateReservationField('pwdTypeId', reservationCategory.pwdTypeId);
+                    validateReservationField('pwdPercentage', reservationCategory.pwdPercentage);
                     if (e.target.value === "yes") {
                       setFeePayment({ ...feePayment, applicationFee: "0" });
                     } else {
@@ -4763,6 +4361,8 @@ const renderReservationCategory = () => {
                       ...reservationCategory,
                       isPwd: e.target.value,
                     });
+                    validateReservationField('pwdTypeId', null);
+                    validateReservationField('pwdPercentage', null);
                     const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
                     setFeePayment({ ...feePayment, applicationFee: fee });
                   }}
@@ -4790,9 +4390,7 @@ const renderReservationCategory = () => {
                         pwdTypeId: selectedId,
                         pwdType: selected.name
                       });
-                      if (selectedId) {
-                        setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
-                      }
+                      validateReservationField('pwdTypeId', selectedId);
                     }
                   }}
                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
@@ -4817,9 +4415,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
-                    if (value && parseInt(value) >= 40) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
-                    }
+                    validateReservationField('pwdPercentage', value);
                   }}
                   onKeyDown={validateNumberInput}
                   maxLength={2}
@@ -4838,9 +4434,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.pwdCertificateNumber}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
-                    }
+                    validateReservationField('pwdCertificateNumber', e.target.value);
                   }}
                   placeholder="Enter PwD Certificate Number"
                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
@@ -4857,9 +4451,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.pwdCertificateIssueDate}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
-                    }
+                    validateReservationField('pwdCertificateIssueDate', e.target.value);
                   }}
                   max={new Date().toISOString().split('T')[0]}
                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
@@ -4876,9 +4468,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.pwdCertificateAuthority}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
-                    }
+                    validateReservationField('pwdCertificateAuthority', e.target.value);
                   }}
                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
@@ -4909,9 +4499,7 @@ const renderReservationCategory = () => {
                   checked={reservationCategory.isExServiceman === "yes"}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
-                    if (e.target.value === "yes") {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-                    }
+                    validateReservationField('exServicemanYears', reservationCategory.exServicemanYears);
                   }}
                   className="w-4 h-4 text-primary"
                 />
@@ -4923,7 +4511,10 @@ const renderReservationCategory = () => {
                   name="exService"
                   value="no"
                   checked={reservationCategory.isExServiceman === "no"}
-                  onChange={(e) => setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value })}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
+                    validateReservationField('exServicemanYears', null);
+                  }}
                   className="w-4 h-4 text-primary"
                 />
                 No
@@ -4944,9 +4535,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
-                  if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
-                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
-                  }
+                  validateReservationField('exServicemanYears', value);
                 }}
                 placeholder="0-30"
                 className={`w-full px-4 py-2 border rounded-lg ${errors.exServicemanYears ? 'border-red-500' : 'border-slate-300'}`}
@@ -4976,9 +4565,8 @@ const renderReservationCategory = () => {
                   checked={reservationCategory.isSportsQuota === "yes"}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
-                    if (e.target.value === "yes") {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
-                    }
+                    validateReservationField('sportsLevel', reservationCategory.sportsLevel);
+                    validateReservationField('sportsAchievement', reservationCategory.sportsAchievement);
                   }}
                   className="w-4 h-4 text-primary"
                 />
@@ -4990,7 +4578,11 @@ const renderReservationCategory = () => {
                   name="sports"
                   value="no"
                   checked={reservationCategory.isSportsQuota === "no"}
-                  onChange={(e) => setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value })}
+                  onChange={(e) => {
+                    setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
+                    validateReservationField('sportsLevel', null);
+                    validateReservationField('sportsAchievement', null);
+                  }}
                   className="w-4 h-4 text-primary"
                 />
                 No
@@ -5008,9 +4600,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.sportsLevel}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
-                    }
+                    validateReservationField('sportsLevel', e.target.value);
                   }}
                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
                 >
@@ -5029,9 +4619,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.sportsAchievement}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
-                    if (e.target.value.trim()) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
-                    }
+                    validateReservationField('sportsAchievement', e.target.value);
                   }}
                   rows={2}
                   placeholder="Describe your achievements..."
@@ -5049,9 +4637,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.sportsCertificateNumber}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
-                    }
+                    validateReservationField('sportsCertificateNumber', e.target.value);
                   }}
                   placeholder="Enter Sports Certificate Number"
                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
@@ -5068,9 +4654,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.sportsCertificateIssueDate}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
-                    }
+                    validateReservationField('sportsCertificateIssueDate', e.target.value);
                   }}
                   max={new Date().toISOString().split('T')[0]}
                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
@@ -5087,9 +4671,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.sportsCertificateAuthority}
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
-                    if (e.target.value) {
-                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
-                    }
+                    validateReservationField('sportsCertificateAuthority', e.target.value);
                   }}
                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
@@ -5110,9 +4692,7 @@ const renderReservationCategory = () => {
             onChange={(e) => {
               const isChecked = e.target.checked;
               setReservationCategory({ ...reservationCategory, declaration: isChecked });
-              if (isChecked) {
-                setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
-              }
+              validateReservationField('declaration', isChecked);
             }}
             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
           />
@@ -5127,12 +4707,279 @@ const renderReservationCategory = () => {
   );
 };
 
+
+
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
   
   // Get degree options for dropdown from API
   const bachelorDegreeOptions = bachelorDegrees.map(degree => degree.degreeName);
   const masterDegreeOptions = masterDegrees.map(degree => degree.degreeName);
+  
+  // Helper function to validate education field on change
+  const validateEducationField = (field: string, value: any, section: string) => {
+    console.log(section)
+    const newErrors = { ...stepErrors[2] || {} };
+    
+    const validatePercentage = (percentValue: string, errorKey: string) => {
+      if (percentValue && percentValue !== "") {
+        const percentage = parseFloat(percentValue);
+        if (isNaN(percentage)) {
+          newErrors[errorKey] = "Please enter a valid percentage";
+          return false;
+        } else if (percentage < 0 || percentage > 100) {
+          newErrors[errorKey] = "Percentage must be between 0 and 100";
+          return false;
+        } else {
+          delete newErrors[errorKey];
+          return true;
+        }
+      } else {
+        delete newErrors[errorKey];
+        return true;
+      }
+    };
+    
+    const validateTotalMarks = (marksValue: string, errorKey: string) => {
+      if (marksValue && marksValue !== "") {
+        const totalMarks = parseFloat(marksValue);
+        if (isNaN(totalMarks) || totalMarks <= 0) {
+          newErrors[errorKey] = "Total marks must be a valid positive number";
+          return false;
+        } else {
+          delete newErrors[errorKey];
+          return true;
+        }
+      } else {
+        delete newErrors[errorKey];
+        return true;
+      }
+    };
+    
+    const validateMarksObtained = (obtainedValue: string, errorKey: string, totalValue?: string, totalErrorKey?: string) => {
+      console.log(totalErrorKey)
+      if (obtainedValue && obtainedValue !== "") {
+        const marksObtained = parseFloat(obtainedValue);
+        if (isNaN(marksObtained) || marksObtained < 0) {
+          newErrors[errorKey] = "Marks obtained must be a valid positive number";
+          return false;
+        }
+        if (totalValue && totalValue !== "") {
+          const totalMarks = parseFloat(totalValue);
+          if (!isNaN(totalMarks) && marksObtained > totalMarks) {
+            newErrors[errorKey] = "Marks obtained cannot exceed total marks";
+            return false;
+          }
+        }
+        delete newErrors[errorKey];
+        return true;
+      } else {
+        delete newErrors[errorKey];
+        return true;
+      }
+    };
+    
+    switch (field) {
+      case 'tenthBoard':
+        if (!value) {
+          newErrors.tenthBoard = "10th board is required";
+        } else {
+          delete newErrors.tenthBoard;
+        }
+        break;
+      case 'tenthPercentage':
+        validatePercentage(value, 'tenthPercentage');
+        // Check if either percentage or marks are provided
+        if (!value && !education.tenth.totalMarks && !education.tenth.marksObtained) {
+          newErrors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.tenthMarks;
+        }
+        break;
+      case 'tenthTotalMarks':
+        validateTotalMarks(value, 'tenthTotalMarks');
+        if (education.tenth.marksObtained && education.tenth.marksObtained !== "") {
+          validateMarksObtained(education.tenth.marksObtained, 'tenthMarksObtained', value, 'tenthTotalMarks');
+        }
+        if (!value && !education.tenth.percentage && !education.tenth.marksObtained) {
+          newErrors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.tenthMarks;
+        }
+        break;
+      case 'tenthMarksObtained':
+        validateMarksObtained(value, 'tenthMarksObtained', education.tenth.totalMarks, 'tenthTotalMarks');
+        if (!value && !education.tenth.percentage && !education.tenth.totalMarks) {
+          newErrors.tenthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.tenthMarks;
+        }
+        break;
+      case 'tenthCertificate':
+        if (!value) {
+          newErrors.tenthCertificate = "10th certificate number is required";
+        } else {
+          delete newErrors.tenthCertificate;
+        }
+        break;
+      case 'twelfthBoard':
+        if (value || education.twelfth.percentage || education.twelfth.totalMarks || education.twelfth.marksObtained) {
+          if (!value) {
+            newErrors.twelfthBoard = "12th board is required";
+          } else {
+            delete newErrors.twelfthBoard;
+          }
+        } else {
+          delete newErrors.twelfthBoard;
+        }
+        break;
+      case 'twelfthPercentage':
+        validatePercentage(value, 'twelfthPercentage');
+        if (value || education.twelfth.totalMarks || education.twelfth.marksObtained) {
+          if (!value && !education.twelfth.totalMarks && !education.twelfth.marksObtained) {
+            newErrors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.twelfthMarks;
+          }
+        } else {
+          delete newErrors.twelfthMarks;
+        }
+        break;
+      case 'twelfthTotalMarks':
+        validateTotalMarks(value, 'twelfthTotalMarks');
+        if (education.twelfth.marksObtained && education.twelfth.marksObtained !== "") {
+          validateMarksObtained(education.twelfth.marksObtained, 'twelfthMarksObtained', value, 'twelfthTotalMarks');
+        }
+        if (value || education.twelfth.percentage || education.twelfth.marksObtained) {
+          if (!value && !education.twelfth.percentage && !education.twelfth.marksObtained) {
+            newErrors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.twelfthMarks;
+          }
+        } else {
+          delete newErrors.twelfthMarks;
+        }
+        break;
+      case 'twelfthMarksObtained':
+        validateMarksObtained(value, 'twelfthMarksObtained', education.twelfth.totalMarks, 'twelfthTotalMarks');
+        if (value || education.twelfth.percentage || education.twelfth.totalMarks) {
+          if (!value && !education.twelfth.percentage && !education.twelfth.totalMarks) {
+            newErrors.twelfthMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.twelfthMarks;
+          }
+        } else {
+          delete newErrors.twelfthMarks;
+        }
+        break;
+      case 'graduationCourse':
+        if (!value) {
+          newErrors.graduationCourse = "Graduation course is required";
+        } else {
+          delete newErrors.graduationCourse;
+        }
+        break;
+      case 'graduationUniversity':
+        if (!value) {
+          newErrors.graduationUniversity = "University name is required";
+        } else {
+          delete newErrors.graduationUniversity;
+        }
+        break;
+      case 'graduationPercentage':
+        validatePercentage(value, 'graduationPercentage');
+        if (!value && !education.graduation.totalMarks && !education.graduation.marksObtained) {
+          newErrors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.graduationMarks;
+        }
+        break;
+      case 'graduationTotalMarks':
+        validateTotalMarks(value, 'graduationTotalMarks');
+        if (education.graduation.marksObtained && education.graduation.marksObtained !== "") {
+          validateMarksObtained(education.graduation.marksObtained, 'graduationMarksObtained', value, 'graduationTotalMarks');
+        }
+        if (!value && !education.graduation.percentage && !education.graduation.marksObtained) {
+          newErrors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.graduationMarks;
+        }
+        break;
+      case 'graduationMarksObtained':
+        validateMarksObtained(value, 'graduationMarksObtained', education.graduation.totalMarks, 'graduationTotalMarks');
+        if (!value && !education.graduation.percentage && !education.graduation.totalMarks) {
+          newErrors.graduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+        } else {
+          delete newErrors.graduationMarks;
+        }
+        break;
+      case 'graduationCertificate':
+        if (!value) {
+          newErrors.graduationCertificate = "Certificate number is required";
+        } else {
+          delete newErrors.graduationCertificate;
+        }
+        break;
+      case 'postGraduationDegree':
+        if (education.postGraduation.hasPostGraduation && !value) {
+          newErrors.postGraduationDegree = "Post-graduation degree name is required";
+        } else {
+          delete newErrors.postGraduationDegree;
+        }
+        break;
+      case 'postGraduationUniversity':
+        if (education.postGraduation.hasPostGraduation && !value) {
+          newErrors.postGraduationUniversity = "University name is required";
+        } else {
+          delete newErrors.postGraduationUniversity;
+        }
+        break;
+      case 'postGraduationPercentage':
+        if (education.postGraduation.hasPostGraduation) {
+          validatePercentage(value, 'postGraduationPercentage');
+          if (!value && !education.postGraduation.totalMarks && !education.postGraduation.marksObtained) {
+            newErrors.postGraduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.postGraduationMarks;
+          }
+        } else {
+          delete newErrors.postGraduationPercentage;
+          delete newErrors.postGraduationMarks;
+        }
+        break;
+      case 'postGraduationTotalMarks':
+        if (education.postGraduation.hasPostGraduation) {
+          validateTotalMarks(value, 'postGraduationTotalMarks');
+          if (education.postGraduation.marksObtained && education.postGraduation.marksObtained !== "") {
+            validateMarksObtained(education.postGraduation.marksObtained, 'postGraduationMarksObtained', value, 'postGraduationTotalMarks');
+          }
+          if (!value && !education.postGraduation.percentage && !education.postGraduation.marksObtained) {
+            newErrors.postGraduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.postGraduationMarks;
+          }
+        } else {
+          delete newErrors.postGraduationTotalMarks;
+          delete newErrors.postGraduationMarks;
+        }
+        break;
+      case 'postGraduationMarksObtained':
+        if (education.postGraduation.hasPostGraduation) {
+          validateMarksObtained(value, 'postGraduationMarksObtained', education.postGraduation.totalMarks, 'postGraduationTotalMarks');
+          if (!value && !education.postGraduation.percentage && !education.postGraduation.totalMarks) {
+            newErrors.postGraduationMarks = "Please enter either Percentage/CGPA or Total Marks & Marks Obtained";
+          } else {
+            delete newErrors.postGraduationMarks;
+          }
+        } else {
+          delete newErrors.postGraduationMarksObtained;
+          delete newErrors.postGraduationMarks;
+        }
+        break;
+    }
+    
+    setStepErrors(prev => ({ ...prev, [2]: newErrors }));
+  };
   
   return (
     <div className="space-y-8">
@@ -5154,7 +5001,7 @@ const renderEducationDetails = () => {
               value={education.tenth.board}
               onChange={(value) => {
                 setEducation({ ...education, tenth: { ...education.tenth, board: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthBoard: "" } }));
+                validateEducationField('tenthBoard', value, 'tenth');
               }}
               placeholder="Select Board"
               required
@@ -5172,11 +5019,13 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, tenth: { ...education.tenth, totalMarks: value } });
+                validateEducationField('tenthTotalMarks', value, 'tenth');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 500"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.tenthTotalMarks ? 'border-red-500' : 'border-slate-300'}`}
             />
+            {errors.tenthTotalMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthTotalMarks}</p>}
           </div>
           
           <div>
@@ -5189,48 +5038,39 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, tenth: { ...education.tenth, marksObtained: value } });
+                validateEducationField('tenthMarksObtained', value, 'tenth');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 450"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.tenthMarksObtained ? 'border-red-500' : 'border-slate-300'}`}
             />
+            {errors.tenthMarksObtained && <p className="text-red-500 text-xs mt-1">{errors.tenthMarksObtained}</p>}
           </div>
           
-        <div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Percentage (%) / CGPA <span className="text-red-600">*</span>
-  </label>
-  <input
-    type="text"
-    value={education.tenth.percentage}
-    onChange={(e) => {
-      let value = e.target.value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const decimalCount = (value.match(/\./g) || []).length;
-      if (decimalCount > 1) {
-        value = value.slice(0, value.lastIndexOf('.'));
-      }
-      // Check if value is within 0-100 range
-      const numValue = parseFloat(value);
-      let errorMessage = "";
-      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
-        errorMessage = "Percentage must be between 0 and 100";
-      }
-      setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
-      if (value && !errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthMarks: "", tenthPercentage: "" } }));
-      } else if (errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthPercentage: errorMessage } }));
-      }
-    }}
-    placeholder="e.g., 82.5"
-    className={`w-full px-4 py-2 border rounded-lg ${
-      errors.tenthMarks || errors.tenthPercentage ? 'border-red-500' : 'border-slate-300'
-    }`}
-  />
-  {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
-  {errors.tenthPercentage && <p className="text-red-500 text-xs mt-1">{errors.tenthPercentage}</p>}
-</div>
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Percentage (%) / CGPA <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={education.tenth.percentage}
+              onChange={(e) => {
+                let value = e.target.value.replace(/[^0-9.]/g, '');
+                const decimalCount = (value.match(/\./g) || []).length;
+                if (decimalCount > 1) {
+                  value = value.slice(0, value.lastIndexOf('.'));
+                }
+                setEducation({ ...education, tenth: { ...education.tenth, percentage: value } });
+                validateEducationField('tenthPercentage', value, 'tenth');
+              }}
+              placeholder="e.g., 82.5"
+              className={`w-full px-4 py-2 border rounded-lg ${
+                errors.tenthMarks || errors.tenthPercentage ? 'border-red-500' : 'border-slate-300'
+              }`}
+            />
+            {errors.tenthMarks && <p className="text-red-500 text-xs mt-1">{errors.tenthMarks}</p>}
+            {errors.tenthPercentage && <p className="text-red-500 text-xs mt-1">{errors.tenthPercentage}</p>}
+          </div>
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -5241,7 +5081,7 @@ const renderEducationDetails = () => {
               value={education.tenth.passingCertificateNo}
               onChange={(e) => {
                 setEducation({ ...education, tenth: { ...education.tenth, passingCertificateNo: e.target.value } });
-                if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], tenthCertificate: "" } }));
+                validateEducationField('tenthCertificate', e.target.value, 'tenth');
               }}
               className={`w-full px-4 py-2 border rounded-lg ${errors.tenthCertificate ? 'border-red-500' : 'border-slate-300'}`}
             />
@@ -5262,14 +5102,13 @@ const renderEducationDetails = () => {
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
               Board Name 
-              
             </label>
             <SearchableDropdown
               options={boards}
               value={education.twelfth.board}
               onChange={(value) => {
                 setEducation({ ...education, twelfth: { ...education.twelfth, board: value } });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthBoard: "" } }));
+                validateEducationField('twelfthBoard', value, 'twelfth');
               }}
               placeholder="Select Board"
             />
@@ -5286,11 +5125,13 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, twelfth: { ...education.twelfth, totalMarks: value } });
+                validateEducationField('twelfthTotalMarks', value, 'twelfth');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 500"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthTotalMarks ? 'border-red-500' : 'border-slate-300'}`}
             />
+            {errors.twelfthTotalMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthTotalMarks}</p>}
           </div>
           
           <div>
@@ -5303,48 +5144,38 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, twelfth: { ...education.twelfth, marksObtained: value } });
+                validateEducationField('twelfthMarksObtained', value, 'twelfth');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 450"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.twelfthMarksObtained ? 'border-red-500' : 'border-slate-300'}`}
             />
+            {errors.twelfthMarksObtained && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarksObtained}</p>}
           </div>
           
           <div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Percentage (%) /CGPA
-    
-  </label>
-  <input
-    type="text"
-    value={education.twelfth.percentage}
-    onChange={(e) => {
-      let value = e.target.value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const decimalCount = (value.match(/\./g) || []).length;
-      if (decimalCount > 1) {
-        value = value.slice(0, value.lastIndexOf('.'));
-      }
-      // Check if value is within 0-100 range
-      const numValue = parseFloat(value);
-      let errorMessage = "";
-      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
-        errorMessage = "Percentage must be between 0 and 100";
-      }
-      setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
-      if (value && !errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthMarks: "", twelfthPercentage: "" } }));
-      } else if (errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], twelfthPercentage: errorMessage } }));
-      }
-    }}
-    className={`w-full px-4 py-2 border rounded-lg ${
-      errors.twelfthMarks || errors.twelfthPercentage ? 'border-red-500' : 'border-slate-300'
-    }`}
-  />
-  {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
-  {errors.twelfthPercentage && <p className="text-red-500 text-xs mt-1">{errors.twelfthPercentage}</p>}
-</div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Percentage (%) /CGPA
+            </label>
+            <input
+              type="text"
+              value={education.twelfth.percentage}
+              onChange={(e) => {
+                let value = e.target.value.replace(/[^0-9.]/g, '');
+                const decimalCount = (value.match(/\./g) || []).length;
+                if (decimalCount > 1) {
+                  value = value.slice(0, value.lastIndexOf('.'));
+                }
+                setEducation({ ...education, twelfth: { ...education.twelfth, percentage: value } });
+                validateEducationField('twelfthPercentage', value, 'twelfth');
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${
+                errors.twelfthMarks || errors.twelfthPercentage ? 'border-red-500' : 'border-slate-300'
+              }`}
+            />
+            {errors.twelfthMarks && <p className="text-red-500 text-xs mt-1">{errors.twelfthMarks}</p>}
+            {errors.twelfthPercentage && <p className="text-red-500 text-xs mt-1">{errors.twelfthPercentage}</p>}
+          </div>
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -5353,7 +5184,10 @@ const renderEducationDetails = () => {
             <input
               type="text"
               value={education.twelfth.passingCertificateNo}
-              onChange={(e) => setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } })}
+              onChange={(e) => {
+                setEducation({ ...education, twelfth: { ...education.twelfth, passingCertificateNo: e.target.value } });
+                validateEducationField('twelfthCertificate', e.target.value, 'twelfth');
+              }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg"
             />
           </div>
@@ -5389,7 +5223,7 @@ const renderEducationDetails = () => {
                     graduationCourseId: selectedDegree?.degreeId 
                   } 
                 });
-                if (value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCourse: "" } }));
+                validateEducationField('graduationCourse', value, 'graduation');
               }}
               placeholder="Select Course"
               required
@@ -5406,7 +5240,7 @@ const renderEducationDetails = () => {
               value={education.graduation.university}
               onChange={(e) => {
                 setEducation({ ...education, graduation: { ...education.graduation, university: e.target.value } });
-                if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationUniversity: "" } }));
+                validateEducationField('graduationUniversity', e.target.value, 'graduation');
               }}
               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
             />
@@ -5423,10 +5257,11 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, graduation: { ...education.graduation, totalMarks: value } });
+                validateEducationField('graduationTotalMarks', value, 'graduation');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 3000"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.graduationTotalMarks ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.graduationTotalMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationTotalMarks}</p>}
           </div>
@@ -5441,57 +5276,38 @@ const renderEducationDetails = () => {
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 setEducation({ ...education, graduation: { ...education.graduation, marksObtained: value } });
+                validateEducationField('graduationMarksObtained', value, 'graduation');
               }}
               onKeyDown={validateNumberInput}
               placeholder="e.g., 2400"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              className={`w-full px-4 py-2 border rounded-lg ${errors.graduationMarksObtained ? 'border-red-500' : 'border-slate-300'}`}
             />
             {errors.graduationMarksObtained && <p className="text-red-500 text-xs mt-1">{errors.graduationMarksObtained}</p>}
           </div>
-           
-           
-         
-         
-         <div>
-  <label className="block text-slate-700 text-sm font-medium mb-2">
-    Percentage/CGPA <span className="text-red-600">*</span>
-  </label>
-  <input
-  type="text"
-  value={education.graduation.percentage}
-  onChange={(e) => {
-    let value = e.target.value.replace(/[^0-9.]/g, '');
-    const decimalCount = (value.match(/\./g) || []).length;
-    if (decimalCount > 1) {
-      value = value.slice(0, value.lastIndexOf('.'));
-    }
-    const numValue = parseFloat(value);
-    let errorMessage = "";
-    if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
-      errorMessage = "Percentage must be between 0 and 100";
-    }
-    setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
-    // Clear errors when user types
-    setStepErrors(prev => ({ 
-      ...prev, 
-      [2]: { 
-        ...prev[2], 
-        graduationMarks: "", 
-        graduationPercentage: errorMessage 
-      } 
-    }));
-  }}
-  className={`w-full px-4 py-2 border rounded-lg ${
-    errors.graduationMarks || errors.graduationPercentage ? 'border-red-500' : 'border-slate-300'
-  }`}
-/>
-{errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
-{errors.graduationPercentage && <p className="text-red-500 text-xs mt-1">{errors.graduationPercentage}</p>}
-
-</div>
           
-          
-          
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Percentage/CGPA <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={education.graduation.percentage}
+              onChange={(e) => {
+                let value = e.target.value.replace(/[^0-9.]/g, '');
+                const decimalCount = (value.match(/\./g) || []).length;
+                if (decimalCount > 1) {
+                  value = value.slice(0, value.lastIndexOf('.'));
+                }
+                setEducation({ ...education, graduation: { ...education.graduation, percentage: value } });
+                validateEducationField('graduationPercentage', value, 'graduation');
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${
+                errors.graduationMarks || errors.graduationPercentage ? 'border-red-500' : 'border-slate-300'
+              }`}
+            />
+            {errors.graduationMarks && <p className="text-red-500 text-xs mt-1">{errors.graduationMarks}</p>}
+            {errors.graduationPercentage && <p className="text-red-500 text-xs mt-1">{errors.graduationPercentage}</p>}
+          </div>
           
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -5502,7 +5318,7 @@ const renderEducationDetails = () => {
               value={education.graduation.passingCertificateNo}
               onChange={(e) => {
                 setEducation({ ...education, graduation: { ...education.graduation, passingCertificateNo: e.target.value } });
-                if (e.target.value) setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], graduationCertificate: "" } }));
+                validateEducationField('graduationCertificate', e.target.value, 'graduation');
               }}
               className={`w-full px-4 py-2 border rounded-lg ${errors.graduationCertificate ? 'border-red-500' : 'border-slate-300'}`}
             />
@@ -5517,12 +5333,23 @@ const renderEducationDetails = () => {
           <input
             type="checkbox"
             checked={education.postGraduation.hasPostGraduation}
-            onChange={(e) =>
+            onChange={(e) => {
               setEducation({
                 ...education,
                 postGraduation: { ...education.postGraduation, hasPostGraduation: e.target.checked },
-              })
-            }
+              });
+              // Clear post-graduation validation errors when unchecked
+              if (!e.target.checked) {
+                const newErrors = { ...stepErrors[2] || {} };
+                delete newErrors.postGraduationDegree;
+                delete newErrors.postGraduationUniversity;
+                delete newErrors.postGraduationMarks;
+                delete newErrors.postGraduationPercentage;
+                delete newErrors.postGraduationTotalMarks;
+                delete newErrors.postGraduationMarksObtained;
+                setStepErrors(prev => ({ ...prev, [2]: newErrors }));
+              }
+            }}
             className="w-4 h-4 text-primary rounded"
           />
           <span className="font-semibold text-slate-800">Post-Graduation Qualification</span>
@@ -5531,7 +5358,7 @@ const renderEducationDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Course/Degree Name 
+                Course/Degree Name <span className="text-red-600">*</span>
               </label>
               <SearchableDropdown
                 options={masterDegreeOptions}
@@ -5549,27 +5376,30 @@ const renderEducationDetails = () => {
                       degreeId: selectedDegree?.degreeId
                     },
                   });
+                  validateEducationField('postGraduationDegree', value, 'postGraduation');
                 }}
                 placeholder="Select Post-Graduation Degree"
               />
+              {errors.postGraduationDegree && <p className="text-red-500 text-xs mt-1">{errors.postGraduationDegree}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                University/College Name
+                University/College Name <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
                 value={education.postGraduation.university}
-                onChange={(e) =>
+                onChange={(e) => {
                   setEducation({
                     ...education,
                     postGraduation: { ...education.postGraduation, university: e.target.value },
-                  })
-                }
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                  });
+                  validateEducationField('postGraduationUniversity', e.target.value, 'postGraduation');
+                }}
+                className={`w-full px-4 py-2 border rounded-lg ${errors.postGraduationUniversity ? 'border-red-500' : 'border-slate-300'}`}
               />
+              {errors.postGraduationUniversity && <p className="text-red-500 text-xs mt-1">{errors.postGraduationUniversity}</p>}
             </div>
-            
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -5584,11 +5414,13 @@ const renderEducationDetails = () => {
                     ...education,
                     postGraduation: { ...education.postGraduation, totalMarks: value },
                   });
+                  validateEducationField('postGraduationTotalMarks', value, 'postGraduation');
                 }}
                 onKeyDown={validateNumberInput}
                 placeholder="e.g., 2000"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.postGraduationTotalMarks ? 'border-red-500' : 'border-slate-300'}`}
               />
+              {errors.postGraduationTotalMarks && <p className="text-red-500 text-xs mt-1">{errors.postGraduationTotalMarks}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -5603,52 +5435,41 @@ const renderEducationDetails = () => {
                     ...education,
                     postGraduation: { ...education.postGraduation, marksObtained: value },
                   });
+                  validateEducationField('postGraduationMarksObtained', value, 'postGraduation');
                 }}
                 onKeyDown={validateNumberInput}
                 placeholder="e.g., 1600"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                className={`w-full px-4 py-2 border rounded-lg ${errors.postGraduationMarksObtained ? 'border-red-500' : 'border-slate-300'}`}
               />
+              {errors.postGraduationMarksObtained && <p className="text-red-500 text-xs mt-1">{errors.postGraduationMarksObtained}</p>}
             </div>
 
-
             <div>
-  <label className="block text-sm font-medium text-slate-700 mb-2">
-    Percentage
-  </label>
-  <input
-    type="text"
-    value={education.postGraduation.percentage}
-    onChange={(e) => {
-      let value = e.target.value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const decimalCount = (value.match(/\./g) || []).length;
-      if (decimalCount > 1) {
-        value = value.slice(0, value.lastIndexOf('.'));
-      }
-      // Check if value is within 0-100 range
-      const numValue = parseFloat(value);
-      let errorMessage = "";
-      if (value !== "" && !isNaN(numValue) && (numValue < 0 || numValue > 100)) {
-        errorMessage = "Percentage must be between 0 and 100";
-      }
-      setEducation({
-        ...education,
-        postGraduation: { ...education.postGraduation, percentage: value },
-      });
-      if (value && !errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], postGraduationPercentage: "" } }));
-      } else if (errorMessage) {
-        setStepErrors(prev => ({ ...prev, [2]: { ...prev[2], postGraduationPercentage: errorMessage } }));
-      }
-    }}
-    className={`w-full px-4 py-2 border rounded-lg ${
-      errors.postGraduationPercentage ? 'border-red-500' : 'border-slate-300'
-    }`}
-  />
- 
- 
-</div>
-
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Percentage
+              </label>
+              <input
+                type="text"
+                value={education.postGraduation.percentage}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^0-9.]/g, '');
+                  const decimalCount = (value.match(/\./g) || []).length;
+                  if (decimalCount > 1) {
+                    value = value.slice(0, value.lastIndexOf('.'));
+                  }
+                  setEducation({
+                    ...education,
+                    postGraduation: { ...education.postGraduation, percentage: value },
+                  });
+                  validateEducationField('postGraduationPercentage', value, 'postGraduation');
+                }}
+                className={`w-full px-4 py-2 border rounded-lg ${
+                  errors.postGraduationMarks || errors.postGraduationPercentage ? 'border-red-500' : 'border-slate-300'
+                }`}
+              />
+              {errors.postGraduationMarks && <p className="text-red-500 text-xs mt-1">{errors.postGraduationMarks}</p>}
+              {errors.postGraduationPercentage && <p className="text-red-500 text-xs mt-1">{errors.postGraduationPercentage}</p>}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -5666,15 +5487,12 @@ const renderEducationDetails = () => {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
-           
-           
           </div>
         )}
       </div>
     </div>
   );
 };
-
 
 const renderPostPreference = () => {
   const errors = stepErrors[3] || {};
@@ -5913,9 +5731,19 @@ const renderPostPreference = () => {
 };
 
 
+
+
 const renderLanguageSelection = () => {
   const errors = stepErrors[4] || {};
-  const paperOneOptions = ["Hindi", "English"];
+  
+  // Get the first post from postsList to determine which post is selected
+  const selectedPost = postsList.length > 0 ? postsList[0] : null;
+  const postCode = selectedPost?.postCode?.toString() || "";
+  
+  // Paper I - Both languages combined (read-only)
+  const paperOneCombined = "Hindi, English";
+  
+  // Paper II - All 15 languages (always shown, user selectable)
   const paperTwoOptions = [
     "Hindi Language & Literature",
     "English Language & Literature",
@@ -5933,9 +5761,54 @@ const renderLanguageSelection = () => {
     "Odia Language & Literature",
     "Sanskrit Language & Literature",
   ];
-  const paperThreeOptions = [
-    "Technical / Specialized Subject and General Knowledge",
-  ];
+  
+  // Paper III options based on post ID (conditional)
+  const getPaperThreeOptions = () => {
+    if (postCode === "4") {
+      return ["Mathematics", "Statistics", "Economics"];
+    } else if (postCode === "7") {
+      return ["Mathematics", "Statistics", "Economics", "Commerce"];
+    }
+    return [];
+  };
+
+  const paperThreeOptions = getPaperThreeOptions();
+  
+  // Determine if Paper III should be shown (only for post 4 or 7)
+  const showPaperThree = postCode === "4" || postCode === "7";
+
+  // Handle Paper II change
+  const handlePaperTwoChange = (value: string) => {
+    setLanguageSelection({ ...languageSelection, paperTwoLanguage: value });
+    if (value) {
+      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperTwoLanguage: "" } }));
+    }
+  };
+
+  // Handle Paper III change
+  const handlePaperThreeChange = (value: string) => {
+    setLanguageSelection({ ...languageSelection, paperThreeLanguage: value });
+    if (value) {
+      setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeLanguage: "" } }));
+    }
+  };
+
+  // If no post selected yet, show loading or message
+  if (postsList.length === 0) {
+    return (
+      <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
+        <div className="absolute -top-4 left-5 bg-white px-3">
+          <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+            <Languages className="w-5 h-5 text-primary" />
+            Language Selection for Examination
+          </h3>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-slate-500">Loading post information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative border border-slate-200 rounded-2xl bg-white p-6 pt-8 shadow-sm">
@@ -5946,37 +5819,34 @@ const renderLanguageSelection = () => {
         </h3>
       </div>
       <div className="space-y-6 mt-4">
+        {/* Paper I - Read-only input with both Hindi and English */}
         <div>
           <label className="block text-slate-700 text-sm font-medium mb-2">
             Paper-I Subject/Language <span className="text-red-600">*</span>
           </label>
-          <select
-            value={languageSelection.paperOneLanguage}
-            onChange={(e) => {
-              setLanguageSelection({ ...languageSelection, paperOneLanguage: e.target.value });
-              if (e.target.value) setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperOneLanguage: "" } }));
-            }}
-            className={`w-full px-4 py-2 border rounded-lg ${errors.paperOneLanguage ? 'border-red-500' : 'border-slate-300'}`}
-          >
-            <option value="">Select Language</option>
-            {paperOneOptions.map((lang) => (
-              <option key={lang} value={lang}>{lang}</option>
-            ))}
-          </select>
-          {errors.paperOneLanguage && <p className="text-red-500 text-xs mt-1">{errors.paperOneLanguage}</p>}
+          <input
+            type="text"
+            value={paperOneCombined}
+            readOnly
+            disabled
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Paper I includes both Hindi and English languages
+          </p>
         </div>
         
+        {/* Paper II - User selectable dropdown with all 15 languages */}
         <div>
           <label className="block text-slate-700 text-sm font-medium mb-2">
             Paper-II Language/Subject <span className="text-red-600">*</span>
           </label>
           <select
             value={languageSelection.paperTwoLanguage}
-            onChange={(e) => {
-              setLanguageSelection({ ...languageSelection, paperTwoLanguage: e.target.value });
-              if (e.target.value) setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperTwoLanguage: "" } }));
-            }}
-            className={`w-full px-4 py-2 border rounded-lg ${errors.paperTwoLanguage ? 'border-red-500' : 'border-slate-300'}`}
+            onChange={(e) => handlePaperTwoChange(e.target.value)}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+              errors.paperTwoLanguage ? 'border-red-500' : 'border-slate-300'
+            }`}
           >
             <option value="">Select Language</option>
             {paperTwoOptions.map((lang) => (
@@ -5984,632 +5854,70 @@ const renderLanguageSelection = () => {
             ))}
           </select>
           {errors.paperTwoLanguage && <p className="text-red-500 text-xs mt-1">{errors.paperTwoLanguage}</p>}
+          {languageSelection.paperTwoLanguage && (
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <CheckCircle size={12} />
+              Selected: {languageSelection.paperTwoLanguage}
+            </p>
+          )}
         </div>
         
-        <div>
-          <label className="block text-slate-700 text-sm font-medium mb-2">
-            Paper-III Subject Selection <span className="text-red-600">*</span>
-          </label>
-          <select
-            value={languageSelection.paperThreeLanguage}
-            onChange={(e) => {
-              setLanguageSelection({ ...languageSelection, paperThreeLanguage: e.target.value });
-              if (e.target.value) setStepErrors(prev => ({ ...prev, [4]: { ...prev[4], paperThreeLanguage: "" } }));
-            }}
-            className={`w-full px-4 py-2 border rounded-lg ${errors.paperThreeLanguage ? 'border-red-500' : 'border-slate-300'}`}
-          >
-            <option value="">Select Subject</option>
-            {paperThreeOptions.map((subject) => (
-              <option key={subject} value={subject}>{subject}</option>
-            ))}
-          </select>
-          {errors.paperThreeLanguage && (
-            <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>
-          )}
-          
-          
+        {/* Paper III - Conditional dropdown based on post code (only for post 4 or 7) */}
+        {showPaperThree ? (
+          <div>
+            <label className="block text-slate-700 text-sm font-medium mb-2">
+              Paper-III Subject Selection <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={languageSelection.paperThreeLanguage}
+              onChange={(e) => handlePaperThreeChange(e.target.value)}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                errors.paperThreeLanguage ? 'border-red-500' : 'border-slate-300'
+              }`}
+            >
+              <option value="">Select Subject</option>
+              {paperThreeOptions.map((subject) => (
+                <option key={subject} value={subject}>{subject}</option>
+              ))}
+            </select>
+            {errors.paperThreeLanguage && (
+              <p className="text-red-500 text-xs mt-1">{errors.paperThreeLanguage}</p>
+            )}
+            {languageSelection.paperThreeLanguage && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <CheckCircle size={12} />
+                Selected: {languageSelection.paperThreeLanguage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <p className="text-sm text-slate-600 flex items-center gap-2">
+              <Info className="w-4 h-4 text-primary" />
+              Paper-III is not applicable for this post.
+            </p>
+          </div>
+        )}
+        
+        {/* Info box showing current post and Paper III options if applicable */}
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-800 flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            {postCode === "4" && (
+              <span>Post: Block Statics Supervisor - Paper III subjects: Mathematics, Statistics, Economics</span>
+            )}
+            {postCode === "7" && (
+              <span>Post: [Post 7] - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
+            )}
+            {postCode !== "4" && postCode !== "7" && (
+              <span>Current Post: Only Paper I and Paper II are required. Paper III is not applicable.</span>
+            )}
+          </p>
         </div>
       </div>
     </div>
   );
 };
-
-
-
-//   const renderFeePayment = () => {
-//   const totalFee = calculateTotalFee();
-//   let applicableFeeText = "";
-//   if (reservationCategory.isPwd === "yes") {
-//     applicableFeeText = "PwD Candidates (Fee: ₹0)";
-//   } else if (reservationCategory.mainCategory === "sc" || reservationCategory.mainCategory === "st") {
-//     applicableFeeText = "SC / ST (Fee: ₹50)";
-//   } else {
-//     applicableFeeText = "UR / EWS / OBC-II / EBC-I (Fee: ₹100)";
-//   }
-
-//   return (
-//     <div className="space-y-6">
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//         <div className="lg:col-span-2 space-y-6">
-//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//             <div className="flex justify-between">
-//               <div>
-//                 <h3 className="text-xl font-bold text-slate-800">
-//                   Calculated Examination Fee
-//                 </h3>
-//                 <p className="text-sm text-slate-500">
-//                   Based on your selected category and disability status.
-//                 </p>
-//               </div>
-//               <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
-//                 {feePayment.paymentStatus}
-//               </span>
-//             </div>
-//             <div className="my-6">
-//               <span className="text-4xl font-extrabold text-primary">
-//                 ₹{totalFee}.00
-//               </span>
-//               <span className="text-sm text-slate-500 ml-2">
-//                 (Rupees {totalFee} Only)
-//               </span>
-//             </div>
-//             <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
-//               <div>
-//                 <span className="block text-xs font-bold text-slate-500">
-//                   Candidate Category
-//                 </span>
-//                 <span className="font-bold text-slate-800">
-//                   {reservationCategory.mainCategory || "Not Selected"}
-//                 </span>
-//               </div>
-//               <div>
-//                 <span className="block text-xs font-bold text-slate-500">
-//                   PwD Status
-//                 </span>
-//                 <span className="font-bold text-slate-800">
-//                   {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
-//                 </span>
-//               </div>
-//             </div>
-//             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-//               <p className="text-sm font-medium text-blue-800">
-//                 Applicable Fee: <strong>{applicableFeeText}</strong>
-//               </p>
-//               <div className="mt-2 text-xs text-blue-700">
-//                 <p>Fee Structure:</p>
-//                 <ul className="list-disc pl-5 mt-1">
-//                   <li>UR / EWS / OBC-II / EBC-I: ₹100</li>
-//                   <li>SC / ST: ₹50</li>
-//                   <li>PwD Candidates: ₹0</li>
-//                 </ul>
-//               </div>
-//             </div>
-//           </div>
-//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//             <h4 className="text-xs font-bold text-primary uppercase mb-5">
-//               Choose Payment Method
-//             </h4>
-//             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-//               <label
-//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center cursor-not-allowed transition-all ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="payment_method"
-//                   value="online"
-//                   checked={feePayment.paymentMode === "online"}
-//                   onChange={(e) =>
-//                     setFeePayment({
-//                       ...feePayment,
-//                       paymentMode: e.target.value,
-//                     })
-//                   }
-//                   className="sr-only"
-//                   disabled
-//                 />
-//                 <CreditCard size={28} className="text-primary mb-3" />
-//                 <span className="text-sm font-bold text-primary">
-//                   Pay Online
-//                 </span>
-//                 <span className="text-xs text-slate-500">
-//                   Net Banking, Card, UPI
-//                 </span>
-//               </label>
-//             </div>
-//           </div>
-//           {feePayment.paymentMode && (
-//             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//               <h4 className="text-sm font-bold text-slate-800 mb-4">
-//                 Payment Information
-//               </h4>
-//               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                 <div>
-//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-//                     Bank Name *
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={feePayment.bankName}
-//                     onChange={(e) =>
-//                       setFeePayment({
-//                         ...feePayment,
-//                         bankName: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-//                     disabled
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-//                     Transaction ID *
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={feePayment.transactionId}
-//                     onChange={(e) =>
-//                       setFeePayment({
-//                         ...feePayment,
-//                         transactionId: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-//                     disabled
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-//                     Payment Date *
-//                   </label>
-//                   <input
-//                     type="date"
-//                     value={feePayment.paymentDate}
-//                     onChange={(e) =>
-//                       setFeePayment({
-//                         ...feePayment,
-//                         paymentDate: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-4 py-2 border rounded-lg bg-slate-100"
-//                     disabled
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-//           )}
-//         </div>
-//         <div className="space-y-6">
-//           <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//             <h4 className="text-xs font-bold text-slate-800 mb-3">
-//               Supported Gateways
-//             </h4>
-//             <div className="grid grid-cols-3 gap-2">
-//               {["SBI", "HDFC", "ICICI", "PAYTM"].map((g, i) => (
-//                 <div
-//                   key={i}
-//                   className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
-//                 >
-//                   {g}
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//           <div className="bg-slate-800 rounded-2xl p-5 text-white">
-//             <div className="flex items-center gap-2 mb-4">
-//               <Info size={18} className="text-emerald-300" />
-//               <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
-//                 Important Instructions
-//               </h4>
-//             </div>
-//             <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
-//               <li>
-//                 Wait for 24 hours after registration to initiate payment.
-//               </li>
-//               <li>Do not refresh the page during transaction.</li>
-//               <li>Keep Transaction ID for future correspondence.</li>
-//             </ul>
-//           </div>
-//           <div className="bg-sky-50 rounded-2xl p-4 flex justify-between items-center">
-//             <div className="flex gap-3">
-//               <div className="p-2 bg-primary text-white rounded-lg">
-//                 <HelpCircle size={18} />
-//               </div>
-//               <div>
-//                 <h5 className="text-sm font-bold text-primary">
-//                   Payment Issues?
-//                 </h5>
-//                 <p className="text-xs text-primary/70">
-//                   Support 10 AM - 6 PM
-//                 </p>
-//               </div>
-//             </div>
-//             <button className="h-10 px-4 bg-white border border-sky-200 text-primary text-xs font-bold rounded-lg opacity-50 cursor-not-allowed" disabled>
-//               Call Help Desk
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//       <div className="flex justify-end">
-//         <button
-//           onClick={() =>
-//             setFeePayment({ ...feePayment, paymentStatus: "completed" })
-//           }
-//           className="h-14 px-12 bg-primary hover:bg-primary/80 text-white font-semibold rounded-xl flex items-center gap-2 opacity-50 cursor-not-allowed"
-//           disabled
-//         >
-//           Proceed to Payment <ExternalLink size={16} />
-//         </button>
-//       </div>
-//     </div>
-//   );
-// };
-
-
-// const renderFeePayment = () => {
-//   const totalFee = calculateTotalFee();
-//   // const [isProcessing, setIsProcessing] = useState(false);
-  
-//   const getMappedFeeCategory = () => {
-//     // if (reservationCategory.isExServiceman === "yes") return "exserviceman";
-//     // if (reservationCategory.isPwd === "yes") return "sc_st_ph";
-    
-//     const cat = reservationCategory.mainCategory?.toLowerCase() || "";
-//     const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
-    
-//     if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) return "sc_st_ph";
-//     if (cat.includes("obc") || cat.includes("ebc") || cat.includes("bc")) return "obc";
-//     return "general";
-//   };
-
-//   const feeCat = getMappedFeeCategory();
-//   let applicableFeeText = "";
-  
-//    if (feeCat === "sc_st_ph") {
-//     const cat = reservationCategory.mainCategory?.toLowerCase() || "";
-//     const isSCST = cat === "sc" || cat === "st" || cat.includes("scheduled caste") || cat.includes("scheduled tribe");
-//     if (reservationCategory.isPwd === "yes") {
-//       applicableFeeText = "PwD Candidates (Fee: ₹50)";
-//     } else if (reservationCategory.isJharkhandDomicile === "yes" && isSCST) {
-//       applicableFeeText = "SC / ST (Jharkhand Domicile) (Fee: ₹50)";
-//     } else {
-//       applicableFeeText = "SC/ST/PH Candidates (Fee: ₹50)";
-//     }
-//   } else {
-//     applicableFeeText = "UR / EWS / OBC-II / EBC-I / Other States (Fee: ₹100)";
-//   }
-
-// //   const handlePayment = async () => {
-// //   if (!feePayment.paymentMode) {
-// //     toast.error("Please select a payment method");
-// //     return;
-// //   }
-
-// //   setIsProcessing(true);
-// //   setFeePayment({ ...feePayment, paymentStatus: "processing" });
-
-// //   try {
-// //     const payload = {
-// //       applicationId,
-// //       paymentMode: "online_card",
-// //       feeCategory: feeCat
-// //     };
-
-// //     const response = await axios.post(`${API_BASE_URL}/payment/initiate`, payload, getAuthHeaders());
-    
-// //     if (response.data.status === "success" || response.data) {
-// //       const orderData = response.data.data || response.data;
-      
-// //       if (orderData.amount === 0 || !orderData.paymentOrderId) {
-// //         setFeePayment({ ...feePayment, paymentStatus: "completed" });
-// //         toast.success("Application fee exempted, submitted successfully!");
-// //         await handleFinalSubmit();
-// //         setIsProcessing(false);
-// //         return;
-// //       }
-
-// //       const options = {
-// //         key: orderData.key,
-// //         amount: orderData.amount,
-// //         currency: orderData.currency,
-// //         name: orderData.name || "JSSC Portal",
-// //         description: orderData.description || "Application Fee",
-// //         order_id: orderData.paymentOrderId,
-// //         handler: async function (res: any) {
-// //           try {
-// //             const verifyRes = await axios.post(`${API_BASE_URL}/payment/verify`, {
-// //               paymentOrderId: orderData.paymentOrderId,
-// //               razorpayOrderId: orderData.paymentOrderId,
-// //               razorpayPaymentId: res.razorpay_payment_id,
-// //               razorpaySignature: res.razorpay_signature
-// //             }, getAuthHeaders());
-            
-// //             if (verifyRes.data.status === "success" || verifyRes.data.paymentStatus === "completed" || verifyRes.data.data?.paymentStatus === "completed") {
-// //               setFeePayment({ ...feePayment, paymentStatus: "completed" });
-// //               toast.success("Payment verified successfully!");
-// //               await handleFinalSubmit();
-// //             }
-// //           } catch (err) {
-// //             toast.error("Payment verification failed");
-// //             setFeePayment({ ...feePayment, paymentStatus: "failed" });
-// //           } finally {
-// //             setIsProcessing(false);
-// //           }
-// //         },
-// //         prefill: orderData.prefill || {
-// //           name: `${personalInfo.firstName} ${personalInfo.lastName}`,
-// //           contact: personalInfo.mobileNumber,
-// //           email: personalInfo.emailId
-// //         },
-// //         theme: {
-// //           color: "#0f766e"
-// //         }
-// //       };
-
-// //       const rzp = new (window as any).Razorpay(options);
-// //       rzp.on('payment.failed', function (res: any) {
-// //         toast.error(res.error.description || "Payment failed");
-// //         setFeePayment({ ...feePayment, paymentStatus: "failed" });
-// //         setIsProcessing(false);
-// //       });
-// //       rzp.open();
-// //     }
-// //   } catch (err: any) {
-// //     toast.error(err.response?.data?.message || err.message || "Failed to initiate payment");
-// //     setFeePayment({ ...feePayment, paymentStatus: "failed" });
-// //     setIsProcessing(false);
-// //   }
-// // };
-
-// const handlePayment = async () => {
-//   if (!feePayment.paymentMode) {
-//     toast.error("Please select a payment method");
-//     return;
-//   }
-
-//   setIsProcessing(true);
-//   setFeePayment({ ...feePayment, paymentStatus: "processing" });
-
-//   try {
-//     const payload = {
-//       applicationId,
-//       paymentMode: "online_card",
-//       feeCategory: feeCat
-//     };
-
-//     const response = await axios.post(`${API_BASE_URL}/payment/initiate`, payload, getAuthHeaders());
-    
-//     if (response.data.status === "success" || response.data) {
-//       const orderData = response.data.data || response.data;
-      
-//       if (orderData.amount === 0 || !orderData.paymentOrderId) {
-//         // For zero amount, just mark payment as completed and go to review step
-//         setFeePayment({ ...feePayment, paymentStatus: "completed" });
-//         toast.success("Payment completed successfully!");
-//         // Move to review step instead of submitting
-//         setCurrentStep(7); // Go to review step
-//         setIsProcessing(false);
-//         return;
-//       }
-
-//       const options = {
-//         key: orderData.key,
-//         amount: orderData.amount,
-//         currency: orderData.currency,
-//         name: orderData.name || "JSSC Portal",
-//         description: orderData.description || "Application Fee",
-//         order_id: orderData.paymentOrderId,
-//         handler: async function (res: any) {
-//           try {
-//             const verifyRes = await axios.post(`${API_BASE_URL}/payment/verify`, {
-//               paymentOrderId: orderData.paymentOrderId,
-//               razorpayOrderId: orderData.paymentOrderId,
-//               razorpayPaymentId: res.razorpay_payment_id,
-//               razorpaySignature: res.razorpay_signature
-//             }, getAuthHeaders());
-            
-//             if (verifyRes.data.status === "success" || verifyRes.data.paymentStatus === "completed" || verifyRes.data.data?.paymentStatus === "completed") {
-//               setFeePayment({ ...feePayment, paymentStatus: "completed" });
-//               toast.success("Payment verified successfully!");
-//               // Move to review step after successful payment
-//               setCurrentStep(7);
-//             } else {
-//               toast.error("Payment verification failed");
-//               setFeePayment({ ...feePayment, paymentStatus: "failed" });
-//             }
-//           } catch (err) {
-//             toast.error("Payment verification failed");
-//             setFeePayment({ ...feePayment, paymentStatus: "failed" });
-//           } finally {
-//             setIsProcessing(false);
-//           }
-//         },
-//         prefill: orderData.prefill || {
-//           name: `${personalInfo.firstName} ${personalInfo.lastName}`,
-//           contact: personalInfo.mobileNumber,
-//           email: personalInfo.emailId
-//         },
-//         theme: {
-//           color: "#0f766e"
-//         }
-//       };
-
-//       const rzp = new (window as any).Razorpay(options);
-//       rzp.on('payment.failed', function (res: any) {
-//         toast.error(res.error.description || "Payment failed");
-//         setFeePayment({ ...feePayment, paymentStatus: "failed" });
-//         setIsProcessing(false);
-//       });
-//       rzp.open();
-//     }
-//   } catch (err: any) {
-//     toast.error(err.response?.data?.message || err.message || "Failed to initiate payment");
-//     setFeePayment({ ...feePayment, paymentStatus: "failed" });
-//     setIsProcessing(false);
-//   }
-// };
-
-//   return (
-//     <div className="space-y-6">
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//         <div className="lg:col-span-2 space-y-6">
-//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//             <div className="flex justify-between">
-//               <div>
-//                 <h3 className="text-xl font-bold text-slate-800">
-//                   Calculated Examination Fee
-//                 </h3>
-//                 <p className="text-sm text-slate-500">
-//                   Based on your selected category and disability status.
-//                 </p>
-//               </div>
-//               <span className={`px-3 py-1 text-white text-xs font-bold rounded-full flex items-center justify-center ${
-//                 feePayment.paymentStatus === 'completed' ? 'bg-green-600' : 
-//                 feePayment.paymentStatus === 'processing' ? 'bg-amber-500' : 
-//                 feePayment.paymentStatus === 'failed' ? 'bg-red-500' : 'bg-primary'
-//               }`}>
-//                 {feePayment.paymentStatus.toUpperCase()}
-//               </span>
-//             </div>
-//             <div className="my-6">
-//               <span className="text-4xl font-extrabold text-primary">
-//                 ₹{totalFee}.00
-//               </span>
-//               <span className="text-sm text-slate-500 ml-2">
-//                 (Rupees {totalFee} Only)
-//               </span>
-//             </div>
-//             <div className="bg-slate-50 rounded-lg grid grid-cols-2 gap-4 p-4">
-//               <div>
-//                 <span className="block text-xs font-bold text-slate-500">
-//                   Candidate Category
-//                 </span>
-//                 <span className="font-bold text-slate-800">
-//                   {categoriesList.find((c: any) => c.catId === reservationCategory.mainCategoryId)?.catName || reservationCategory.mainCategory || "Not Selected"}
-//                 </span>
-//               </div>
-//               <div>
-//                 <span className="block text-xs font-bold text-slate-500">
-//                   PwD Status
-//                 </span>
-//                 <span className="font-bold text-slate-800">
-//                   {reservationCategory.isPwd === "yes" ? "Yes" : "No"}
-//                 </span>
-//               </div>
-//             </div>
-//             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-//               <p className="text-sm font-medium text-blue-800">
-//                 Applicable Fee: <strong>{applicableFeeText}</strong>
-//               </p>
-//               <div className="mt-2 text-xs text-blue-700">
-//                 <p>Fee Structure:</p>
-//                 <ul className="list-disc pl-5 mt-1">
-//                   <li>UR / EWS / OBC-II / EBC-I / Other States: ₹100</li>
-//                   <li>SC / ST (Jharkhand Domicile): ₹50</li>
-//                   <li>PwD Candidates: ₹50</li>
-//                   <li>Ex-Servicemen: ₹0</li>
-//                 </ul>
-//               </div>
-//             </div>
-//           </div>
-//           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-//             <h4 className="text-xs font-bold text-primary uppercase mb-5">
-//               Choose Payment Method
-//             </h4>
-//             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-//               <label
-//                 className={`border-2 rounded-lg p-5 flex flex-col items-center text-center transition-all ${
-//                   feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing' ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-primary'
-//                 } ${feePayment.paymentMode === "online" ? "border-primary bg-primary/5" : "border-slate-300"}`}
-//               >
-//                 <input
-//                   type="radio"
-//                   name="payment_method"
-//                   value="online"
-//                   checked={feePayment.paymentMode === "online"}
-//                   onChange={(e) =>
-//                     setFeePayment({
-//                       ...feePayment,
-//                       paymentMode: e.target.value,
-//                     })
-//                   }
-//                   className="sr-only"
-//                   disabled={feePayment.paymentStatus === 'completed' || feePayment.paymentStatus === 'processing'}
-//                 />
-//                 <CreditCard size={28} className="text-primary mb-3" />
-//                 <span className="text-sm font-bold text-primary">
-//                   Pay Online
-//                 </span>
-//                 <span className="text-xs text-slate-500">
-//                   Net Banking, Card, UPI
-//                 </span>
-//               </label>
-//             </div>
-//           </div>
-//         </div>
-//         <div className="space-y-6">
-//           <div className="bg-white border border-slate-200 rounded-2xl p-5">
-//             <h4 className="text-xs font-bold text-slate-800 mb-3">
-//               Supported Gateways
-//             </h4>
-//             <div className="grid grid-cols-3 gap-2">
-//               {["Razorpay", "SBI", "HDFC", "ICICI", "PAYTM", "UPI"].map((g, i) => (
-//                 <div
-//                   key={i}
-//                   className="h-10 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg flex items-center justify-center"
-//                 >
-//                   {g}
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//           <div className="bg-slate-800 rounded-2xl p-5 text-white">
-//             <div className="flex items-center gap-2 mb-4">
-//               <Info size={18} className="text-emerald-300" />
-//               <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-300">
-//                 Important Instructions
-//               </h4>
-//             </div>
-//             <ul className="text-xs space-y-3 list-disc pl-4 text-slate-300">
-//               <li>Payment is mandatory to complete your application.</li>
-//               <li>Do not refresh the page during transaction.</li>
-//               <li>Keep Transaction ID for future correspondence.</li>
-//               <li>After successful payment, your application will be submitted automatically.</li>
-//             </ul>
-//           </div>
-//         </div>
-//       </div>
-//       <div className="flex justify-end mt-6">
-//         {feePayment.paymentStatus === "completed" ? (
-//           <div className="flex items-center gap-2 text-green-600 bg-green-50 px-6 py-3 rounded-xl border border-green-200">
-//             <CheckCircle size={20} />
-//             <span className="font-semibold">Payment Completed! Application Submitted.</span>
-//           </div>
-//         ) : (
-//           <button
-//             onClick={handlePayment}
-//             disabled={isProcessing || !feePayment.paymentMode}
-//             className={`h-14 px-12 text-white font-semibold rounded-xl flex items-center gap-2 transition-all ${
-//               isProcessing || !feePayment.paymentMode ? "bg-slate-400 cursor-not-allowed" : "bg-primary hover:bg-primary/80"
-//             }`}
-//           >
-//             {isProcessing ? (
-//               <>
-//                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-//                 Processing...
-//               </>
-//             ) : totalFee === 0 ? (
-//               "Submit Application"
-//             ) : (
-//               <>
-//                 Proceed to Payment <ExternalLink size={16} />
-//               </>
-//             )}
-//           </button>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
 
 const renderFeePayment = () => {
   const totalFee = calculateTotalFee();
