@@ -1541,10 +1541,12 @@ const generatePDFHtml = (data: ApplicationData): string => {
   
   // Get post preferences list
   const postPreferencesList = postPreference.postRankings
+
     .sort((a, b) => a.priority - b.priority)
     .map(p => `<li><span class="font-bold">${p.postTitle || p.postName}</span> (Code: ${p.postCode})</li>`)
     .join('');
   
+    console.log(postPreferencesList)
   // Get exam cities (mock - from original design)
   const examCities = ['Ranchi', 'Jamshedpur', 'Dhanbad'];
   

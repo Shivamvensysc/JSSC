@@ -1863,16 +1863,17 @@ const [localDistricts, setLocalDistricts] = useState<District[]>([]);
 useEffect(() => {
   const fetchLocalDistricts = async () => {
     if (reservationCategory.isLocallyResident === "yes") {
-      // Jharkhand state ID is 15
-      const jharkhandStateId = 15;
       try {
-        const response = await apiService.getDistrictsByState(jharkhandStateId);
+        // Direct API call with "JH"
+        const response = await axios.get(`${API_BASE_URL}/states/JH/districts`, getAuthHeaders());
         if (response.data.success) {
           setLocalDistricts(response.data.data);
         }
       } catch (error) {
         console.error("Error fetching districts for Jharkhand:", error);
       }
+    } else {
+      setLocalDistricts([]);
     }
   };
   fetchLocalDistricts();
