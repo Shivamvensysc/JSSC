@@ -231,6 +231,7 @@ interface LanguageSelection {
 interface ReservationCategory {
   mainCategory: string;
   categoryCertificateNumber: string;
+  subSubCategoryId?: number;
   categoryCertificateAuthority: string; // Add this
    categoryCertificateIssueDate: string; // Add this 
    pwdCertificateIssueDate: string; // Add this
@@ -263,6 +264,19 @@ interface ReservationCategory {
    isLocallyResident: string;     // Add this
   localDistrictId?: number;      // Add this
   localDistrictName?: string;
+}
+// Replace the existing Category and SubCategory interfaces with these:
+
+interface Category {
+  value: number;
+  label: string;
+  subCategories: SubCategory[];
+}
+
+interface SubCategory {
+  value: number;
+  label: string;
+  subCategories: SubCategory[];
 }
 
 interface FeePayment {
@@ -383,6 +397,7 @@ import { toast } from "react-toastify";
 const MyApplications: React.FC = () => {
   // Add this with other state declarations
 const [registrationData, setRegistrationData] = useState<any>(null);
+// const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
 console.log(registrationData)
   // Add this state near other API Data States
 const [postsList, setPostsList] = useState<any[]>([]);
@@ -513,6 +528,7 @@ useEffect(() => {
 
 const [stepErrors, setStepErrors] = useState<{ [key: number]: { [field: string]: string } }>({});
 // Add this with other API Data States
+const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
 const [disabilitiesList, setDisabilitiesList] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -1178,6 +1194,7 @@ const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
   mainCategoryId: undefined,
   subCategory: "",
   subCategoryId: undefined,
+  subSubCategoryId: undefined,
   categoryCertificateNumber: "",
   categoryCertificateAuthority: "", // Add this
    pwdCertificateIssueDate: "", // Add this
@@ -2247,30 +2264,105 @@ const sendEmailOtp = () => {
   };
 
   // Save Step 2 API call
+// const saveStep2 = async () => {
+//   setSavingStep(true);
+  
+//   const payload = {
+//     reservationCategory: {
+//       mainCategory: reservationCategory.mainCategoryId || 0,
+//       subCategory: reservationCategory.subCategoryId || 0,
+//       categoryCertificateNumber: reservationCategory.categoryCertificateNumber,
+//       categoryCertificateAuthority: reservationCategory.categoryCertificateAuthority,
+//       isPwd: reservationCategory.isPwd === "yes",
+//       pwdType: reservationCategory.pwdTypeId || 0,
+//       pwdPercentage: reservationCategory.pwdPercentage,
+//       pwdCertificateNumber: reservationCategory.pwdCertificateNumber,
+//       pwdCertificateAuthority: reservationCategory.pwdCertificateAuthority,
+//       isExServiceman: reservationCategory.isExServiceman === "yes",
+//       exServicemanYears: reservationCategory.exServicemanYears,
+//       isSportsQuota: reservationCategory.isSportsQuota === "yes",
+//       sportsLevel: reservationCategory.sportsLevel,
+//       sportsAchievement: reservationCategory.sportsAchievement,
+//       sportsCertificateNumber: reservationCategory.sportsCertificateNumber,
+//       sportsCertificateAuthority: reservationCategory.sportsCertificateAuthority,
+//       isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
+//       domicileCertificateNumber: reservationCategory.domicileCertificateNumber,
+//       domicileCertificateAuthority: reservationCategory.domicileCertificateAuthority,
+//       declaration: reservationCategory.declaration,
+//     },
+//   };
+
+//   try {
+//     const response = await apiService.saveStep2(payload);
+//     if (response.data.success) {
+//       toast.success(response.data.message);
+//       setCurrentStep(currentStep + 1);
+//     }
+//   } catch (error: any) {
+//     console.error("Error saving step 2:", error);
+//     toast.error(error.response?.data?.message || "Failed to save reservation details");
+//   } finally {
+//     setSavingStep(false);
+//   }
+// };
+
 const saveStep2 = async () => {
   setSavingStep(true);
   
+  // Date formatting function
+  const formatDateToDDMMYYYY = (dateString: string): string => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`;
+  };
+  
   const payload = {
     reservationCategory: {
+      // Main category (e.g., UR, OBC, SC, ST, EWS)
       mainCategory: reservationCategory.mainCategoryId || 0,
+      
+      // Sub category (e.g., Primitive Tribe, Other ST)
       subCategory: reservationCategory.subCategoryId || 0,
+      
+      // Sub-sub category (e.g., Asur, Birhor, etc.)
+      subSubCategory: reservationCategory.subSubCategoryId || 0,
+      
+      // Category certificate fields
       categoryCertificateNumber: reservationCategory.categoryCertificateNumber,
       categoryCertificateAuthority: reservationCategory.categoryCertificateAuthority,
+      categoryCertificateIssueDate: formatDateToDDMMYYYY(reservationCategory.categoryCertificateIssueDate),
+      
+      // PwD fields - Convert percentage to number
       isPwd: reservationCategory.isPwd === "yes",
       pwdType: reservationCategory.pwdTypeId || 0,
-      pwdPercentage: reservationCategory.pwdPercentage,
+      pwdPercentage: reservationCategory.pwdPercentage ? Number(reservationCategory.pwdPercentage) : 0,
       pwdCertificateNumber: reservationCategory.pwdCertificateNumber,
       pwdCertificateAuthority: reservationCategory.pwdCertificateAuthority,
+      pwdCertificateIssueDate: formatDateToDDMMYYYY(reservationCategory.pwdCertificateIssueDate),
+      
+      // Ex-Serviceman fields - Convert years to number
       isExServiceman: reservationCategory.isExServiceman === "yes",
-      exServicemanYears: reservationCategory.exServicemanYears,
+      exServicemanYears: reservationCategory.exServicemanYears ? Number(reservationCategory.exServicemanYears) : 0,
+      
+      // Sports quota fields
       isSportsQuota: reservationCategory.isSportsQuota === "yes",
       sportsLevel: reservationCategory.sportsLevel,
       sportsAchievement: reservationCategory.sportsAchievement,
       sportsCertificateNumber: reservationCategory.sportsCertificateNumber,
       sportsCertificateAuthority: reservationCategory.sportsCertificateAuthority,
+      sportsCertificateIssueDate: formatDateToDDMMYYYY(reservationCategory.sportsCertificateIssueDate),
+      
+      // Domicile fields
       isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
       domicileCertificateNumber: reservationCategory.domicileCertificateNumber,
       domicileCertificateAuthority: reservationCategory.domicileCertificateAuthority,
+      domicileCertificateIssueDate: formatDateToDDMMYYYY(reservationCategory.domicileCertificateIssueDate),
+      
+      // Local resident fields
+      isLocallyResident: reservationCategory.isLocallyResident === "yes",
+      localDistrictId: reservationCategory.localDistrictId || 0,
+      
+      // Declaration
       declaration: reservationCategory.declaration,
     },
   };
@@ -3572,65 +3664,971 @@ const handleFinalSubmit = async () => {
   );
 };
 
+
+
+// const renderReservationCategory = () => {
+//   const errors = stepErrors[1] || {};
+  
+//   // Get main categories from API - all top-level categories
+//   const mainCategories = categoriesList;
+  
+//   // State for selected primitive tribe category
+//   // const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
+  
+//   // Find the Scheduled Tribe (ST) category
+//   const stCategory = categoriesList.find(cat => 
+//     cat.label === "Scheduled Tribe (ST)" || 
+//     cat.label === "Scheduled Tribe" ||
+//     (cat.label && cat.label.toLowerCase().includes("scheduled tribe"))
+//   );
+  
+//   // Get subcategories from the ST category (Primitive Tribe and Other ST)
+//   const stSubCategories = stCategory?.subCategories || [];
+  
+//   // Get Primitive Tribe category
+//   const primitiveTribeCategory = stSubCategories.find((sub: any) => 
+//     sub.label === "Primitive Tribe" || sub.label === "Primitive Tribe "
+//   );
+  
+//   // Get primitive tribe subcategories (actual tribes like Asur, Birhor, etc.)
+//   const primitiveTribeSubCategories = primitiveTribeCategory?.subCategories || [];
+  
+//   // Debug logging
+//   console.log("Categories List:", categoriesList);
+//   console.log("Main Categories:", mainCategories);
+//   console.log("ST Category:", stCategory);
+//   console.log("ST SubCategories:", stSubCategories);
+//   console.log("Primitive Tribe Category:", primitiveTribeCategory);
+//   console.log("Primitive Tribe SubCategories:", primitiveTribeSubCategories);
+//   console.log("Current reservationCategory:", reservationCategory);
+
+//   // Handle Jharkhand Domicile change
+//   const handleDomicileChange = (value: string) => {
+//     setReservationCategory({ 
+//       ...reservationCategory, 
+//       isJharkhandDomicile: value 
+//     });
+    
+//     if (value === "no") {
+//       const unreservedCategory = mainCategories.find(cat => 
+//         cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "UR"
+//       );
+//       if (unreservedCategory) {
+//         setReservationCategory(prev => ({
+//           ...prev,
+//           isJharkhandDomicile: value,
+//           mainCategory: unreservedCategory.label,
+//           mainCategoryId: unreservedCategory.value,
+//           subCategory: "",
+//           subCategoryId: undefined,
+//         }));
+//         setSelectedPrimitiveTribeId(undefined);
+//         const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
+//         setFeePayment({ ...feePayment, applicationFee: fee });
+//       }
+//     }
+    
+//     if (value) {
+//       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+//     }
+//   };
+
+//   // Handle category change
+//   const handleCategoryChange = (selectedValue: number) => {
+//     const selected = mainCategories.find(cat => cat.value === selectedValue);
+//     if (selected) {
+//       setReservationCategory({
+//         ...reservationCategory,
+//         mainCategory: selected.label,
+//         mainCategoryId: selected.value,
+//         subCategory: "",
+//         subCategoryId: undefined,
+//       });
+//       setSelectedPrimitiveTribeId(undefined);
+//       const fee = selected.label === "Scheduled Caste (SC)" || selected.label === "Scheduled Tribe (ST)" ? "50" : "100";
+//       setFeePayment({ ...feePayment, applicationFee: fee });
+//       if (selectedValue) {
+//         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+//       }
+//     }
+//   };
+
+//   // Handle ST SubCategory change (Primitive Tribe or Other ST)
+//   const handleStSubCategoryChange = (selectedValue: number) => {
+//     // Check if it's "Primitive Tribe"
+//     if (selectedValue === primitiveTribeCategory?.value) {
+//       // If Primitive Tribe is selected, we need to show the next level dropdown
+//       setSelectedPrimitiveTribeId(selectedValue);
+//       setReservationCategory({
+//         ...reservationCategory,
+//         subCategory: primitiveTribeCategory.label,
+//         subCategoryId: primitiveTribeCategory.value,
+//       });
+//     } else {
+//       // Check if it's "Other ST"
+//       const otherStCategory = stSubCategories.find((sub: any) => sub.value === selectedValue);
+//       if (otherStCategory) {
+//         setSelectedPrimitiveTribeId(undefined);
+//         setReservationCategory({
+//           ...reservationCategory,
+//           subCategory: otherStCategory.label,
+//           subCategoryId: otherStCategory.value,
+//         });
+//       }
+//     }
+//   };
+
+//   // Handle actual tribe selection (from primitive tribe subcategories)
+//   const handleTribeSelection = (selectedValue: number) => {
+//   const selectedTribe = primitiveTribeSubCategories.find((sub: any) => sub.value === selectedValue);
+//   if (selectedTribe) {
+//     setReservationCategory({
+//       ...reservationCategory,
+//       subCategory: selectedTribe.label,
+//       subCategoryId: selectedTribe.value,
+//       subSubCategoryId: selectedTribe.value, // Set subSubCategoryId as well
+//     });
+//   }
+// };
+
+//   return (
+//     <div className="space-y-6">
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Category Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+//           {/* Locally Resident of Jharkhand - Dropdown Field */}
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Are you Local Resident of Jharkhand? <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={reservationCategory.isLocallyResident || ""}
+//               onChange={(e) => {
+//                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
+//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
+//               }}
+//               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
+//             >
+//               <option value="">Select Option</option>
+//               <option value="yes">Yes</option>
+//               <option value="no">No</option>
+//             </select>
+//             {errors.isLocallyResident && <p className="text-red-500 text-xs mt-1">{errors.isLocallyResident}</p>}
+//           </div>
+
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Jharkhand Domicile Claim <span className="text-red-600">*</span>
+//             </label>
+//             <div className="flex gap-6 mt-2">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="domicile"
+//                   value="yes"
+//                   checked={reservationCategory.isJharkhandDomicile === "yes"}
+//                   onChange={(e) => handleDomicileChange(e.target.value)}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="domicile"
+//                   value="no"
+//                   checked={reservationCategory.isJharkhandDomicile === "no"}
+//                   onChange={(e) => handleDomicileChange(e.target.value)}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//             {errors.isJharkhandDomicile && <p className="text-red-500 text-xs mt-1">{errors.isJharkhandDomicile}</p>}
+//           </div>
+
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Reservation Category <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={reservationCategory.mainCategoryId || ""}
+//               onChange={(e) => handleCategoryChange(Number(e.target.value))}
+//               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
+//             >
+//               <option value="">Select Category</option>
+//               {mainCategories.map((cat) => (
+//                 <option key={cat.value} value={cat.value}>
+//                   {cat.label}
+//                 </option>
+//               ))}
+//             </select>
+//             {errors.mainCategory && <p className="text-red-500 text-xs mt-1">{errors.mainCategory}</p>}
+//           </div>
+          
+//           {/* ST Sub Category - Only show when ST is selected */}
+//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
+//             <div>
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 ST Category Type <span className="text-red-600">*</span>
+//               </label>
+//               <select
+//                 value={(() => {
+//                   // Check if currently selected is primitive tribe category or other ST
+//                   if (reservationCategory.subCategoryId === primitiveTribeCategory?.value) {
+//                     return primitiveTribeCategory?.value;
+//                   }
+//                   // Check if selected is Other ST
+//                   const otherSt = stSubCategories.find((sub: any) => sub.value === reservationCategory.subCategoryId);
+//                   if (otherSt && otherSt.label === "Other ST") {
+//                     return otherSt.value;
+//                   }
+//                   return "";
+//                 })()}
+//                 onChange={(e) => handleStSubCategoryChange(Number(e.target.value))}
+//                 className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
+//               >
+//                 <option value="">Select ST Category Type</option>
+//                 {primitiveTribeCategory && (
+//                   <option key={primitiveTribeCategory.value} value={primitiveTribeCategory.value}>
+//                     {primitiveTribeCategory.label}
+//                   </option>
+//                 )}
+//                 {stSubCategories.filter((sub: any) => sub.label === "Other ST").map((sub: any) => (
+//                   <option key={sub.value} value={sub.value}>
+//                     {sub.label}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+//           )}
+
+//           {/* Third level dropdown - Show actual tribes when Primitive Tribe is selected */}
+//           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && 
+//            selectedPrimitiveTribeId === primitiveTribeCategory?.value && 
+//            primitiveTribeSubCategories.length > 0 && (
+//             <div>
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Select Primitive Tribe <span className="text-red-600">*</span>
+//               </label>
+//               <select
+//                 value={(() => {
+//                   // Check if current selection is a tribe (not the primitive tribe category)
+//                   const isTribeSelected = primitiveTribeSubCategories.some((sub: any) => sub.value === reservationCategory.subCategoryId);
+//                   return isTribeSelected ? reservationCategory.subCategoryId : "";
+//                 })()}
+//                 onChange={(e) => handleTribeSelection(Number(e.target.value))}
+//                 className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
+//               >
+//                 <option value="">Select Tribe</option>
+//                 {primitiveTribeSubCategories.map((sub: any) => (
+//                   <option key={sub.value} value={sub.value}>
+//                     {sub.label}
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+//           )}
+//         </div>
+
+//         {/* District of Local Residence - Dropdown Field (Shows when Locally Resident is Yes) */}
+//         {reservationCategory.isLocallyResident === "yes" && (
+//           <div className="mt-4">
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Your District of Local Residence <span className="text-red-600">*</span>
+//             </label>
+//             <select
+//               value={reservationCategory.localDistrictId || ""}
+//               onChange={(e) => {
+//                 const selectedId = Number(e.target.value);
+//                 const selectedDistrict = localDistricts.find(d => d.districtId === selectedId);
+//                 if (selectedDistrict) {
+//                   setReservationCategory({
+//                     ...reservationCategory,
+//                     localDistrictId: selectedId,
+//                     localDistrictName: selectedDistrict.districtName,
+//                   });
+//                   if (selectedId) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
+//                   }
+//                 }
+//               }}
+//               className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
+//             >
+//               <option value="">Select District</option>
+//               {localDistricts.map((district) => (
+//                 <option key={district.districtId} value={district.districtId}>
+//                   {district.districtName}
+//                 </option>
+//               ))}
+//             </select>
+//             {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
+//           </div>
+//         )}
+        
+//         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
+//         {reservationCategory.mainCategoryId && 
+//          reservationCategory.mainCategory && 
+//          reservationCategory.mainCategory !== "UR (Unreserved)" && 
+//          reservationCategory.mainCategory !== "Unreserved" && 
+//          reservationCategory.mainCategory !== "Unreserved (UR)" &&
+//          reservationCategory.mainCategory !== "EWS" && (
+//           <>
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Caste/Category Certificate Number <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.categoryCertificateNumber}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Category Certificate Number"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateNumber}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Caste/Category Certificate Date Of Issue <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="date"
+//                 value={reservationCategory.categoryCertificateIssueDate}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
+//                   }
+//                 }}
+//                 max={new Date().toISOString().split('T')[0]}
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateIssueDate}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Certificate Issued Authority <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.categoryCertificateAuthority}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.categoryCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.categoryCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.categoryCertificateAuthority}</p>}
+//             </div>
+//           </>
+//         )}
+        
+//         {/* Domicile Certificate Fields - Shows when Domicile is Yes */}
+//         {reservationCategory.isJharkhandDomicile === "yes" && (
+//           <>
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Residential / Domicile Certificate Number <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.domicileCertificateNumber}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Domicile Certificate Number"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateNumber}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Certificate Date Of Issue <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="date"
+//                 value={reservationCategory.domicileCertificateIssueDate}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
+//                   }
+//                 }}
+//                 max={new Date().toISOString().split('T')[0]}
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateIssueDate}</p>}
+//             </div>
+            
+//             <div className="mt-4">
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Certificate Issued Authority <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="text"
+//                 value={reservationCategory.domicileCertificateAuthority}
+//                 onChange={(e) => {
+//                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
+//                   if (e.target.value) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
+//                   }
+//                 }}
+//                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.domicileCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.domicileCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.domicileCertificateAuthority}</p>}
+//             </div>
+//           </>
+//         )}
+//       </div>
+
+//       {/* Physical Handicap (PwD) Details */}
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Physical Handicap (PwD) Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Physically Handicapped?
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="pwd"
+//                   value="yes"
+//                   checked={reservationCategory.isPwd === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({
+//                       ...reservationCategory,
+//                       isPwd: e.target.value,
+//                     });
+//                     if (e.target.value === "yes") {
+//                       setFeePayment({ ...feePayment, applicationFee: "0" });
+//                     } else {
+//                       const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
+//                       setFeePayment({ ...feePayment, applicationFee: fee });
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="pwd"
+//                   value="no"
+//                   checked={reservationCategory.isPwd === "no"}
+//                   onChange={(e) => {
+//                     setReservationCategory({
+//                       ...reservationCategory,
+//                       isPwd: e.target.value,
+//                     });
+//                     const fee = reservationCategory.mainCategory === "Scheduled Caste (SC)" || reservationCategory.mainCategory === "Scheduled Tribe (ST)" ? "50" : "100";
+//                     setFeePayment({ ...feePayment, applicationFee: fee });
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isPwd === "yes" && (
+//             <>
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Type of Disability <span className="text-red-600">*</span>
+//                 </label>
+//                 <select
+//                   value={reservationCategory.pwdTypeId || ""}
+//                   onChange={(e) => {
+//                     const selectedId = Number(e.target.value);
+//                     const selected = disabilitiesList.find((d: any) => d.id === selectedId);
+//                     if (selected) {
+//                       setReservationCategory({ 
+//                         ...reservationCategory, 
+//                         pwdTypeId: selectedId,
+//                         pwdType: selected.name
+//                       });
+//                       if (selectedId) {
+//                         setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
+//                       }
+//                     }
+//                   }}
+//                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
+//                 >
+//                   <option value="">Select Type</option>
+//                   {disabilitiesList.map((disability: any) => (
+//                     <option key={disability.id} value={disability.id}>
+//                       {disability.name}
+//                     </option>
+//                   ))}
+//                 </select>
+//                 {errors.pwdType && <p className="text-red-500 text-xs mt-1">{errors.pwdType}</p>}
+//               </div>
+              
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Disability Percentage (%) <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdPercentage}
+//                   onChange={(e) => {
+//                     const value = e.target.value.replace(/\D/g, '');
+//                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
+//                     if (value && parseInt(value) >= 40) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
+//                     }
+//                   }}
+//                   onKeyDown={validateNumberInput}
+//                   maxLength={2}
+//                   placeholder="Should be ≥ 40% to claim benefit"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdPercentage ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdPercentage && <p className="text-red-500 text-xs mt-1">{errors.pwdPercentage}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   PwD Certificate Number <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdCertificateNumber}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter PwD Certificate Number"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateNumber}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Certificate Date Of Issue <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="date"
+//                   value={reservationCategory.pwdCertificateIssueDate}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
+//                     }
+//                   }}
+//                   max={new Date().toISOString().split('T')[0]}
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateIssueDate}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Certificate Issued Authority <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.pwdCertificateAuthority}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.pwdCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.pwdCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.pwdCertificateAuthority}</p>}
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Ex-Serviceman Details */}
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Ex-Serviceman Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Ex-Serviceman?
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="exService"
+//                   value="yes"
+//                   checked={reservationCategory.isExServiceman === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
+//                     if (e.target.value === "yes") {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="exService"
+//                   value="no"
+//                   checked={reservationCategory.isExServiceman === "no"}
+//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value })}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isExServiceman === "yes" && (
+//             <div>
+//               <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                 Years of Service (0-30) <span className="text-red-600">*</span>
+//               </label>
+//               <input
+//                 type="number"
+//                 min={0}
+//                 max={30}
+//                 value={reservationCategory.exServicemanYears}
+//                 onChange={(e) => {
+//                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
+//                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
+//                   if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
+//                     setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+//                   }
+//                 }}
+//                 placeholder="0-30"
+//                 className={`w-full px-4 py-2 border rounded-lg ${errors.exServicemanYears ? 'border-red-500' : 'border-slate-300'}`}
+//               />
+//               {errors.exServicemanYears && <p className="text-red-500 text-xs mt-1">{errors.exServicemanYears}</p>}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Sports Quota Details */}
+//       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+//         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
+//           Sports Quota Details
+//         </h3>
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//           <div>
+//             <label className="block text-sm font-semibold text-slate-800 mb-2">
+//               Claim Sports Quota? *
+//             </label>
+//             <div className="flex gap-6">
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="sports"
+//                   value="yes"
+//                   checked={reservationCategory.isSportsQuota === "yes"}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
+//                     if (e.target.value === "yes") {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
+//                     }
+//                   }}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 Yes
+//               </label>
+//               <label className="flex items-center gap-2">
+//                 <input
+//                   type="radio"
+//                   name="sports"
+//                   value="no"
+//                   checked={reservationCategory.isSportsQuota === "no"}
+//                   onChange={(e) => setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value })}
+//                   className="w-4 h-4 text-primary"
+//                 />
+//                 No
+//               </label>
+//             </div>
+//           </div>
+          
+//           {reservationCategory.isSportsQuota === "yes" && (
+//             <>
+//               <div>
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Sports Level <span className="text-red-600">*</span>
+//                 </label>
+//                 <select
+//                   value={reservationCategory.sportsLevel}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
+//                     }
+//                   }}
+//                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
+//                 >
+//                   <option value="">Select Level</option>
+//                   <option value="international">Medal or Participation in International Level Competition organized by IOC/International Paralympic Committee or its affiliated federations.</option>
+//                   <option value="national">Medal or Participation in National Level Competition organized by IOA/Indian Paralympic Committee or its affiliated National Sports federations.</option>
+//                 </select>
+//                 {errors.sportsLevel && <p className="text-red-500 text-xs mt-1">{errors.sportsLevel}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Achievement Details <span className="text-red-600">*</span>
+//                 </label>
+//                 <textarea
+//                   value={reservationCategory.sportsAchievement}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
+//                     if (e.target.value.trim()) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
+//                     }
+//                   }}
+//                   rows={2}
+//                   placeholder="Describe your achievements..."
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsAchievement ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsAchievement && <p className="text-red-500 text-xs mt-1">{errors.sportsAchievement}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Sports Certificate Number <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.sportsCertificateNumber}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Sports Certificate Number"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateNumber ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateNumber && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateNumber}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Certificate Date Of Issue <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="date"
+//                   value={reservationCategory.sportsCertificateIssueDate}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
+//                     }
+//                   }}
+//                   max={new Date().toISOString().split('T')[0]}
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateIssueDate ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateIssueDate && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateIssueDate}</p>}
+//               </div>
+              
+//               <div className="md:col-span-2">
+//                 <label className="block text-sm font-semibold text-slate-800 mb-2">
+//                   Certificate Issued Authority <span className="text-red-600">*</span>
+//                 </label>
+//                 <input
+//                   type="text"
+//                   value={reservationCategory.sportsCertificateAuthority}
+//                   onChange={(e) => {
+//                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
+//                     if (e.target.value) {
+//                       setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
+//                     }
+//                   }}
+//                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
+//                   className={`w-full px-4 py-2 border rounded-lg ${errors.sportsCertificateAuthority ? 'border-red-500' : 'border-slate-300'}`}
+//                 />
+//                 {errors.sportsCertificateAuthority && <p className="text-red-500 text-xs mt-1">{errors.sportsCertificateAuthority}</p>}
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Declaration */}
+//       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+//         <label className="flex items-start gap-4 cursor-pointer">
+//           <input
+//             type="checkbox"
+//             checked={reservationCategory.declaration}
+//             onChange={(e) => {
+//               const isChecked = e.target.checked;
+//               setReservationCategory({ ...reservationCategory, declaration: isChecked });
+//               if (isChecked) {
+//                 setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
+//               }
+//             }}
+//             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
+//           />
+//           <span className="text-sm font-medium text-slate-700 leading-6">
+//             I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that providing false information may lead to cancellation of my application.{" "}
+//             <span className="text-red-500 font-bold">*</span>
+//           </span>
+//         </label>
+//         {errors.declaration && <p className="text-red-500 text-xs mt-2 ml-9">{errors.declaration}</p>}
+//       </div>
+//     </div>
+//   );
+// };
+
 const renderReservationCategory = () => {
   const errors = stepErrors[1] || {};
   
-  // Get main categories from API (parent categories)
-  const mainCategories = categoriesList.filter(cat => cat.catParentId === null);
+  // Get main categories from API - all top-level categories
+  const mainCategories = categoriesList;
   
-  // Get ST subcategories when ST is selected
-  const stCategory = categoriesList.find(cat => cat.catName === "Scheduled Tribe (ST)");
+  // State for selected primitive tribe category - moved inside component
+  // const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
+  
+  // Find the Scheduled Tribe (ST) category
+  const stCategory = categoriesList.find((cat: any) => 
+    cat.label === "Scheduled Tribe (ST)" || 
+    cat.label === "Scheduled Tribe" ||
+    (cat.label && cat.label.toLowerCase().includes("scheduled tribe"))
+  );
+  
+  // Get subcategories from the ST category (Primitive Tribe and Other ST)
   const stSubCategories = stCategory?.subCategories || [];
+  
+  // Get Primitive Tribe category
+  const primitiveTribeCategory = stSubCategories.find((sub: any) => 
+    sub.label === "Primitive Tribe" || sub.label === "Primitive Tribe "
+  );
+  
+  // Get primitive tribe subcategories (actual tribes like Asur, Birhor, etc.)
+  const primitiveTribeSubCategories = primitiveTribeCategory?.subCategories || [];
+  
+  // Debug logging
+  console.log("Categories List:", categoriesList);
+  console.log("Main Categories:", mainCategories);
+  console.log("ST Category:", stCategory);
+  console.log("ST SubCategories:", stSubCategories);
+  console.log("Primitive Tribe Category:", primitiveTribeCategory);
+  console.log("Primitive Tribe SubCategories:", primitiveTribeSubCategories);
+  console.log("Current reservationCategory:", reservationCategory);
 
-  // Handle Jharkhand Domicile change - auto set category to Unreserved (UR) when NO is selected
+  // Handle Jharkhand Domicile change
   const handleDomicileChange = (value: string) => {
     setReservationCategory({ 
       ...reservationCategory, 
       isJharkhandDomicile: value 
     });
     
-    // If "No" is selected, automatically set category to Unreserved (UR) if not already
     if (value === "no") {
-      const unreservedCategory = mainCategories.find(cat => 
-        cat.catName === "Unreserved (UR)" || cat.catName === "Unreserved"
+      const unreservedCategory = mainCategories.find((cat: any) => 
+        cat.label === "UR (Unreserved)" || cat.label === "Unreserved (UR)" || cat.label === "UR"
       );
       if (unreservedCategory) {
-        setReservationCategory(prev => ({
+        setReservationCategory((prev: any) => ({
           ...prev,
           isJharkhandDomicile: value,
-          mainCategory: unreservedCategory.catName,
-          mainCategoryId: unreservedCategory.catId,
+          mainCategory: unreservedCategory.label,
+          mainCategoryId: unreservedCategory.value,
           subCategory: "",
           subCategoryId: undefined,
         }));
-        // Update fee based on category
-        const fee = unreservedCategory.catName === "Scheduled Caste (SC)" || unreservedCategory.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+        setSelectedPrimitiveTribeId(undefined);
+        const fee = unreservedCategory.label === "Scheduled Caste (SC)" || unreservedCategory.label === "Scheduled Tribe (ST)" ? "50" : "100";
         setFeePayment({ ...feePayment, applicationFee: fee });
       }
     }
     
-    // Clear error when user selects
     if (value) {
-      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
+      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], isJharkhandDomicile: "" } }));
     }
   };
 
   // Handle category change
-  const handleCategoryChange = (selectedId: number) => {
-    const selected = mainCategories.find(cat => cat.catId === selectedId);
+  const handleCategoryChange = (selectedValue: number) => {
+    const selected = mainCategories.find((cat: any) => cat.value === selectedValue);
     if (selected) {
       setReservationCategory({
         ...reservationCategory,
-        mainCategory: selected.catName,
-        mainCategoryId: selected.catId,
+        mainCategory: selected.label,
+        mainCategoryId: selected.value,
         subCategory: "",
         subCategoryId: undefined,
       });
-      const fee = selected.catName === "Scheduled Caste (SC)" || selected.catName === "Scheduled Tribe (ST)" ? "50" : "100";
+      setSelectedPrimitiveTribeId(undefined);
+      const fee = selected.label === "Scheduled Caste (SC)" || selected.label === "Scheduled Tribe (ST)" ? "50" : "100";
       setFeePayment({ ...feePayment, applicationFee: fee });
-      if (selectedId) {
-        setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
+      if (selectedValue) {
+        setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], mainCategory: "" } }));
       }
+    }
+  };
+
+  // Handle ST SubCategory change (Primitive Tribe or Other ST)
+  const handleStSubCategoryChange = (selectedValue: number) => {
+    // Check if it's "Primitive Tribe"
+    if (selectedValue === primitiveTribeCategory?.value) {
+      // If Primitive Tribe is selected, we need to show the next level dropdown
+      setSelectedPrimitiveTribeId(selectedValue);
+      setReservationCategory({
+        ...reservationCategory,
+        subCategory: primitiveTribeCategory.label,
+        subCategoryId: primitiveTribeCategory.value,
+      });
+    } else {
+      // Check if it's "Other ST"
+      const otherStCategory = stSubCategories.find((sub: any) => sub.value === selectedValue);
+      if (otherStCategory) {
+        setSelectedPrimitiveTribeId(undefined);
+        setReservationCategory({
+          ...reservationCategory,
+          subCategory: otherStCategory.label,
+          subCategoryId: otherStCategory.value,
+        });
+      }
+    }
+  };
+
+  // Handle actual tribe selection (from primitive tribe subcategories)
+  const handleTribeSelection = (selectedValue: number) => {
+    const selectedTribe = primitiveTribeSubCategories.find((sub: any) => sub.value === selectedValue);
+    if (selectedTribe) {
+      setReservationCategory({
+        ...reservationCategory,
+        subCategory: selectedTribe.label,
+        subCategoryId: selectedTribe.value,
+        subSubCategoryId: selectedTribe.value,
+      });
     }
   };
 
@@ -3651,7 +4649,7 @@ const renderReservationCategory = () => {
               value={reservationCategory.isLocallyResident || ""}
               onChange={(e) => {
                 setReservationCategory({ ...reservationCategory, isLocallyResident: e.target.value });
-                setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
+                setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], isLocallyResident: "" } }));
               }}
               className={`w-full h-12 border rounded-lg px-4 ${errors.isLocallyResident ? 'border-red-500' : 'border-slate-300'}`}
             >
@@ -3703,9 +4701,9 @@ const renderReservationCategory = () => {
               className={`w-full h-12 border rounded-lg px-4 ${errors.mainCategory ? 'border-red-500' : 'border-slate-300'}`}
             >
               <option value="">Select Category</option>
-              {mainCategories.map((cat) => (
-                <option key={cat.catId} value={cat.catId}>
-                  {cat.catName}
+              {mainCategories.map((cat: any) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
                 </option>
               ))}
             </select>
@@ -3716,79 +4714,108 @@ const renderReservationCategory = () => {
           {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && stSubCategories.length > 0 && (
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Sub-Category (Primitive Tribe)
+                ST Category Type <span className="text-red-600">*</span>
               </label>
               <select
-                value={reservationCategory.subCategoryId || ""}
-                onChange={(e) => {
-                  const selectedId = Number(e.target.value);
-                  const selected = stSubCategories.find(sub => sub.catId === selectedId);
-                  if (selected) {
-                    setReservationCategory({
-                      ...reservationCategory,
-                      subCategory: selected.catName,
-                      subCategoryId: selected.catId,
-                    });
+                value={(() => {
+                  // Check if currently selected is primitive tribe category or other ST
+                  if (reservationCategory.subCategoryId === primitiveTribeCategory?.value) {
+                    return primitiveTribeCategory?.value;
                   }
-                }}
-                className="w-full h-12 border border-slate-300 rounded-lg px-4"
+                  // Check if selected is Other ST
+                  const otherSt = stSubCategories.find((sub: any) => sub.value === reservationCategory.subCategoryId);
+                  if (otherSt && otherSt.label === "Other ST") {
+                    return otherSt.value;
+                  }
+                  return "";
+                })()}
+                onChange={(e) => handleStSubCategoryChange(Number(e.target.value))}
+                className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
               >
-                <option value="">Select Sub-Category</option>
-                {stSubCategories.map((sub) => (
-                  <option key={sub.catId} value={sub.catId}>
-                    {sub.catName}
+                <option value="">Select ST Category Type</option>
+                {primitiveTribeCategory && (
+                  <option key={primitiveTribeCategory.value} value={primitiveTribeCategory.value}>
+                    {primitiveTribeCategory.label}
+                  </option>
+                )}
+                {stSubCategories.filter((sub: any) => sub.label === "Other ST").map((sub: any) => (
+                  <option key={sub.value} value={sub.value}>
+                    {sub.label}
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          
-          
+          {/* Third level dropdown - Show actual tribes when Primitive Tribe is selected */}
+          {reservationCategory.mainCategory === "Scheduled Tribe (ST)" && 
+           selectedPrimitiveTribeId === primitiveTribeCategory?.value && 
+           primitiveTribeSubCategories.length > 0 && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Select Primitive Tribe <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={(() => {
+                  // Check if current selection is a tribe (not the primitive tribe category)
+                  const isTribeSelected = primitiveTribeSubCategories.some((sub: any) => sub.value === reservationCategory.subCategoryId);
+                  return isTribeSelected ? reservationCategory.subCategoryId : "";
+                })()}
+                onChange={(e) => handleTribeSelection(Number(e.target.value))}
+                className="w-full h-12 border border-slate-300 rounded-lg px-4 focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Select Tribe</option>
+                {primitiveTribeSubCategories.map((sub: any) => (
+                  <option key={sub.value} value={sub.value}>
+                    {sub.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* District of Local Residence - Text Input Field (Shows when Locally Resident is Yes) */}
         {/* District of Local Residence - Dropdown Field (Shows when Locally Resident is Yes) */}
-{reservationCategory.isLocallyResident === "yes" && (
-  <div className="mt-4">
-    <label className="block text-sm font-semibold text-slate-800 mb-2">
-      Your District of Local Residence <span className="text-red-600">*</span>
-    </label>
-    <select
-      value={reservationCategory.localDistrictId || ""}
-      onChange={(e) => {
-        const selectedId = Number(e.target.value);
-        const selectedDistrict = localDistricts.find(d => d.districtId === selectedId);
-        if (selectedDistrict) {
-          setReservationCategory({
-            ...reservationCategory,
-            localDistrictId: selectedId,
-            localDistrictName: selectedDistrict.districtName,
-          });
-          if (selectedId) {
-            setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
-          }
-        }
-      }}
-      className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
-    >
-      <option value="">Select District</option>
-      {localDistricts.map((district) => (
-        <option key={district.districtId} value={district.districtId}>
-          {district.districtName}
-        </option>
-      ))}
-    </select>
-    {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
-    
-    
-  </div>
-)}
+        {reservationCategory.isLocallyResident === "yes" && (
+          <div className="mt-4">
+            <label className="block text-sm font-semibold text-slate-800 mb-2">
+              Your District of Local Residence <span className="text-red-600">*</span>
+            </label>
+            <select
+              value={reservationCategory.localDistrictId || ""}
+              onChange={(e) => {
+                const selectedId = Number(e.target.value);
+                const selectedDistrict = localDistricts.find(d => d.districtId === selectedId);
+                if (selectedDistrict) {
+                  setReservationCategory({
+                    ...reservationCategory,
+                    localDistrictId: selectedId,
+                    localDistrictName: selectedDistrict.districtName,
+                  });
+                  if (selectedId) {
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], localDistrictName: "" } }));
+                  }
+                }
+              }}
+              className={`w-full h-12 border rounded-lg px-4 ${errors.localDistrictName ? 'border-red-500' : 'border-slate-300'}`}
+            >
+              <option value="">Select District</option>
+              {localDistricts.map((district) => (
+                <option key={district.districtId} value={district.districtId}>
+                  {district.districtName}
+                </option>
+              ))}
+            </select>
+            {errors.localDistrictName && <p className="text-red-500 text-xs mt-1">{errors.localDistrictName}</p>}
+          </div>
+        )}
         
         {/* Category Certificate Fields - Shows when a reserved category is selected (not UR/EWS) */}
         {reservationCategory.mainCategoryId && 
-         reservationCategory.mainCategory !== "Unreserved (UR)" && 
+         reservationCategory.mainCategory && 
+         reservationCategory.mainCategory !== "UR (Unreserved)" && 
          reservationCategory.mainCategory !== "Unreserved" && 
+         reservationCategory.mainCategory !== "Unreserved (UR)" &&
          reservationCategory.mainCategory !== "EWS" && (
           <>
             <div className="mt-4">
@@ -3801,7 +4828,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateNumber: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateNumber: "" } }));
                   }
                 }}
                 placeholder="Enter Category Certificate Number"
@@ -3812,7 +4839,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Caste/Category Certificate Date Of issue <span className="text-red-600">*</span>
+                Caste/Category Certificate Date Of Issue <span className="text-red-600">*</span>
               </label>
               <input
                 type="date"
@@ -3820,7 +4847,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateIssueDate: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateIssueDate: "" } }));
                   }
                 }}
                 max={new Date().toISOString().split('T')[0]}
@@ -3831,7 +4858,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-               Certificate Issued Authority <span className="text-red-600">*</span>
+                Certificate Issued Authority <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3839,7 +4866,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, categoryCertificateAuthority: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], categoryCertificateAuthority: "" } }));
                   }
                 }}
                 placeholder="Enter Certificate Issuing Authority (e.g., Tehsildar, District Magistrate)"
@@ -3855,7 +4882,7 @@ const renderReservationCategory = () => {
           <>
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Resdential / Domicile Certificate Number <span className="text-red-600">*</span>
+                Residential / Domicile Certificate Number <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3863,7 +4890,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateNumber: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateNumber: "" } }));
                   }
                 }}
                 placeholder="Enter Domicile Certificate Number"
@@ -3874,7 +4901,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-               Certificate Date Of issue <span className="text-red-600">*</span>
+                Certificate Date Of Issue <span className="text-red-600">*</span>
               </label>
               <input
                 type="date"
@@ -3882,7 +4909,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateIssueDate: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateIssueDate: "" } }));
                   }
                 }}
                 max={new Date().toISOString().split('T')[0]}
@@ -3893,7 +4920,7 @@ const renderReservationCategory = () => {
             
             <div className="mt-4">
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-               Certificate Issued Authority <span className="text-red-600">*</span>
+                Certificate Issued Authority <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -3901,7 +4928,7 @@ const renderReservationCategory = () => {
                 onChange={(e) => {
                   setReservationCategory({ ...reservationCategory, domicileCertificateAuthority: e.target.value });
                   if (e.target.value) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], domicileCertificateAuthority: "" } }));
                   }
                 }}
                 placeholder="Enter Certificate Issuing Authority (e.g., Circle Officer, District Magistrate)"
@@ -3913,6 +4940,7 @@ const renderReservationCategory = () => {
         )}
       </div>
 
+      {/* Physical Handicap (PwD) Details */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
           Physical Handicap (PwD) Details
@@ -3976,7 +5004,7 @@ const renderReservationCategory = () => {
                   value={reservationCategory.pwdTypeId || ""}
                   onChange={(e) => {
                     const selectedId = Number(e.target.value);
-                    const selected = disabilitiesList.find(d => d.id === selectedId);
+                    const selected = disabilitiesList.find((d: any) => d.id === selectedId);
                     if (selected) {
                       setReservationCategory({ 
                         ...reservationCategory, 
@@ -3984,14 +5012,14 @@ const renderReservationCategory = () => {
                         pwdType: selected.name
                       });
                       if (selectedId) {
-                        setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
+                        setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdType: "" } }));
                       }
                     }
                   }}
                   className={`w-full h-12 border rounded-lg px-4 ${errors.pwdType ? 'border-red-500' : 'border-slate-300'}`}
                 >
                   <option value="">Select Type</option>
-                  {disabilitiesList.map((disability) => (
+                  {disabilitiesList.map((disability: any) => (
                     <option key={disability.id} value={disability.id}>
                       {disability.name}
                     </option>
@@ -4011,7 +5039,7 @@ const renderReservationCategory = () => {
                     const value = e.target.value.replace(/\D/g, '');
                     setReservationCategory({ ...reservationCategory, pwdPercentage: value });
                     if (value && parseInt(value) >= 40) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdPercentage: "" } }));
                     }
                   }}
                   onKeyDown={validateNumberInput}
@@ -4032,7 +5060,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateNumber: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateNumber: "" } }));
                     }
                   }}
                   placeholder="Enter PwD Certificate Number"
@@ -4043,7 +5071,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Certificate Date Of issue <span className="text-red-600">*</span>
+                  Certificate Date Of Issue <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
@@ -4051,7 +5079,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateIssueDate: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateIssueDate: "" } }));
                     }
                   }}
                   max={new Date().toISOString().split('T')[0]}
@@ -4062,7 +5090,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                 Certificate Issued Authority <span className="text-red-600">*</span>
+                  Certificate Issued Authority <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -4070,7 +5098,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, pwdCertificateAuthority: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], pwdCertificateAuthority: "" } }));
                     }
                   }}
                   placeholder="Enter Certificate Issuing Authority (e.g., Medical Board, Civil Surgeon)"
@@ -4083,6 +5111,7 @@ const renderReservationCategory = () => {
         </div>
       </div>
 
+      {/* Ex-Serviceman Details */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
           Ex-Serviceman Details
@@ -4102,7 +5131,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, isExServiceman: e.target.value });
                     if (e.target.value === "yes") {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
                     }
                   }}
                   className="w-4 h-4 text-primary"
@@ -4137,7 +5166,7 @@ const renderReservationCategory = () => {
                   const value = e.target.value === "" ? "" : String(Math.min(30, Math.max(0, Number(e.target.value))));
                   setReservationCategory({ ...reservationCategory, exServicemanYears: value });
                   if (value && parseInt(value) >= 0 && parseInt(value) <= 30) {
-                    setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
+                    setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], exServicemanYears: "" } }));
                   }
                 }}
                 placeholder="0-30"
@@ -4149,6 +5178,7 @@ const renderReservationCategory = () => {
         </div>
       </div>
 
+      {/* Sports Quota Details */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-bold text-primary uppercase tracking-wider border-b border-slate-200 pb-3 mb-5">
           Sports Quota Details
@@ -4168,7 +5198,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, isSportsQuota: e.target.value });
                     if (e.target.value === "yes") {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsLevel: "", sportsAchievement: "" } }));
                     }
                   }}
                   className="w-4 h-4 text-primary"
@@ -4200,7 +5230,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsLevel: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsLevel: "" } }));
                     }
                   }}
                   className={`w-full h-12 border rounded-lg px-4 ${errors.sportsLevel ? 'border-red-500' : 'border-slate-300'}`}
@@ -4221,7 +5251,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsAchievement: e.target.value });
                     if (e.target.value.trim()) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsAchievement: "" } }));
                     }
                   }}
                   rows={2}
@@ -4241,7 +5271,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateNumber: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateNumber: "" } }));
                     }
                   }}
                   placeholder="Enter Sports Certificate Number"
@@ -4252,7 +5282,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Certificate Date Of Issue <span className="text-red-600">*</span>
+                  Certificate Date Of Issue <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
@@ -4260,7 +5290,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateIssueDate: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateIssueDate: "" } }));
                     }
                   }}
                   max={new Date().toISOString().split('T')[0]}
@@ -4271,7 +5301,7 @@ const renderReservationCategory = () => {
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Certificate Issued Authority<span className="text-red-600">*</span>
+                  Certificate Issued Authority <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -4279,7 +5309,7 @@ const renderReservationCategory = () => {
                   onChange={(e) => {
                     setReservationCategory({ ...reservationCategory, sportsCertificateAuthority: e.target.value });
                     if (e.target.value) {
-                      setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
+                      setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], sportsCertificateAuthority: "" } }));
                     }
                   }}
                   placeholder="Enter Certificate Issuing Authority (e.g., Sports Authority, District Sports Officer)"
@@ -4292,6 +5322,7 @@ const renderReservationCategory = () => {
         </div>
       </div>
 
+      {/* Declaration */}
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
         <label className="flex items-start gap-4 cursor-pointer">
           <input
@@ -4301,7 +5332,7 @@ const renderReservationCategory = () => {
               const isChecked = e.target.checked;
               setReservationCategory({ ...reservationCategory, declaration: isChecked });
               if (isChecked) {
-                setStepErrors(prev => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
+                setStepErrors((prev: any) => ({ ...prev, [1]: { ...prev[1], declaration: "" } }));
               }
             }}
             className="mt-1 w-5 h-5 border-slate-300 rounded text-primary shrink-0"
@@ -4316,7 +5347,6 @@ const renderReservationCategory = () => {
     </div>
   );
 };
-
 
 const renderEducationDetails = () => {
   const errors = stepErrors[2] || {};
