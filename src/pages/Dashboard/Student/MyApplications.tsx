@@ -563,13 +563,13 @@ const fetchPosts = async () => {
 
 // Call fetchPosts when entering step 3
 useEffect(() => {
-  if (currentStep === 3 && applicationId && postsList.length === 0) {
+  // Call fetchPosts when currentStep is 2, 3, or 4
+  if ((currentStep === 2 || currentStep === 3 || currentStep === 4) || applicationId && postsList.length === 0) {
     fetchPosts();
   }
 }, [currentStep, applicationId]);
 
   
-// Validation for Step 0 - Personal Info
 // Validation for Step 0 - Personal Info
 const validateStep0 = (): boolean => {
   const errors: { [field: string]: string } = {};
@@ -5854,14 +5854,15 @@ const renderPostPreference = () => {
 };
 
 
-
-
 const renderLanguageSelection = () => {
   const errors = stepErrors[4] || {};
   
-  // Get the first post from postsList to determine which post is selected
-  const selectedPost = postsList.length > 0 ? postsList[0] : null;
-  const postCode = selectedPost?.postCode?.toString() || "";
+  // Get the posts from postsList
+  const hasPost4 = postsList.some((post: any) => post?.postCode?.toString() === "4");
+  const hasPost7 = postsList.some((post: any) => post?.postCode?.toString() === "7");
+  
+  // Get the first post to determine which post code to display in info box
+  // const selectedPost = postsList.length > 0 ? postsList[0] : null;
   
   // Paper I - Both languages combined (read-only)
   const paperOneCombined = "Hindi, English";
@@ -5887,18 +5888,21 @@ const renderLanguageSelection = () => {
   
   // Paper III options based on post ID
   const getPaperThreeOptions = () => {
-    if (postCode === "4") {
-      return ["Mathematics", "Statistics", "Economics"];
-    } else if (postCode === "7") {
+    // If post 7 is present (either alone or with post 4), show all 4 subjects
+    if (hasPost7) {
       return ["Mathematics", "Statistics", "Economics", "Commerce"];
+    }
+    // If only post 4 is present
+    if (hasPost4) {
+      return ["Mathematics", "Statistics", "Economics"];
     }
     return [];
   };
 
   const paperThreeOptions = getPaperThreeOptions();
   
-  // Determine if Paper III should be shown (only for post 4 or 7)
-  const showPaperThree = postCode === "4" || postCode === "7";
+  // Determine if Paper III should be shown (if either post 4 or post 7 is present)
+  const showPaperThree = hasPost4 || hasPost7;
 
   // Handle Paper II change
   const handlePaperTwoChange = (value: string) => {
@@ -5985,7 +5989,7 @@ const renderLanguageSelection = () => {
           )}
         </div>
         
-        {/* Paper III - Conditional dropdown based on post code (only for post 4 or 7) */}
+        {/* Paper III - Conditional dropdown based on posts */}
         {showPaperThree ? (
           <div>
             <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -6026,14 +6030,14 @@ const renderLanguageSelection = () => {
         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-800 flex items-center gap-2">
             <Info className="w-4 h-4" />
-            {postCode === "4" && (
+            {hasPost4 && hasPost7 && (
+              <span>Posts: Both Post 4 and Post 7 - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
+            )}
+            {hasPost4 && !hasPost7 && (
               <span>Post: Block Statics Supervisor - Paper III subjects: Mathematics, Statistics, Economics</span>
             )}
-            {postCode === "7" && (
+            {hasPost7 && !hasPost4 && (
               <span>Post: [Post 7] - Paper III subjects: Mathematics, Statistics, Economics, Commerce</span>
-            )}
-            {postCode !== "4" && postCode !== "7" && (
-              <span>Current Post: Only Paper I and Paper II are required. Paper III is not applicable.</span>
             )}
           </p>
         </div>
@@ -6041,6 +6045,7 @@ const renderLanguageSelection = () => {
     </div>
   );
 };
+
 const renderFeePayment = () => {
   const totalFee = calculateTotalFee();
   
