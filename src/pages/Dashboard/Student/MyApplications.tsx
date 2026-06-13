@@ -397,7 +397,6 @@ import { toast } from "react-toastify";
 const MyApplications: React.FC = () => {
   // Add this with other state declarations
 const [registrationData, setRegistrationData] = useState<any>(null);
-// const [selectedPrimitiveTribeId, setSelectedPrimitiveTribeId] = useState<number | undefined>(undefined);
 console.log(registrationData)
   // Add this state near other API Data States
 const [postsList, setPostsList] = useState<any[]>([]);
@@ -669,54 +668,7 @@ const validateStep0 = (): boolean => {
 };
 
 
-// const validateStep1 = (): boolean => {
-//   const errors: { [field: string]: string } = {};
-  
-//   // Only require main category if Jharkhand Domicile is Yes OR if user manually selected a category
-//   if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.mainCategoryId) {
-//     errors.mainCategory = "Please select a category";
-//   } else if (reservationCategory.isJharkhandDomicile === "no" && !reservationCategory.mainCategoryId) {
-//     // If domicile is No, category should be auto-set to Unreserved (UR)
-//     // But still check if it's set
-//     if (!reservationCategory.mainCategoryId) {
-//       errors.mainCategory = "Please select a category";
-//     }
-//   }
-  
-//   if (!reservationCategory.isJharkhandDomicile) errors.isJharkhandDomicile = "Please select Jharkhand Domicile status";
-  
-//   if (reservationCategory.isJharkhandDomicile === "yes" && !reservationCategory.domicileCertificateNumber.trim()) {
-//     errors.domicileCertificateNumber = "Domicile certificate number is required";
-//   }
-  
-//   if (reservationCategory.isPwd === "yes") {
-//     if (!reservationCategory.pwdTypeId) errors.pwdType = "Please select disability type";
-//     if (!reservationCategory.pwdPercentage) errors.pwdPercentage = "Please enter disability percentage";
-//     const pwdPercent = parseInt(reservationCategory.pwdPercentage);
-//     if (pwdPercent < 40) errors.pwdPercentage = "Disability percentage must be at least 40%";
-//     if (!reservationCategory.pwdCertificateNumber.trim()) errors.pwdCertificateNumber = "PwD certificate number is required";
-//   }
-  
-//   if (reservationCategory.isExServiceman === "yes") {
-//     if (!reservationCategory.exServicemanYears) errors.exServicemanYears = "Please enter years of service";
-//     const years = parseInt(reservationCategory.exServicemanYears);
-//     if (years < 0 || years > 30) errors.exServicemanYears = "Years of service must be between 0 and 30";
-//   }
-  
-//   if (reservationCategory.isSportsQuota === "yes") {
-//     if (!reservationCategory.sportsLevel) errors.sportsLevel = "Please select sports level";
-//     if (!reservationCategory.sportsAchievement.trim()) errors.sportsAchievement = "Please describe your achievements";
-//     if (!reservationCategory.sportsCertificateNumber.trim()) errors.sportsCertificateNumber = "Sports certificate number is required";
-//   }
-  
-//   // Declaration is now required - Next button will be disabled if not checked
-//   if (!reservationCategory.declaration) errors.declaration = "Please accept the declaration";
-  
-//   setStepErrors(prev => ({ ...prev, [1]: errors }));
-//   return Object.keys(errors).length === 0;
-// };
 
-// Validation for Step 2 - Education Details
 
 
 
@@ -1801,46 +1753,7 @@ useEffect(() => {
     return age;
   };
 
-//   const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const dob = e.target.value;
-//     const age = calculateAge(dob);
-//     setPersonalInfo({ ...personalInfo, dob, age });
-//     // Clear DOB error when user selects a date
-//   if (dob) {
-//     const birthDate = new Date(dob);
-//     const today = new Date();
-//     let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-//     const monthDiff = today.getMonth() - birthDate.getMonth();
-//     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-//       calculatedAge--;
-//     }
-//     if (calculatedAge >= 21) {
-//       setStepErrors(prev => ({ 
-//         ...prev, 
-//         [0]: { ...prev[0], dob: "" } 
-//       }));
-//     }
-//   } else {
-//     setStepErrors(prev => ({ 
-//       ...prev, 
-//       [0]: { ...prev[0], dob: "Date of birth is required" } 
-//     }));
-//   }
-// };
-
-  // const handlePermanentStateChange = (stateId: number, stateName: string) => {
-  //   setPersonalInfo({
-  //     ...personalInfo,
-  //     permanentAddress: {
-  //       ...personalInfo.permanentAddress,
-  //       state: stateName,
-  //       stateId: stateId,
-  //       district: "",
-  //       districtId: undefined,
-  //     },
-  //   });
-  // };
-
+  
 const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const dob = e.target.value;
   const age = calculateAge(dob);
@@ -2177,23 +2090,6 @@ const sendEmailOtp = () => {
   };
 
   
-
-
-  // const calculateTotalFee = () => {
-  //   let fee = 100;
-  //   if (
-  //     reservationCategory.mainCategory === "sc" ||
-  //     reservationCategory.mainCategory === "st"
-  //   ) {
-  //     fee = 50;
-  //   }
-  //   if (reservationCategory.isPwd === "yes") {
-  //     fee = 0;
-  //   }
-  //   return fee;
-  // };
-
-  // Save Step 1 API call
   const saveStep1 = async () => {
     setSavingStep(true);
     const formatDateToDDMMYYYY = (dateString: string): string => {
@@ -2263,48 +2159,6 @@ const sendEmailOtp = () => {
     }
   };
 
-  // Save Step 2 API call
-// const saveStep2 = async () => {
-//   setSavingStep(true);
-  
-//   const payload = {
-//     reservationCategory: {
-//       mainCategory: reservationCategory.mainCategoryId || 0,
-//       subCategory: reservationCategory.subCategoryId || 0,
-//       categoryCertificateNumber: reservationCategory.categoryCertificateNumber,
-//       categoryCertificateAuthority: reservationCategory.categoryCertificateAuthority,
-//       isPwd: reservationCategory.isPwd === "yes",
-//       pwdType: reservationCategory.pwdTypeId || 0,
-//       pwdPercentage: reservationCategory.pwdPercentage,
-//       pwdCertificateNumber: reservationCategory.pwdCertificateNumber,
-//       pwdCertificateAuthority: reservationCategory.pwdCertificateAuthority,
-//       isExServiceman: reservationCategory.isExServiceman === "yes",
-//       exServicemanYears: reservationCategory.exServicemanYears,
-//       isSportsQuota: reservationCategory.isSportsQuota === "yes",
-//       sportsLevel: reservationCategory.sportsLevel,
-//       sportsAchievement: reservationCategory.sportsAchievement,
-//       sportsCertificateNumber: reservationCategory.sportsCertificateNumber,
-//       sportsCertificateAuthority: reservationCategory.sportsCertificateAuthority,
-//       isJharkhandDomicile: reservationCategory.isJharkhandDomicile === "yes",
-//       domicileCertificateNumber: reservationCategory.domicileCertificateNumber,
-//       domicileCertificateAuthority: reservationCategory.domicileCertificateAuthority,
-//       declaration: reservationCategory.declaration,
-//     },
-//   };
-
-//   try {
-//     const response = await apiService.saveStep2(payload);
-//     if (response.data.success) {
-//       toast.success(response.data.message);
-//       setCurrentStep(currentStep + 1);
-//     }
-//   } catch (error: any) {
-//     console.error("Error saving step 2:", error);
-//     toast.error(error.response?.data?.message || "Failed to save reservation details");
-//   } finally {
-//     setSavingStep(false);
-//   }
-// };
 
 const saveStep2 = async () => {
   setSavingStep(true);
@@ -2381,81 +2235,7 @@ const saveStep2 = async () => {
   }
 };
 
-  // Save Step 3 API call
-// const saveStep3 = async () => {
-//   setSavingStep(true);
-  
-//   const payload = {
-//     tenth: {
-//       board: education.tenth.board,
-//       percentage: education.tenth.percentage,
-//       totalMarks: education.tenth.totalMarks,
-//       marksObtained: education.tenth.marksObtained,
-//       passingCertificateNo: education.tenth.passingCertificateNo,
-//     },
-//     twelfth: {
-//       board: education.twelfth.board,
-//       percentage: education.twelfth.percentage,
-//       totalMarks: education.twelfth.totalMarks,
-//       marksObtained: education.twelfth.marksObtained,
-//       passingCertificateNo: education.twelfth.passingCertificateNo,
-//     },
-//     graduation: {
-//       graduationCourse: education.graduation.graduationCourseId || 0,
-//       university: education.graduation.university,
-//       percentage: education.graduation.percentage,
-//       specialization: education.graduation.specializationIds?.join(',') || '',
-//       totalMarks: education.graduation.totalMarks,
-//       marksObtained: education.graduation.marksObtained,
-//       passingCertificateNo: education.graduation.passingCertificateNo,
-//     },
-//     postGraduation: {
-//       hasPostGraduation: education.postGraduation.hasPostGraduation,
-//       university: education.postGraduation.university,
-//       percentage: education.postGraduation.percentage,
-//       subject: education.postGraduation.subjectIds?.join(',') || '',
-//       totalMarks: education.postGraduation.totalMarks,
-//       marksObtained: education.postGraduation.marksObtained,
-//       passingCertificateNo: education.postGraduation.passingCertificateNo,
-//     },
-//     experience: {
-//       hasExperience: education.experience.hasExperience,
-//       durationMonths: education.experience.durationMonths,
-//       durationYears: education.experience.durationYears,
-//       organization: education.experience.organization,
-//       designation: education.experience.designation,
-//       dateOfJoining: education.experience.dateOfJoining,
-//       relievingDate: education.experience.relievingDate,
-//       experienceLetterNo: education.experience.experienceLetterNo,
-//     },
-//   };
 
-//   try {
-//     const response = await apiService.saveStep3(payload);
-//     if (response.data.success) {
-//       toast.success(response.data.message);
-//       if (response.data.posts && response.data.posts.length > 0) {
-//         setDynamicPosts(response.data.posts);
-//         const initialRankings: { [key: number]: number } = {};
-//         response.data.posts.forEach((post: Post) => {
-//           initialRankings[post.postId] = 0;
-//         });
-//         setPostPreference(prev => ({
-//           ...prev,
-//           postRankings: initialRankings,
-//         }));
-//       }
-//       setCurrentStep(currentStep + 1);
-//     }
-//   } catch (error: any) {
-//     console.error("Error saving step 3:", error);
-//     toast.error(error.response?.data?.message || "Failed to save education details");
-//   } finally {
-//     setSavingStep(false);
-//   }
-// };
-
-// Save Step 3 API call
 const saveStep3 = async () => {
   setSavingStep(true);
   
@@ -2475,10 +2255,9 @@ const saveStep3 = async () => {
       passingCertificateNo: education.twelfth.passingCertificateNo,
     },
     graduation: {
-      graduationCourse: education.graduation.graduationCourseId || 0,
+      degreeId: education.graduation.graduationCourseId || 0,
       university: education.graduation.university,
       percentage: education.graduation.percentage,
-      // specialization: education.graduation.specializationIds?.join(',') || '',
       totalMarks: education.graduation.totalMarks,
       marksObtained: education.graduation.marksObtained,
       passingCertificateNo: education.graduation.passingCertificateNo,
